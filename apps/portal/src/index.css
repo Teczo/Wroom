@@ -1,0 +1,14 @@
+@import 'tailwindcss';
+
+/* Utility classes stay inline in components. This file holds only the base
+   layer — shared visual patterns become components, not @apply blocks. */
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-slate-50 text-slate-900 antialiased;
+  }
+}

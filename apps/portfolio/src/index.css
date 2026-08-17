@@ -1,0 +1,11 @@
+@import 'tailwindcss';
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-white text-slate-900 antialiased;
+  }
+}

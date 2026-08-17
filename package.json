@@ -1,0 +1,28 @@
+{
+  "name": "wroom",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=20.19"
+  },
+  "scripts": {
+    "prepare": "npm run build --workspace @wroom/shared",
+    "dev:api": "npm run dev --workspace @wroom/api",
+    "dev:portal": "npm run dev --workspace @wroom/portal",
+    "dev:portfolio": "npm run dev --workspace @wroom/portfolio",
+    "build": "npm run build --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.13.0",
+    "eslint": "^9.13.0",
+    "typescript": "^5.6.0",
+    "typescript-eslint": "^8.11.0"
+  }
+}

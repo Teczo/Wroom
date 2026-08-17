@@ -1,0 +1,98 @@
+import { VISIBILITIES, type Project } from '@wroom/shared';
+
+import { Button } from '../../components/Button';
+import { Field, inputClasses } from '../../components/Field';
+import { ApiRequestError } from '../../lib/api';
+import { humanise, shortDate } from '../../lib/format';
+import { usePublishProject, useUnpublishProject, useUpdateProject } from './api';
+
+/**
+ * Publishing is an explicit action that writes the portfolio snapshot. Saving a
+ * project never publishes it, and the visibility control below only changes one
+ * of the three gates — the API still decides.
+ */
+export function PublishPanel({ project }: { project: Project }) {
+  const update = useUpdateProject(project._id);
+  const publish = usePublishProject(project._id);
+  const unpublish = useUnpublishProject(project._id);
+
+  const blockedReasons =
+    publish.error instanceof ApiRequestError && Array.isArray(publish.error.details?.reasons)
+      ? (publish.error.details.reasons as string[])
+      : [];
+
+  return (
+    <section className="rounded-xl border border-slate-200 bg-white p-4">
+      <h3 className="text-sm font-semibold text-slate-900">Portfolio</h3>
+      <p className="mt-1 text-xs text-slate-500">
+        {project.portfolio.publishedAt
+          ? `Published ${shortDate(project.portfolio.publishedAt)}. Republish to push your latest changes.`
+          : 'Not published. Nothing reaches the public site until you publish it here.'}
+      </p>
+
+      <div className="mt-4 max-w-xs">
+        <Field label="Visibility" htmlFor="portfolio-visibility">
+          <select
+            id="portfolio-visibility"
+            className={inputClasses}
+            value={project.portfolio.visibility}
+            disabled={update.isPending}
+            onChange={(event) =>
+              update.mutate({ portfolio: { visibility: event.target.value } })
+            }
+          >
+            {VISIBILITIES.map((value) => (
+              <option key={value} value={value}>
+                {humanise(value)}
+              </option>
+            ))}
+          </select>
+        </Field>
+      </div>
+
+      {blockedReasons.length > 0 ? (
+        <ul className="mt-4 space-y-1 rounded-lg bg-amber-50 p-3 text-xs text-amber-900">
+          {blockedReasons.map((reason) => (
+            <li key={reason}>{reason}</li>
+          ))}
+        </ul>
+      ) : null}
+
+      {publish.isError && blockedReasons.length === 0 ? (
+        <p className="mt-4 text-xs text-red-600">
+          {publish.error instanceof ApiRequestError
+            ? publish.error.message
+            : 'That could not be published.'}
+        </p>
+      ) : null}
+
+      {unpublish.isError ? (
+        <p className="mt-4 text-xs text-red-600">
+          {unpublish.error instanceof ApiRequestError
+            ? unpublish.error.message
+            : 'That could not be unpublished.'}
+        </p>
+      ) : null}
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Button onClick={() => publish.mutate()} disabled={publish.isPending}>
+          {publish.isPending
+            ? 'Publishing…'
+            : project.portfolio.publishedAt
+              ? 'Republish'
+              : 'Publish to portfolio'}
+        </Button>
+
+        {project.portfolio.publishedAt ? (
+          <Button
+            variant="secondary"
+            onClick={() => unpublish.mutate()}
+            disabled={unpublish.isPending}
+          >
+            {unpublish.isPending ? 'Removing…' : 'Unpublish'}
+          </Button>
+        ) : null}
+      </div>
+    </section>
+  );
+}
