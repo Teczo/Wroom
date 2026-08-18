@@ -13,6 +13,8 @@ import { EnvironmentsPanel } from '../../features/environments/EnvironmentsPanel
 import { ProjectLinksPanel } from '../../features/links/ProjectLinksPanel';
 import { NotesPanel } from '../../features/notes/NotesPanel';
 import { FeatureBoard } from '../../features/features/FeatureBoard';
+import { CsvTemplateButton } from '../../features/features/CsvTemplateButton';
+import { FeatureImport } from '../../features/features/FeatureImport';
 import { ProjectEditForm } from '../../features/projects/ProjectEditForm';
 import { ProjectLifecycle } from '../../features/projects/ProjectLifecycle';
 import { PublishPanel } from '../../features/projects/PublishPanel';
@@ -113,6 +115,7 @@ export function ProjectDetailPage() {
   const { id = '' } = useParams();
   const project = useProject(id);
   const [tab, setTab] = useState<Tab>('Overview');
+  const [importing, setImporting] = useState(false);
 
   if (project.isPending) {
     return (
@@ -170,13 +173,33 @@ export function ProjectDetailPage() {
       {tab === 'Overview' ? <Overview project={project.data} /> : null}
       {tab === 'Features' ? (
         <div className="space-y-4">
-          <div className="flex justify-end">
+          <div className="flex flex-wrap items-start justify-end gap-2">
+            <CsvTemplateButton />
+            <Button
+              variant="secondary"
+              className="min-h-9 text-xs"
+              onClick={() => setImporting((current) => !current)}
+            >
+              {importing ? 'Close import' : 'Import CSV'}
+            </Button>
             <Link to={`/projects/${id}/board`}>
               <Button variant="secondary" className="min-h-9 text-xs">
                 Open the board
               </Button>
             </Link>
           </div>
+
+          <p className="text-right text-xs text-slate-500">
+            The template has one example row — delete it before importing. In{' '}
+            <span className="font-mono">labels</span> and{' '}
+            <span className="font-mono">dependsOn</span>, separate several values with a semicolon;{' '}
+            <span className="font-mono">dependsOn</span> holds the refs of other features.
+          </p>
+
+          {importing ? (
+            <FeatureImport projectId={id} onDone={() => setImporting(false)} />
+          ) : null}
+
           <FeatureBoard projectId={id} />
         </div>
       ) : null}

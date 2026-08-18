@@ -2,6 +2,19 @@
 
 ## 2026-08-19
 
+- WRM-029 — A blank CSV template is one tap from the features page, with the
+  column headers already correct and one example row showing the format. The
+  help text next to it says to delete that row before importing.
+- WRM-028 — Features can be imported from a CSV. Pick the file and Wroom shows
+  exactly what it would do before touching anything: what gets added, what gets
+  updated with the old and new value side by side, what it cannot read and why,
+  and what it will leave alone.
+- Rows match on their ref, so re-running the same file updates rather than
+  duplicating, and a feature missing from the file is never deleted.
+- A bad row fails on its own — the rest still import, once you confirm you are
+  happy to skip it — and either the whole import lands or none of it does.
+- Adds papaparse to the API for reading the files.
+
 - WRM-027 — A feature can record what it waits on, and the board shows it: a
   card with something outstanding says what it is waiting for, and the panel on
   each card lists both what blocks it and what it blocks.

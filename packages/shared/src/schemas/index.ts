@@ -9,3 +9,4 @@ export * from './credential.js';
 export * from './projectLink.js';
 export * from './note.js';
 export * from './decision.js';
+export * from './featureImport.js';
