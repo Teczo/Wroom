@@ -1,25 +1,18 @@
-import { PROJECT_STATUSES } from '@wroom/shared';
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { Button } from '../../components/Button';
-import { inputClasses } from '../../components/Field';
 import { PageHeader } from '../../components/PageHeader';
 import { Pill, ProjectStatusPill } from '../../components/Pill';
 import { EmptyState, ErrorState, LoadingState } from '../../components/StateViews';
+import { ProjectFilters, useProjectFilters } from '../../features/projects/ProjectFilters';
 import { useProjects } from '../../features/projects/api';
-import { humanise, money, relativeDate } from '../../lib/format';
+import { money, relativeDate } from '../../lib/format';
 
 export function ProjectsPage() {
-  const [status, setStatus] = useState('');
-  const [search, setSearch] = useState('');
+  const { filters, hasFilters, clearAll } = useProjectFilters();
+  const projects = useProjects(filters);
 
-  const projects = useProjects({
-    status: status || undefined,
-    q: search.trim() || undefined,
-  });
-
-  const isFiltered = status !== '' || search.trim() !== '';
+  const isFiltered = hasFilters;
 
   return (
     <>
@@ -32,28 +25,7 @@ export function ProjectsPage() {
         }
       />
 
-      <div className="mb-5 flex flex-col gap-2 sm:flex-row">
-        <input
-          className={inputClasses}
-          placeholder="Search by name"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          aria-label="Search projects"
-        />
-        <select
-          className={`${inputClasses} sm:w-48`}
-          value={status}
-          onChange={(event) => setStatus(event.target.value)}
-          aria-label="Filter by status"
-        >
-          <option value="">All statuses</option>
-          {PROJECT_STATUSES.map((value) => (
-            <option key={value} value={value}>
-              {humanise(value)}
-            </option>
-          ))}
-        </select>
-      </div>
+      <ProjectFilters total={projects.data?.meta.total} />
 
       {projects.isPending ? <LoadingState label="Loading projects…" /> : null}
 
@@ -64,16 +36,10 @@ export function ProjectsPage() {
       {projects.isSuccess && projects.data.items.length === 0 ? (
         isFiltered ? (
           <EmptyState
-            title="Nothing matches those filters"
-            whatToDoNext="Clear the search or pick a different status to see the rest of your projects."
+            title="Nothing matches these filters"
+            whatToDoNext="No project matches every filter you have on. Clear them to see the rest of your projects."
             action={
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  setSearch('');
-                  setStatus('');
-                }}
-              >
+              <Button variant="secondary" onClick={clearAll}>
                 Clear filters
               </Button>
             }
@@ -94,11 +60,15 @@ export function ProjectsPage() {
       {projects.isSuccess && projects.data.items.length > 0 ? (
         <ul className="grid gap-3 sm:grid-cols-2">
           {projects.data.items.map((project) => (
-            <li key={project._id}>
-              <Link
-                to={`/projects/${project._id}`}
-                className="block h-full rounded-xl border border-slate-200 bg-white p-4 hover:border-slate-300 hover:shadow-sm"
-              >
+            <li
+              key={project._id}
+              className={`flex h-full flex-col rounded-xl border hover:border-slate-300 hover:shadow-sm ${
+                project.status === 'archived'
+                  ? 'border-dashed border-slate-300 bg-slate-50 opacity-75'
+                  : 'border-slate-200 bg-white'
+              }`}
+            >
+              <Link to={`/projects/${project._id}`} className="block flex-1 p-4 pb-0">
                 <div className="flex items-start justify-between gap-2">
                   <p className="min-w-0 truncate text-sm font-semibold text-slate-900">
                     {project.name}
@@ -128,6 +98,27 @@ export function ProjectsPage() {
                   {project.portfolio.publishedAt ? <Pill label="Published" tone="green" /> : null}
                 </div>
               </Link>
+
+              {/* Outside the card link — an anchor cannot be nested in an anchor. */}
+              <p className="flex items-center gap-1.5 px-4 pb-4 pt-2 text-xs">
+                {project.primaryEnvironment?.publicUrl ? (
+                  <>
+                    <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 font-medium text-slate-600">
+                      {project.primaryEnvironment.name}
+                    </span>
+                    <a
+                      href={project.primaryEnvironment.publicUrl}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      className="truncate text-blue-700 underline underline-offset-2 hover:text-blue-900"
+                    >
+                      {project.primaryEnvironment.publicUrl.replace(/^https?:\/\//, '')}
+                    </a>
+                  </>
+                ) : (
+                  <span className="text-slate-400">No environment URL</span>
+                )}
+              </p>
             </li>
           ))}
         </ul>

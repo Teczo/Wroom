@@ -1,8 +1,9 @@
 import type { Infer, environmentCreateShape, serviceCreateShape } from '@wroom/shared';
 
+import { AccountModel } from '../models/Account.js';
 import { EnvironmentModel, type EnvironmentDocument } from '../models/Environment.js';
 import { ServiceModel, type ServiceDocument } from '../models/Service.js';
-import { ConflictError, NotFoundError, UnprocessableError } from '../utils/errors.js';
+import { ConflictError, NotFoundError, ValidationError } from '../utils/errors.js';
 import { getProject } from './projectService.js';
 
 type EnvironmentInput = Infer<typeof environmentCreateShape>;
@@ -41,7 +42,16 @@ export async function createEnvironment(
     throw new ConflictError(`This project already has a '${input.name}' environment.`);
   }
 
-  const environment = await EnvironmentModel.create({ ...input, projectId });
+  // The first environment is the primary one whether or not you said so —
+  // a project with environments but no primary has nothing to show on its card.
+  const isFirst = (await EnvironmentModel.countDocuments({ projectId })) === 0;
+
+  const environment = await EnvironmentModel.create({
+    ...input,
+    projectId,
+    isPrimary: isFirst || input.isPrimary,
+  });
+
   if (environment.isPrimary) await demoteOtherPrimaries(projectId, String(environment._id));
 
   return environment;
@@ -116,6 +126,7 @@ export async function createService(
 ): Promise<ServiceDocument> {
   await getProject(projectId);
   await assertEnvironmentBelongsToProject(projectId, input.environmentId);
+  await assertAccountExists(input.accountId);
 
   return ServiceModel.create({ ...input, projectId });
 }
@@ -130,6 +141,9 @@ export async function updateService(
   if (input.environmentId && input.environmentId !== String(service.environmentId)) {
     await assertEnvironmentBelongsToProject(projectId, input.environmentId);
   }
+  if (input.accountId && input.accountId !== String(service.accountId)) {
+    await assertAccountExists(input.accountId);
+  }
 
   service.set(input);
   await service.save();
@@ -141,14 +155,31 @@ export async function deleteService(projectId: string, id: string): Promise<void
   await service.deleteOne();
 }
 
+/**
+ * Both reference checks answer 400 with the offending field named, as WRM-015
+ * specifies. A bad reference is a bad request, and the portal reads the field
+ * name straight onto the input that caused it.
+ */
 async function assertEnvironmentBelongsToProject(
   projectId: string,
   environmentId: string,
 ): Promise<void> {
   const exists = await EnvironmentModel.exists({ _id: environmentId, projectId });
   if (!exists) {
-    throw new UnprocessableError('That environment does not belong to this project.', {
-      environmentId,
+    throw new ValidationError('That environment does not belong to this project.', {
+      environmentId: 'That environment does not belong to this project.',
+    });
+  }
+}
+
+/** A service may sit on no account, but not on one that does not exist. */
+async function assertAccountExists(accountId: string | null | undefined): Promise<void> {
+  if (!accountId) return;
+
+  const exists = await AccountModel.exists({ _id: accountId });
+  if (!exists) {
+    throw new ValidationError('That account does not exist.', {
+      accountId: 'That account does not exist.',
     });
   }
 }

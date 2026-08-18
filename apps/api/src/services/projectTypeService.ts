@@ -70,17 +70,34 @@ function isVisible(
   return details[showIf.field] === showIf.equals;
 }
 
+function isEmptyValue(value: unknown): boolean {
+  return (
+    value === undefined ||
+    value === null ||
+    value === '' ||
+    (Array.isArray(value) && value.length === 0)
+  );
+}
+
+/** What a details validation kept, and what it had to throw away. */
+export type ValidatedDetails = {
+  details: Record<string, unknown>;
+  /** Keys that held a real value but have no field on the target type. */
+  droppedKeys: string[];
+};
+
 /**
  * Validates `projects.details` against the project type's `fieldDefs`.
  *
  * This is the schema-driven half of the form contract: the portal renders from
  * the same definitions, so the two cannot drift. Keys with no matching fieldDef
- * are dropped rather than stored.
+ * are dropped rather than stored — and reported back, because on a type change
+ * that is data leaving the record and the caller has to be able to say so.
  */
 export async function validateProjectDetails(
   projectTypeKey: string,
   details: Record<string, unknown>,
-): Promise<Record<string, unknown>> {
+): Promise<ValidatedDetails> {
   const projectType = await getProjectTypeByKey(projectTypeKey);
 
   const clean: Record<string, unknown> = {};
@@ -91,11 +108,7 @@ export async function validateProjectDetails(
     if (!isVisible(fieldDef.showIf, details)) continue;
 
     const value = details[key];
-    const isEmpty =
-      value === undefined ||
-      value === null ||
-      value === '' ||
-      (Array.isArray(value) && value.length === 0);
+    const isEmpty = isEmptyValue(value);
 
     if (isEmpty) {
       if (required) problems[`details.${key}`] = `${label} is required.`;
@@ -117,5 +130,9 @@ export async function validateProjectDetails(
     );
   }
 
-  return clean;
+  const droppedKeys = Object.keys(details).filter(
+    (key) => !(key in clean) && !isEmptyValue(details[key]),
+  );
+
+  return { details: clean, droppedKeys };
 }

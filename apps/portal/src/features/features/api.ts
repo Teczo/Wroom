@@ -1,10 +1,10 @@
-import type { Feature, FeatureStatus } from '@wroom/shared';
+import type { Feature, FeatureStatus, ListMeta } from '@wroom/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { apiDelete, apiList, apiPatch, apiPost } from '../../lib/api';
 import { projectKeys } from '../projects/api';
 
-const featureKeys = {
+export const featureKeys = {
   list: (projectId: string) => ['projects', projectId, 'features'] as const,
 };
 
@@ -47,12 +47,70 @@ export function useUpdateFeature(projectId: string) {
   );
 }
 
+type Move = {
+  id: string;
+  status: FeatureStatus;
+  order: number;
+  /** Required by the API when moving into `blocked`. */
+  blockedReason?: string | null;
+};
+type FeatureList = { items: Feature[]; meta: ListMeta };
+
+/**
+ * The card moves the instant it is dropped, then the server confirms. If the
+ * write fails the board snaps back to exactly what it looked like before, so a
+ * rejected move is visible rather than silently lost.
+ */
 export function useMoveFeature(projectId: string) {
-  return useFeatureMutation(
-    projectId,
-    ({ id, status, order }: { id: string; status: FeatureStatus; order: number }) =>
-      apiPatch<Feature>(`/api/projects/${projectId}/features/${id}/move`, { status, order }),
-  );
+  const client = useQueryClient();
+  const key = featureKeys.list(projectId);
+
+  return useMutation({
+    mutationFn: ({ id, status, order, blockedReason }: Move) =>
+      apiPatch<Feature>(`/api/projects/${projectId}/features/${id}/move`, {
+        status,
+        order,
+        blockedReason: blockedReason ?? null,
+      }),
+
+    onMutate: async (move: Move) => {
+      // Stop an in-flight refetch from overwriting the optimistic board.
+      await client.cancelQueries({ queryKey: key });
+      const previous = client.getQueryData<FeatureList>(key);
+
+      client.setQueryData<FeatureList>(key, (current) =>
+        current === undefined
+          ? current
+          : {
+              ...current,
+              items: current.items.map((feature) =>
+                feature._id === move.id
+                  ? {
+                      ...feature,
+                      status: move.status,
+                      order: move.order,
+                      blockedReason:
+                        move.status === 'blocked' ? (move.blockedReason ?? null) : null,
+                    }
+                  : feature,
+              ),
+            },
+      );
+
+      return { previous };
+    },
+
+    onError: (_error, _move, context) => {
+      if (context?.previous) client.setQueryData(key, context.previous);
+    },
+
+    onSettled: async () => {
+      await Promise.all([
+        client.invalidateQueries({ queryKey: key }),
+        client.invalidateQueries({ queryKey: projectKeys.detail(projectId) }),
+      ]);
+    },
+  });
 }
 
 export function useDeleteFeature(projectId: string) {

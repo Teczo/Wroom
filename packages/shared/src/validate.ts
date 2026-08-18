@@ -171,6 +171,24 @@ export function enumOf<T extends string>(values: readonly T[]): Validator<T> {
 
 // --- combinators ------------------------------------------------------------
 
+/**
+ * A query parameter that may be absent, given once, or repeated. Express hands
+ * back a bare string for one value and an array for several; both mean the same
+ * thing, so both become a list. Values within one parameter are an OR.
+ */
+export function repeatable<T>(item: Validator<T>): Validator<T[]> {
+  return {
+    isOptional: true,
+    run(input, path, issues) {
+      if (input === undefined || input === '') return [];
+      const entries = Array.isArray(input) ? input : [input];
+      return entries
+        .filter((entry) => entry !== '')
+        .map((entry) => item.run(entry, path, issues));
+    },
+  };
+}
+
 export function arrayOf<T>(item: Validator<T>, options: { max?: number } = {}): Validator<T[]> {
   return {
     run(input, path, issues) {
@@ -263,6 +281,64 @@ export function object<S extends Shape>(shape: S): Validator<Infer<S>> {
         output[key] = validator.run(raw, childPath, issues);
       }
       return output as Infer<S>;
+    },
+  };
+}
+
+/**
+ * Property names that suggest someone is trying to store a secret value.
+ * Matched loosely, because the point is to catch the attempt however it is
+ * spelled — `apiKey`, `api_key`, `connectionString` and `pwd` all count.
+ */
+const SECRET_NAME = /(secret|password|passwd|pwd|token|api[-_]?key|access[-_]?key|private[-_]?key|connection[-_]?string|credential|^key$|^value$)/i;
+
+export const SECRET_FIELD_MESSAGE =
+  'This collection records where a credential lives, never the credential itself. Remove this field.';
+
+export function looksLikeSecretField(name: string): boolean {
+  return SECRET_NAME.test(name);
+}
+
+function rejectUnknownKeys(shape: Shape, input: unknown, path: string, issues: Issue[]): void {
+  if (input === null || typeof input !== 'object' || Array.isArray(input)) return;
+
+  for (const key of Object.keys(input as Record<string, unknown>)) {
+    if (Object.prototype.hasOwnProperty.call(shape, key)) continue;
+
+    const childPath = path === '' ? key : `${path}.${key}`;
+    fail(
+      issues,
+      childPath,
+      looksLikeSecretField(key) ? SECRET_FIELD_MESSAGE : 'is not a field on this record',
+    );
+  }
+}
+
+/**
+ * `object`, but an unknown property is an error rather than something quietly
+ * dropped. Used where silently accepting a field you did not store would be
+ * worse than refusing the request — `credentials` above all, where a dropped
+ * `value` key would look to the caller like their secret had been saved.
+ */
+export function strictObject<S extends Shape>(shape: S): Validator<Infer<S>> {
+  const inner = object(shape);
+
+  return {
+    run(input, path, issues) {
+      rejectUnknownKeys(shape, input, path, issues);
+      return inner.run(input, path, issues);
+    },
+  };
+}
+
+/** The PATCH counterpart of `strictObject`. */
+export function strictPartial<S extends Shape>(shape: S): Validator<Partial<Infer<S>>> {
+  const inner = partial(shape);
+
+  return {
+    run(input, path, issues) {
+      rejectUnknownKeys(shape, input, path, issues);
+      return inner.run(input, path, issues);
     },
   };
 }

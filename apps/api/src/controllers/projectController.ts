@@ -1,28 +1,40 @@
 import type { RequestHandler } from 'express';
 
 import { currentUser } from '../middleware/auth.js';
-import { validated } from '../middleware/validate.js';
+import type { ProjectListQuery } from '@wroom/shared';
+
+import { validated, validatedQuery } from '../middleware/validate.js';
 import * as projectService from '../services/projectService.js';
 import * as publishService from '../services/publishService.js';
-import { parsePagination, queryString, sendData, sendList } from '../utils/http.js';
+import { sendData, sendList } from '../utils/http.js';
 
 export const list: RequestHandler = async (req, res) => {
-  const pagination = parsePagination(req);
+  const query = validatedQuery<ProjectListQuery>(req);
+  const { page, limit } = query;
+
   const { items, total } = await projectService.listProjects(
     {
-      productId: queryString(req, 'productId'),
-      status: queryString(req, 'status'),
-      projectTypeKey: queryString(req, 'projectTypeKey'),
-      search: queryString(req, 'q'),
+      productId: query.productId,
+      status: query.status,
+      projectTypeKey: query.projectTypeKey,
+      tag: query.tag,
+      search: query.q,
+      includeArchived: query.includeArchived,
     },
-    pagination,
+    { page, limit, skip: (page - 1) * limit },
   );
 
-  sendList(res, items, { total, page: pagination.page, limit: pagination.limit });
+  sendList(res, items, { total, page, limit });
+};
+
+/** Powers the tag filter — the tags that exist, not a managed vocabulary. */
+export const listTags: RequestHandler = async (_req, res) => {
+  const tags = await projectService.listProjectTags();
+  sendList(res, tags, { total: tags.length, page: 1, limit: tags.length });
 };
 
 export const get: RequestHandler = async (req, res) => {
-  sendData(res, await projectService.getProject(req.params.id as string));
+  sendData(res, await projectService.getProjectResponse(req.params.id as string));
 };
 
 export const create: RequestHandler = async (req, res) => {
@@ -31,8 +43,11 @@ export const create: RequestHandler = async (req, res) => {
 };
 
 export const update: RequestHandler = async (req, res) => {
-  const project = await projectService.updateProject(req.params.id as string, validated(req));
-  sendData(res, project);
+  const { project, droppedDetailKeys } = await projectService.updateProject(
+    req.params.id as string,
+    validated(req),
+  );
+  sendData(res, project, 200, { droppedDetailKeys });
 };
 
 export const remove: RequestHandler = async (req, res) => {

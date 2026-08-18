@@ -2,17 +2,26 @@ import type { Project } from '@wroom/shared';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
+import { Button } from '../../components/Button';
 import { PageHeader } from '../../components/PageHeader';
 import { Pill, ProjectStatusPill } from '../../components/Pill';
 import { ErrorState, LoadingState } from '../../components/StateViews';
 import { CostsPanel } from '../../features/costs/CostsPanel';
+import { ProjectCredentials } from '../../features/credentials/ProjectCredentials';
+import { DecisionsPanel } from '../../features/decisions/DecisionsPanel';
+import { EnvironmentsPanel } from '../../features/environments/EnvironmentsPanel';
+import { ProjectLinksPanel } from '../../features/links/ProjectLinksPanel';
+import { NotesPanel } from '../../features/notes/NotesPanel';
 import { FeatureBoard } from '../../features/features/FeatureBoard';
+import { ProjectEditForm } from '../../features/projects/ProjectEditForm';
+import { ProjectLifecycle } from '../../features/projects/ProjectLifecycle';
 import { PublishPanel } from '../../features/projects/PublishPanel';
+import { ServicesPanel } from '../../features/services/ServicesPanel';
 import { useProject } from '../../features/projects/api';
 import { TimePanel } from '../../features/time/TimePanel';
 import { hours, money, relativeDate, shortDate } from '../../lib/format';
 
-const tabs = ['Overview', 'Features', 'Costs', 'Time'] as const;
+const tabs = ['Overview', 'Features', 'Costs', 'Time', 'Edit'] as const;
 type Tab = (typeof tabs)[number];
 
 function Overview({ project }: { project: Project }) {
@@ -83,6 +92,18 @@ function Overview({ project }: { project: Project }) {
         ) : null}
       </section>
 
+      <EnvironmentsPanel projectId={project._id} />
+
+      <ServicesPanel projectId={project._id} projectTypeKey={project.projectTypeKey} />
+
+      <ProjectCredentials projectId={project._id} />
+
+      <ProjectLinksPanel projectId={project._id} />
+
+      <NotesPanel projectId={project._id} />
+
+      <DecisionsPanel projectId={project._id} />
+
       <PublishPanel project={project} />
     </div>
   );
@@ -147,9 +168,26 @@ export function ProjectDetailPage() {
       </div>
 
       {tab === 'Overview' ? <Overview project={project.data} /> : null}
-      {tab === 'Features' ? <FeatureBoard projectId={id} /> : null}
+      {tab === 'Features' ? (
+        <div className="space-y-4">
+          <div className="flex justify-end">
+            <Link to={`/projects/${id}/board`}>
+              <Button variant="secondary" className="min-h-9 text-xs">
+                Open the board
+              </Button>
+            </Link>
+          </div>
+          <FeatureBoard projectId={id} />
+        </div>
+      ) : null}
       {tab === 'Costs' ? <CostsPanel projectId={id} /> : null}
       {tab === 'Time' ? <TimePanel projectId={id} /> : null}
+      {tab === 'Edit' ? (
+        <div className="space-y-8">
+          <ProjectEditForm project={project.data} />
+          <ProjectLifecycle project={project.data} />
+        </div>
+      ) : null}
     </>
   );
 }

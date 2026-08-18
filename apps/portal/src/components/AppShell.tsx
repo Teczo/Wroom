@@ -8,6 +8,8 @@ const navigation = [
   { to: '/', label: 'Dashboard', end: true },
   { to: '/projects', label: 'Projects', end: false },
   { to: '/products', label: 'Products', end: false },
+  { to: '/accounts', label: 'Accounts', end: false },
+  { to: '/credentials', label: 'Keys', end: false },
 ];
 
 function SignOutButton() {

@@ -6,8 +6,13 @@ import type { Request, Response } from 'express';
  * `{ data, meta }` — see CLAUDE.md §6.
  */
 
-export function sendData<T>(res: Response, data: T, status = 200): void {
-  res.status(status).json({ data });
+export function sendData<T>(
+  res: Response,
+  data: T,
+  status = 200,
+  meta?: Record<string, unknown>,
+): void {
+  res.status(status).json(meta === undefined ? { data } : { data, meta });
 }
 
 export function sendList<T>(

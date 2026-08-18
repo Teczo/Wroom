@@ -24,3 +24,27 @@ export function validateBody<T>(schema: Validator<T>): RequestHandler {
 export function validated<T>(req: Request): T {
   return (req as Request & { validated: T }).validated;
 }
+
+/**
+ * The same treatment for `req.query`. A filter value the API does not recognise
+ * is a 400 naming the parameter — never a silently empty list, which looks
+ * identical to "nothing matched" and hides the typo that caused it.
+ */
+export function validateQuery<T>(schema: Validator<T>): RequestHandler {
+  return (req, _res, next) => {
+    const result = validate(schema, req.query);
+    if (!result.ok) {
+      next(
+        new ValidationError('Those filters are not valid.', issuesToDetails(result.issues)),
+      );
+      return;
+    }
+    (req as Request & { validatedQuery?: unknown }).validatedQuery = result.value;
+    next();
+  };
+}
+
+/** Reads what `validateQuery` parsed. Call only on a route that used it. */
+export function validatedQuery<T>(req: Request): T {
+  return (req as Request & { validatedQuery: T }).validatedQuery;
+}

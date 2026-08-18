@@ -5,3 +5,7 @@ export * from './cost.js';
 export * from './timeEntry.js';
 export * from './asset.js';
 export * from './infrastructure.js';
+export * from './credential.js';
+export * from './projectLink.js';
+export * from './note.js';
+export * from './decision.js';
