@@ -3,6 +3,7 @@ import { Router } from 'express';
 
 import { requestUpload } from '../controllers/assetController.js';
 import * as dashboard from '../controllers/dashboardController.js';
+import * as featureController from '../controllers/featureController.js';
 import * as meta from '../controllers/metaController.js';
 import { loadCurrentUser, requireAuth } from '../middleware/auth.js';
 import { validateBody } from '../middleware/validate.js';
@@ -24,6 +25,9 @@ export const apiRouter: Router = Router();
 apiRouter.use(requireAuth, loadCurrentUser);
 
 apiRouter.get('/me', meta.me);
+
+/** Not under a project — the template is the same blank file for all of them. */
+apiRouter.get('/features/csv-template', featureController.csvTemplate);
 apiRouter.get('/dashboard', dashboard.summary);
 apiRouter.get('/project-types', meta.listTypes);
 apiRouter.get('/project-types/:key', meta.getType);

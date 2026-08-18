@@ -310,6 +310,72 @@ export type Feature = Timestamps & {
   dependents?: FeatureSummary[];
 };
 
+/** The nine documented CSV columns. Anything else is reported and ignored. */
+export const FEATURE_CSV_COLUMNS = [
+  'ref',
+  'title',
+  'description',
+  'acceptanceCriteria',
+  'status',
+  'priority',
+  'size',
+  'labels',
+  'dependsOn',
+] as const;
+
+export type FeatureCsvColumn = (typeof FEATURE_CSV_COLUMNS)[number];
+
+/** One field an update would change, as the preview shows it. */
+export type ImportFieldChange = {
+  field: string;
+  from: string;
+  to: string;
+};
+
+export type ImportInsertRow = {
+  row: number;
+  ref: string;
+  title: string;
+  status: FeatureStatus;
+};
+
+export type ImportUpdateRow = {
+  row: number;
+  ref: string;
+  featureId: Id;
+  title: string;
+  changes: ImportFieldChange[];
+};
+
+export type ImportInvalidRow = {
+  row: number;
+  ref: string;
+  /** The column at fault, when one column is to blame. */
+  column: string | null;
+  reason: string;
+};
+
+/** A feature already on the project that the file says nothing about. */
+export type ImportUnaffectedRow = {
+  ref: string;
+  title: string;
+};
+
+export type FeatureImportDiff = {
+  inserts: ImportInsertRow[];
+  updates: ImportUpdateRow[];
+  invalid: ImportInvalidRow[];
+  unaffected: ImportUnaffectedRow[];
+  /** Column headers in the file that are not one of the documented nine. */
+  unknownColumns: string[];
+};
+
+export type FeatureImportResult = {
+  inserted: number;
+  updated: number;
+  skipped: number;
+};
+
 export type Cost = Timestamps & {
   _id: Id;
   projectId: Id;

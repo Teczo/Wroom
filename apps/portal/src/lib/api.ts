@@ -88,6 +88,43 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   return payload as T;
 }
 
+/**
+ * Fetches a file and hands it to the browser to save.
+ *
+ * It cannot be a plain link: `/api/*` needs the bearer token, and an anchor
+ * sends no headers. So the file is fetched, turned into a blob, and given to a
+ * throwaway anchor — which is how a phone browser saves a file too.
+ */
+export async function apiDownload(path: string, fallbackFilename: string): Promise<void> {
+  const token = await getToken();
+
+  const response = await fetch(buildUrl(path, undefined), {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+
+  if (!response.ok) {
+    throw new ApiRequestError(
+      response.status,
+      'INTERNAL',
+      'That file could not be downloaded. Try again.',
+    );
+  }
+
+  const disposition = response.headers.get('Content-Disposition') ?? '';
+  const named = /filename="?([^";]+)"?/i.exec(disposition)?.[1];
+
+  const url = URL.createObjectURL(await response.blob());
+  const anchor = document.createElement('a');
+
+  anchor.href = url;
+  anchor.download = named ?? fallbackFilename;
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+
+  URL.revokeObjectURL(url);
+}
+
 /** Unwraps `{ data }`. */
 export async function apiGet<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const payload = await request<ApiSuccess<T>>(path, { ...options, method: 'GET' });
