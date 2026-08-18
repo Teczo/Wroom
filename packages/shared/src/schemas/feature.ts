@@ -41,8 +41,15 @@ export const featureCreateShape = {
 export const featureCreateSchema = object(featureCreateShape);
 export const featureUpdateSchema = partial(featureCreateShape);
 
-/** Body for PATCH /api/projects/:projectId/features/:id/move — Kanban drag. */
+/**
+ * Body for PATCH /api/projects/:projectId/features/:id/move — Kanban drag.
+ *
+ * `blockedReason` rides along because moving into `blocked` requires one, and
+ * the drag has to carry it in the same request rather than move first and
+ * explain afterwards.
+ */
 export const featureMoveSchema = object({
   status: enumOf(FEATURE_STATUSES),
   order: number({ min: 0 }),
+  blockedReason: withDefault(nullable(string({ max: 500 })), null),
 });

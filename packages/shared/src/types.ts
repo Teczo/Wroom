@@ -171,6 +171,43 @@ export type Project = Timestamps & {
   };
   rollup: ProjectRollup;
   archivedAt: IsoDate | null;
+  /**
+   * The project's primary environment, attached on reads so a list can show
+   * where something is running without a request per project. Absent on the
+   * responses to a create or an update.
+   */
+  primaryEnvironment?: { name: EnvironmentName; publicUrl: string | null } | null;
+};
+
+/** Statuses the dashboard reports on. Archived projects are retired, not tracked. */
+export type TrackedProjectStatus = Exclude<ProjectStatus, 'archived'>;
+
+/** One row of the dashboard's least-recently-active list. */
+export type DashboardProjectRow = {
+  _id: Id;
+  name: string;
+  slug: string;
+  status: ProjectStatus;
+  percentComplete: number;
+  monthlyCostAud: number;
+  totalSpendAud: number;
+  lastActivityAt: IsoDate | null;
+};
+
+/**
+ * The dashboard's whole payload, read in one aggregate query. Everything here
+ * comes from the denormalised `projects.rollup` — the dashboard never reads
+ * costs, time entries or features itself.
+ */
+export type DashboardSummary = {
+  /** Every tracked status is present, zero-filled. Archived is excluded. */
+  statusCounts: Record<TrackedProjectStatus, number>;
+  totals: {
+    projects: number;
+    monthlyCostAud: number;
+    totalSpendAud: number;
+  };
+  leastRecentlyActive: DashboardProjectRow[];
 };
 
 export type Account = Timestamps & {
@@ -218,6 +255,35 @@ export type ProjectLink = {
   createdAt: IsoDate;
 };
 
+/** Just enough of the project at the other end of a link to render a row. */
+export type LinkedProject = {
+  _id: Id;
+  name: string;
+  slug: string;
+  status: ProjectStatus;
+};
+
+export type ProjectLinkWithProject = ProjectLink & { project: LinkedProject };
+
+/**
+ * Links read from one project's point of view: what it points at, what points
+ * back, and the answer to "what breaks if I kill this".
+ */
+export type ProjectLinks = {
+  outgoing: ProjectLinkWithProject[];
+  incoming: ProjectLinkWithProject[];
+  /** Incoming `depends-on` links — the count that matters before deleting. */
+  dependedOnByCount: number;
+};
+
+/** Enough of a feature to render it as a dependency chip. */
+export type FeatureSummary = {
+  _id: Id;
+  ref: string;
+  title: string;
+  status: FeatureStatus;
+};
+
 export type Feature = Timestamps & {
   _id: Id;
   projectId: Id;
@@ -238,6 +304,10 @@ export type Feature = Timestamps & {
   blockedReason: string | null;
   source: FeatureSource;
   externalKey: string | null;
+  /** What this feature waits on. Attached on reads, never written directly. */
+  dependencies?: FeatureSummary[];
+  /** What waits on this feature. */
+  dependents?: FeatureSummary[];
 };
 
 export type Cost = Timestamps & {

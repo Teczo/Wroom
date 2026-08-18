@@ -1,0 +1,484 @@
+# FEATURES.yaml — Wroom
+#
+# BOOTSTRAP FILE. Hand-written, because Wroom doesn't exist yet to generate it.
+# Once WRM-052 (export) is built, Wroom overwrites this file and the normal
+# CLAUDE.md §9 rule applies: never hand-edit. Until then, Jaya edits it.
+#
+# status:   backlog | todo | in-progress | blocked | review | done
+# priority: low | medium | high | critical
+# size:     xs | s | m | l | xl
+
+source: manual-bootstrap
+project: wroom
+exportedAt: 2026-08-18T00:00:00Z
+exportVersion: 0
+offlineEdits: true
+
+features:
+
+  # ---------------------------------------------------------------
+  # Foundation
+  # ---------------------------------------------------------------
+
+  - ref: WRM-000
+    title: Walking skeleton — monorepo, API, both frontends, deployed
+    status: done
+    priority: critical
+    size: l
+    labels: [foundation, api, portal, portfolio, deploy]
+    acceptance: Log in on the deployed portal, create a project, refresh, it persists from Atlas; portfolio URL loads its empty state.
+
+  - ref: WRM-001
+    title: Rollup recompute service
+    status: done
+    completedAt: 2026-08-17
+    priority: high
+    size: m
+    labels: [api, foundation]
+    dependsOn: [WRM-000]
+    acceptance: projects.rollup recomputes in the service layer on any change to features, costs, revenue or time entries for that project.
+
+  - ref: WRM-002
+    title: Shared validation schemas in packages/shared
+    status: done
+    completedAt: 2026-08-17
+    priority: high
+    size: s
+    labels: [api, foundation]
+    acceptance: Every write endpoint validates against a Zod schema imported from packages/shared; no inline validation in controllers.
+
+  - ref: WRM-003
+    title: Dashboard home
+    status: in-progress
+    priority: high
+    size: m
+    labels: [portal]
+    dependsOn: [WRM-001]
+    acceptance: Home shows project count by status, total monthly run-rate, credentials expiring within 30 days, and last activity per project.
+
+  # ---------------------------------------------------------------
+  # Core records
+  # ---------------------------------------------------------------
+
+  - ref: WRM-010
+    title: Products CRUD
+    status: in-progress
+    priority: high
+    size: s
+    labels: [portal, api]
+    acceptance: Create, edit and archive a product with isClientWork and ndaRestricted flags; projects can be assigned to it.
+
+  - ref: WRM-011
+    title: Project edit, archive and delete
+    status: review
+    priority: high
+    size: m
+    labels: [portal, api]
+    acceptance: Edit all project fields including type-specific ones; archive hides from default list; delete requires typed confirmation.
+
+  - ref: WRM-012
+    title: Project list filters and search
+    status: review
+    priority: medium
+    size: s
+    labels: [portal]
+    acceptance: Filter by status, product, type and tag; free-text search on name; filters persist in the URL.
+
+  - ref: WRM-013
+    title: Accounts CRUD
+    status: review
+    priority: high
+    size: s
+    labels: [portal, api]
+    acceptance: Register a vendor account with login email, account ref and isPrimary flag; secondary accounts are visually distinct.
+
+  - ref: WRM-014
+    title: Environments per project
+    status: review
+    priority: high
+    size: m
+    labels: [portal, api]
+    acceptance: Add dev/staging/production to a project, each with branch and public URL; the primary environment shows on the project card.
+
+  - ref: WRM-015
+    title: Services per environment
+    status: review
+    priority: high
+    size: m
+    labels: [portal, api]
+    dependsOn: [WRM-013, WRM-014]
+    acceptance: Add a service with role, vendor, account, resource name and externalRef; the project page shows what runs where and on which account.
+
+  - ref: WRM-016
+    title: Project links graph
+    status: review
+    priority: medium
+    size: m
+    labels: [portal, api]
+    acceptance: Link two projects with a type; project page lists both directions and answers "what depends on this".
+
+  - ref: WRM-017
+    title: Credentials registry
+    status: review
+    priority: high
+    size: m
+    labels: [portal, api]
+    acceptance: Record a credential's location, expiry and renewal cost; API rejects any attempt to store a value; expiring-soon list is queryable.
+
+  - ref: WRM-018
+    title: Notes per project
+    status: review
+    priority: medium
+    size: s
+    labels: [portal, api]
+    acceptance: Add, pin and edit markdown notes on a project; pinned notes appear first.
+
+  - ref: WRM-019
+    title: Decision log
+    status: review
+    priority: medium
+    size: s
+    labels: [portal, api]
+    acceptance: Record a decision with context, choice and rejected alternatives; superseding a decision links the two.
+
+  - ref: WRM-020
+    title: Project types admin
+    status: backlog
+    priority: low
+    size: m
+    labels: [portal, api]
+    acceptance: Add a project type and its fieldDefs through the UI; the create-project form picks it up without a deploy.
+
+  # ---------------------------------------------------------------
+  # Features / Kanban
+  # ---------------------------------------------------------------
+
+  - ref: WRM-025
+    title: Feature CRUD
+    status: done
+    completedAt: 2026-08-17
+    priority: critical
+    size: m
+    labels: [portal, api, features]
+    acceptance: Create a feature with ref, title, acceptance criteria, priority and size; ref is unique within the project.
+
+  - ref: WRM-026
+    title: Kanban board
+    status: review
+    priority: critical
+    size: l
+    labels: [portal, features]
+    dependsOn: [WRM-025]
+    acceptance: Drag a card between columns to change status and persist it; ordering within a column persists; usable at 390px.
+
+  - ref: WRM-027
+    title: Feature dependencies and blocked state
+    status: review
+    priority: medium
+    size: s
+    labels: [portal, features]
+    dependsOn: [WRM-025]
+    acceptance: Mark a feature as depending on others; blocking a card requires a reason and shows it on the card.
+
+  - ref: WRM-028
+    title: CSV import with diff preview
+    status: backlog
+    priority: high
+    size: l
+    labels: [portal, api, features]
+    dependsOn: [WRM-025]
+    acceptance: Upload a CSV, see inserts and updates listed separately before committing; matching is on ref; nothing is ever deleted.
+
+  - ref: WRM-029
+    title: CSV template download
+    status: backlog
+    priority: medium
+    size: xs
+    labels: [portal, features]
+    acceptance: Download a CSV with the documented column headers and one example row from the features page.
+
+  # ---------------------------------------------------------------
+  # Money and effort
+  # ---------------------------------------------------------------
+
+  - ref: WRM-030
+    title: Manual cost entry
+    status: done
+    completedAt: 2026-08-17
+    priority: high
+    size: m
+    labels: [portal, api, money]
+    dependsOn: [WRM-015]
+    acceptance: Record a cost against a project and optional service, in any currency, stored as AUD with fxRate; billing cycle captured.
+
+  - ref: WRM-031
+    title: Run-rate and spend rollup
+    status: backlog
+    priority: high
+    size: s
+    labels: [api, money]
+    dependsOn: [WRM-030, WRM-001]
+    acceptance: Monthly run-rate = monthly costs + annual/12; one-off and usage excluded; totals shown per project and across the portfolio.
+
+  - ref: WRM-032
+    title: Time entries
+    status: done
+    completedAt: 2026-08-17
+    priority: medium
+    size: m
+    labels: [portal, api, money]
+    acceptance: Log hours against a project and optional feature by day with an activity type; rate is snapshotted at entry.
+
+  - ref: WRM-033
+    title: Time cost reporting
+    status: backlog
+    priority: low
+    size: s
+    labels: [portal, money]
+    dependsOn: [WRM-032]
+    acceptance: Hours and time cost shown per project and per feature; time cost excluded from Net unless explicitly toggled on.
+
+  - ref: WRM-034
+    title: Manual revenue entry
+    status: backlog
+    priority: medium
+    size: s
+    labels: [portal, api, money]
+    acceptance: Record revenue against a project with paid status and period; feeds the project rollup.
+
+  # ---------------------------------------------------------------
+  # Media and portfolio
+  # ---------------------------------------------------------------
+
+  - ref: WRM-040
+    title: Asset upload to Azure Blob
+    status: in-progress
+    priority: high
+    size: l
+    labels: [portal, api, media]
+    acceptance: Upload an image or video via a SAS URL with expiry; mime type and size validated server-side; connection string never reaches the client.
+
+  - ref: WRM-041
+    title: Asset library per project
+    status: backlog
+    priority: high
+    size: m
+    labels: [portal, media]
+    dependsOn: [WRM-040]
+    acceptance: Reorder assets, edit caption, alt text and device, and set visibility; new assets default to private.
+
+  - ref: WRM-042
+    title: Three-gate publish check
+    status: done
+    completedAt: 2026-08-17
+    priority: critical
+    size: s
+    labels: [api, security, portfolio]
+    dependsOn: [WRM-041]
+    acceptance: One shared function decides publishability from asset visibility, project visibility and product NDA flag; used everywhere, inlined nowhere.
+
+  - ref: WRM-043
+    title: Case study editor
+    status: backlog
+    priority: high
+    size: m
+    labels: [portal, portfolio]
+    acceptance: Edit problem, role, approach, outcome, metrics and testimonial on a project, with a hero asset selected.
+
+  - ref: WRM-044
+    title: Publish action
+    status: done
+    completedAt: 2026-08-17
+    priority: critical
+    size: l
+    labels: [api, portfolio]
+    dependsOn: [WRM-042, WRM-043]
+    acceptance: Publishing writes a flattened publishedProjects snapshot containing no account, URL or cost data; unpublishing removes it.
+
+  - ref: WRM-045
+    title: Portfolio project index
+    status: done
+    completedAt: 2026-08-17
+    priority: high
+    size: m
+    labels: [portfolio]
+    dependsOn: [WRM-044]
+    acceptance: Public site lists published projects with hero image and summary, featured first; reads only /public routes.
+
+  - ref: WRM-046
+    title: Portfolio case study page
+    status: in-progress
+    priority: high
+    size: m
+    labels: [portfolio]
+    dependsOn: [WRM-045]
+    acceptance: A published project renders its case study and gallery at a slug URL, with correct meta and OG tags.
+
+  - ref: WRM-047
+    title: Portfolio contact and about
+    status: backlog
+    priority: medium
+    size: s
+    labels: [portfolio]
+    acceptance: Contact form submits to the API and stores the enquiry; about page renders from a single content record.
+
+  - ref: WRM-048
+    title: One-pager PDF export
+    status: backlog
+    priority: low
+    size: m
+    labels: [portfolio]
+    dependsOn: [WRM-044]
+    acceptance: Export a selected set of published projects as a single PDF suitable for a client pitch or job application.
+
+  # ---------------------------------------------------------------
+  # Integrations and sync
+  # ---------------------------------------------------------------
+
+  - ref: WRM-050
+    title: Stripe revenue sync
+    status: backlog
+    priority: medium
+    size: l
+    labels: [api, integration, money]
+    dependsOn: [WRM-034]
+    acceptance: Stripe invoices import against a mapped project, idempotent on externalId, re-runnable without duplicates.
+
+  - ref: WRM-051
+    title: Azure cost sync
+    status: backlog
+    priority: medium
+    size: xl
+    labels: [api, integration, money]
+    dependsOn: [WRM-030]
+    acceptance: Cost Management lines attribute to projects via services.externalRef; unmatched lines land in a review queue rather than being dropped.
+
+  - ref: WRM-052
+    title: FEATURES.yaml export to repo
+    status: backlog
+    priority: critical
+    size: l
+    labels: [api, integration, features]
+    dependsOn: [WRM-026]
+    acceptance: Wroom commits FEATURES.yaml to a connected repo with a stamped header; runs on ticket generation, manual export, and nightly.
+
+  - ref: WRM-053
+    title: Ticket generator
+    status: backlog
+    priority: critical
+    size: m
+    labels: [portal, features]
+    dependsOn: [WRM-052]
+    acceptance: A Kanban card produces a copyable scoped prompt with ref, scope boundary, exit criteria and report format, and exports FEATURES.yaml at the same time.
+
+  - ref: WRM-054
+    title: FEATURES.yaml import and reconcile
+    status: backlog
+    priority: high
+    size: l
+    labels: [api, features]
+    dependsOn: [WRM-052]
+    acceptance: Importing a repo file shows a diff before commit; offlineEdits true surfaces reconciliation rather than silently overwriting.
+
+  - ref: WRM-055
+    title: CHANGELOG ingestion
+    status: backlog
+    priority: medium
+    size: m
+    labels: [api, integration]
+    dependsOn: [WRM-052]
+    acceptance: A project timeline shows dated entries read from the repo's CHANGELOG.md.
+
+  - ref: WRM-056
+    title: GitHub webhook — commits, PRs, releases
+    status: backlog
+    priority: medium
+    size: l
+    labels: [api, integration]
+    acceptance: Push and PR events update the matching feature's branch and PR URL; releases create deployment records.
+
+  - ref: WRM-057
+    title: Atlas billing sync
+    status: backlog
+    priority: low
+    size: m
+    labels: [api, integration, money]
+    dependsOn: [WRM-051]
+    acceptance: Atlas invoices import as costs against the mapped project, idempotent on externalId.
+
+  # ---------------------------------------------------------------
+  # Team
+  # ---------------------------------------------------------------
+
+  - ref: WRM-060
+    title: Memberships and per-project access
+    status: backlog
+    priority: medium
+    size: l
+    labels: [api, portal, team]
+    acceptance: Assign a user to a project as owner, developer or viewer; non-members cannot read that project through any /api route.
+
+  - ref: WRM-061
+    title: Feature assignment and workload view
+    status: backlog
+    priority: low
+    size: m
+    labels: [portal, team]
+    dependsOn: [WRM-060, WRM-026]
+    acceptance: Assign features to team members; a workload view shows open features per person across projects.
+
+  - ref: WRM-062
+    title: Audit log
+    status: backlog
+    priority: low
+    size: m
+    labels: [api, team]
+    dependsOn: [WRM-060]
+    acceptance: Every write records actor, action, entity and changed fields; viewable per project, owner only.
+
+  # ---------------------------------------------------------------
+  # Later
+  # ---------------------------------------------------------------
+
+  - ref: WRM-070
+    title: Uptime monitoring
+    status: backlog
+    priority: low
+    size: m
+    labels: [api, ops]
+    dependsOn: [WRM-014]
+    acceptance: Scheduled checks against environment health URLs record status; the dashboard flags anything currently down.
+
+  - ref: WRM-071
+    title: Error reporting intake
+    status: backlog
+    priority: low
+    size: l
+    labels: [api, ops]
+    acceptance: Projects can post errors to an intake endpoint; grouped and counted per project with a last-seen timestamp.
+
+  - ref: WRM-072
+    title: Ticketing
+    status: backlog
+    priority: low
+    size: l
+    labels: [portal, ops]
+    acceptance: Raise a ticket against a project, assign it, and convert it into a feature.
+
+  - ref: WRM-073
+    title: In-app Claude prompting
+    status: backlog
+    priority: low
+    size: xl
+    labels: [portal, api, ai]
+    dependsOn: [WRM-053]
+    acceptance: Ask a question about a project from inside Wroom and get an answer grounded in that project's records.
+
+  - ref: WRM-074
+    title: Draft case study from project data
+    status: backlog
+    priority: low
+    size: m
+    labels: [portal, ai, portfolio]
+    dependsOn: [WRM-043]
+    acceptance: Generate a draft case study from a project's records into the editor for review; never auto-published.

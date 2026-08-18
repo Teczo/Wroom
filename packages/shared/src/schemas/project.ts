@@ -1,17 +1,25 @@
-import { PROJECT_STATUSES, VISIBILITIES } from '../constants.js';
+import {
+  DEFAULT_PAGE_SIZE,
+  MAX_PAGE_SIZE,
+  PROJECT_STATUSES,
+  VISIBILITIES,
+} from '../constants.js';
 import {
   arrayOf,
   boolean,
   enumOf,
   isoDate,
   nullable,
+  number,
   object,
   objectId,
   partial,
   passthroughRecord,
+  repeatable,
   slug,
   string,
   withDefault,
+  type Infer,
 } from '../validate.js';
 
 const techStackSchema = object({
@@ -108,3 +116,25 @@ export const projectCreateShape = {
 
 export const projectCreateSchema = object(projectCreateShape);
 export const projectUpdateSchema = partial(projectCreateShape);
+
+/**
+ * Query parameters for `GET /api/projects`.
+ *
+ * `status`, `productId`, `projectTypeKey` and `tag` may each be repeated: values
+ * within one parameter are an OR, and the parameters AND together. A value that
+ * is not a known status or a well-formed id fails here with the parameter named,
+ * so a typo comes back as a 400 rather than a silently empty list.
+ */
+export const projectListQueryShape = {
+  status: repeatable(enumOf(PROJECT_STATUSES)),
+  productId: repeatable(objectId()),
+  projectTypeKey: repeatable(string({ min: 1, max: 40 })),
+  tag: repeatable(string({ min: 1, max: 40 })),
+  q: withDefault(string({ max: 140, allowEmpty: true }), ''),
+  includeArchived: withDefault(boolean(), false),
+  page: withDefault(number({ min: 1, integer: true }), 1),
+  limit: withDefault(number({ min: 1, max: MAX_PAGE_SIZE, integer: true }), DEFAULT_PAGE_SIZE),
+};
+
+export const projectListQuerySchema = object(projectListQueryShape);
+export type ProjectListQuery = Infer<typeof projectListQueryShape>;
