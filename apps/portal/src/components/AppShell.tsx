@@ -10,6 +10,7 @@ const navigation = [
   { to: '/products', label: 'Products', end: false },
   { to: '/accounts', label: 'Accounts', end: false },
   { to: '/credentials', label: 'Keys', end: false },
+  { to: '/settings/project-types', label: 'Types', end: false },
 ];
 
 function SignOutButton() {

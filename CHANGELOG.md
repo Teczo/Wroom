@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-08-19 (later)
+
+- WRM-020 — Project types are editable in the portal at Settings → Project
+  types. Define a new kind of project, give it its own form fields, and create a
+  project of that type immediately — no seed script, no deploy.
+- The field editor shows a live preview built from the same renderer the real
+  create-project form uses, so what you see is what someone filling it in gets,
+  including fields that only appear when another one matches.
+- A type in use cannot be deleted; the message says how many projects block it.
+  Deactivating hides it from the create form instead and leaves those projects
+  alone.
+- Removing a field warns that existing entered values become invisible — they
+  stay in the record and reappear if the field comes back.
+
 ## 2026-08-19
 
 - WRM-029 — A blank CSV template is one tap from the features page, with the

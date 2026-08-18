@@ -10,3 +10,4 @@ export * from './projectLink.js';
 export * from './note.js';
 export * from './decision.js';
 export * from './featureImport.js';
+export * from './projectType.js';

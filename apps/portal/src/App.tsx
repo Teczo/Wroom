@@ -13,6 +13,7 @@ import { NewProjectPage } from './pages/projects/NewProjectPage';
 import { ProjectBoardPage } from './pages/projects/ProjectBoardPage';
 import { ProjectDetailPage } from './pages/projects/ProjectDetailPage';
 import { ProjectsPage } from './pages/projects/ProjectsPage';
+import { ProjectTypesPage } from './pages/settings/ProjectTypesPage';
 
 export function App() {
   return (
@@ -29,6 +30,7 @@ export function App() {
           <Route path="/accounts/:id" element={<AccountDetailPage />} />
           <Route path="/credentials" element={<CredentialsPage />} />
           <Route path="/credentials/:id" element={<CredentialDetailPage />} />
+          <Route path="/settings/project-types" element={<ProjectTypesPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </AppShell>

@@ -235,6 +235,19 @@ export function withDefault<T>(inner: Validator<T>, fallback: T): Validator<T> {
 }
 
 /** An open key/value map — used for `projects.details`, validated separately against fieldDefs. */
+/**
+ * Accepts whatever it is given. Used where a value's type depends on another
+ * field — a `showIf.equals` is a string, a number or a boolean depending on the
+ * field it points at.
+ */
+export function anyValue(): Validator<unknown> {
+  return {
+    run(input) {
+      return input;
+    },
+  };
+}
+
 export function passthroughRecord(): Validator<Record<string, unknown>> {
   return {
     run(input, path, issues) {
