@@ -5,6 +5,7 @@ import * as controller from '../controllers/projectController.js';
 import { validateBody, validateQuery } from '../middleware/validate.js';
 import { assetsRouter } from './assets.js';
 import { costsRouter } from './costs.js';
+import { projectRevenueRouter } from './revenue.js';
 import { projectCredentialsRouter } from './credentials.js';
 import { projectDecisionsRouter } from './decisions.js';
 import { environmentsRouter, servicesRouter } from './infrastructure.js';
@@ -34,6 +35,7 @@ projectsRouter.delete('/:id/publish', controller.unpublish);
 
 projectsRouter.use('/:projectId/features', featuresRouter);
 projectsRouter.use('/:projectId/costs', costsRouter);
+projectsRouter.use('/:projectId/revenue', projectRevenueRouter);
 projectsRouter.use('/:projectId/time-entries', timeEntriesRouter);
 projectsRouter.use('/:projectId/assets', assetsRouter);
 projectsRouter.use('/:projectId/credentials', projectCredentialsRouter);

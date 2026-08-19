@@ -2,6 +2,18 @@
 
 ## 2026-08-19 (later)
 
+- WRM-034 — A project can record money in as well as money out. Add an invoice
+  or a payment with who it was for, what it was for, the amount and whether it
+  has been paid, and mark an outstanding one paid in a single action.
+- Paid and outstanding are shown as two separate figures and never added
+  together, because one is money that arrived and the other is money someone
+  said they would send. Anything past its due date is flagged in red.
+- Net is paid revenue minus spend. Logged hours do not move it.
+- Revenue is not reachable from the portfolio or any public route, and never
+  will be.
+
+## 2026-08-19 (later)
+
 - WRM-040 — Screenshots and videos can be uploaded to a project from the
   portal, including straight from a phone camera. The file goes to Azure
   directly from the browser with a progress bar; it never passes through the

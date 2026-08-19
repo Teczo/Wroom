@@ -18,6 +18,7 @@ import { CsvTemplateButton } from '../../features/features/CsvTemplateButton';
 import { FeatureImport } from '../../features/features/FeatureImport';
 import { ProjectEditForm } from '../../features/projects/ProjectEditForm';
 import { ProjectLifecycle } from '../../features/projects/ProjectLifecycle';
+import { RevenuePanel } from '../../features/revenue/RevenuePanel';
 import { PublishPanel } from '../../features/projects/PublishPanel';
 import { ServicesPanel } from '../../features/services/ServicesPanel';
 import { useProject } from '../../features/projects/api';
@@ -94,6 +95,8 @@ function Overview({ project }: { project: Project }) {
           </div>
         ) : null}
       </section>
+
+      <RevenuePanel project={project} />
 
       <AssetsPanel projectId={project._id} />
 
