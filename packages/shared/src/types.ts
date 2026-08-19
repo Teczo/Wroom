@@ -24,8 +24,10 @@ import type {
   ProjectStatus,
   ServiceRole,
   ServiceStatus,
+  SyncStatus,
   TimeActivity,
   Vendor,
+  VendorAuthType,
   Visibility,
 } from './constants.js';
 
@@ -470,6 +472,58 @@ export type TimeEntry = Timestamps & {
   note: string;
   rateAud: number;
   billable: boolean;
+};
+
+// --- vendor sync ------------------------------------------------------------
+
+/**
+ * A connection to a vendor's API, per `docs/DATA_MODEL.md`.
+ *
+ * `secretRef` is a pointer such as `kv://teczo/stripe` and nothing else. The
+ * key itself lives in the deployment environment and is never written to this
+ * collection, returned in a response, or logged.
+ */
+export type VendorConnection = Timestamps & {
+  _id: Id;
+  vendor: Vendor;
+  accountId: string;
+  authType: VendorAuthType;
+  secretRef: string;
+  scope: { subscriptionId: string; orgId: string; teamId: string };
+  syncEnabled: boolean;
+  lastSyncAt: IsoDate | null;
+  lastSyncStatus: SyncStatus | null;
+  lastSyncError: string;
+};
+
+/**
+ * An invoice the sync could not attribute to a project. Returned in the sync
+ * response so the metadata can be corrected at the Stripe end — deliberately
+ * not stored, since it describes a problem that will not exist after the fix.
+ */
+export type StripeUnmatchedInvoice = {
+  invoiceId: string;
+  customerRef: string;
+  /** The slug found in metadata, when there was one that matched no project. */
+  slug: string | null;
+  reason: 'no-slug' | 'unknown-project';
+};
+
+/** What a run of the Stripe sync did. Counts first, then what needs a human. */
+export type StripeSyncResult = {
+  imported: number;
+  updated: number;
+  skippedUnmatched: number;
+  failed: number;
+  /** Draft and void invoices: neither money in nor money owed. */
+  skippedNotBillable: number;
+  unmatched: StripeUnmatchedInvoice[];
+  /** Reasons behind `failed`, safe to display. */
+  failures: string[];
+  invoicesRead: number;
+  projectsAffected: number;
+  since: IsoDate | null;
+  syncedAt: IsoDate;
 };
 
 // --- portfolio snapshot -----------------------------------------------------

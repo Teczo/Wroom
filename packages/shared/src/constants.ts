@@ -62,6 +62,31 @@ export const VENDORS = [
 ] as const;
 export type Vendor = (typeof VENDORS)[number];
 
+/** `vendorConnections.authType` (docs/DATA_MODEL.md). */
+export const VENDOR_AUTH_TYPES = ['service-principal', 'api-key', 'oauth'] as const;
+export type VendorAuthType = (typeof VENDOR_AUTH_TYPES)[number];
+
+/** `vendorConnections.lastSyncStatus`. Null until a sync has actually run. */
+export const SYNC_STATUSES = ['ok', 'failed'] as const;
+export type SyncStatus = (typeof SYNC_STATUSES)[number];
+
+/**
+ * Where a Stripe invoice names the Wroom project it belongs to.
+ *
+ * `docs/DATA_MODEL.md` has no field tying a Stripe customer or subscription to
+ * a project, so attribution is by invoice metadata alone. Both spellings are
+ * accepted because Stripe metadata is free text and either is a reasonable
+ * thing to have typed; an invoice carrying neither is reported, never guessed at.
+ */
+export const STRIPE_PROJECT_SLUG_KEYS = ['project_slug', 'projectSlug'] as const;
+
+/**
+ * Prefixes Stripe uses for keys and secrets. `secretRef` is a pointer, so any
+ * value starting with one of these is a credential someone pasted by mistake
+ * and is refused before it can be written.
+ */
+export const STRIPE_KEY_PREFIXES = ['sk_', 'rk_', 'pk_', 'whsec_'] as const;
+
 export const SERVICE_ROLES = [
   'frontend',
   'backend',

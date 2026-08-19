@@ -157,15 +157,37 @@ function NewRevenueForm({ projectId, onDone }: { projectId: string; onDone: () =
   );
 }
 
+/**
+ * A row Stripe owns.
+ *
+ * Marked so the two kinds of row are never confused, and left uneditable: the
+ * next sync would overwrite an edit made here without saying so, and a figure
+ * that silently reverts is worse than one that cannot be changed. Removing one
+ * is still allowed — an invoice voided in Stripe leaves a row behind.
+ */
+function isSynced(entry: RevenueEntry): boolean {
+  return entry.source === 'stripe';
+}
+
 function RevenueRow({ projectId, entry }: { projectId: string; entry: RevenueEntry }) {
   const markPaid = useMarkRevenuePaid(projectId);
   const remove = useDeleteRevenue(projectId);
   const overdue = isOverdue(entry);
+  const synced = isSynced(entry);
+
+  // One left border, chosen once. Overdue outranks the source marker — a row
+  // that needs chasing should read as such first, and the Stripe pill below
+  // still says where it came from.
+  const accent = overdue
+    ? 'border-l-4 border-l-red-500 bg-red-50'
+    : synced
+      ? 'border-l-4 border-l-violet-400'
+      : '';
 
   return (
     <div
-      className={`border-b border-slate-100 p-4 last:border-0 ${
-        overdue ? 'border-l-4 border-l-red-500 bg-red-50' : entry.paid ? '' : 'bg-amber-50/40'
+      className={`border-b border-slate-100 p-4 last:border-0 ${accent} ${
+        entry.paid || overdue ? '' : 'bg-amber-50/40'
       }`}
     >
       <div className="flex items-start justify-between gap-3">
@@ -180,6 +202,7 @@ function RevenueRow({ projectId, entry }: { projectId: string; entry: RevenueEnt
             ) : (
               <Pill label="Outstanding" tone="amber" />
             )}
+            {synced ? <Pill label="Stripe" tone="violet" /> : null}
             {entry.customerRef ? <span>{entry.customerRef}</span> : null}
             <span>
               {entry.paid
@@ -192,7 +215,7 @@ function RevenueRow({ projectId, entry }: { projectId: string; entry: RevenueEnt
         <div className="flex shrink-0 flex-col items-end gap-1">
           <span className="text-sm font-medium text-slate-900">{money(entry.amountAud)}</span>
           <div className="flex gap-1">
-            {entry.paid ? null : (
+            {entry.paid || synced ? null : (
               <Button
                 variant="ghost"
                 className="min-h-9 px-2 text-xs"

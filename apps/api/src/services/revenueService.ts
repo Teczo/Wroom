@@ -2,7 +2,7 @@ import type { Infer, revenueCreateShape } from '@wroom/shared';
 
 import { ProjectModel } from '../models/Project.js';
 import { RevenueModel, type RevenueDocument } from '../models/Revenue.js';
-import { NotFoundError, ValidationError } from '../utils/errors.js';
+import { NotFoundError, UnprocessableError, ValidationError } from '../utils/errors.js';
 import { getProject } from './projectService.js';
 import { recomputeProjectRollup } from './rollupService.js';
 
@@ -37,6 +37,23 @@ function assertDatesMatchState(paid: boolean, paidAt: unknown, dueAt: unknown): 
       dueAt: 'Say when this is due, so it can be chased.',
     });
   }
+}
+
+/**
+ * A synced row belongs to Stripe.
+ *
+ * Editing one by hand is not refused to be strict about it — it is refused
+ * because the next sync would overwrite the edit without saying so, and a
+ * figure that silently reverts is worse than one you cannot change. Deleting is
+ * still allowed: an invoice voided in Stripe leaves a row behind, and that row
+ * has to be removable.
+ */
+function assertNotSynced(entry: RevenueDocument): void {
+  if (entry.source !== 'stripe') return;
+
+  throw new UnprocessableError(
+    'This entry came from Stripe, so Stripe owns its figures — an edit here would be overwritten by the next sync. Change the invoice in Stripe and sync again.',
+  );
 }
 
 export async function listRevenue(projectId: string): Promise<RevenueDocument[]> {
@@ -76,6 +93,7 @@ export async function updateRevenue(
   input: Partial<RevenueInput>,
 ): Promise<RevenueDocument> {
   const entry = await getRevenue(id);
+  assertNotSynced(entry);
 
   const paid = input.paid ?? entry.paid;
   const paidAt = input.paidAt !== undefined ? input.paidAt : entry.paidAt;
@@ -93,6 +111,7 @@ export async function updateRevenue(
 /** One action: it is paid, and this is when. */
 export async function markRevenuePaid(id: string, paidAt: Date | null): Promise<RevenueDocument> {
   const entry = await getRevenue(id);
+  assertNotSynced(entry);
 
   entry.set({ paid: true, paidAt: paidAt ?? new Date() });
   await entry.save();

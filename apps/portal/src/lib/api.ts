@@ -42,7 +42,7 @@ export class ApiRequestError extends Error {
 }
 
 type RequestOptions = {
-  method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: unknown;
   query?: Record<string, string | number | boolean | undefined>;
   signal?: AbortSignal;
@@ -143,6 +143,12 @@ export async function apiList<T>(
 export async function apiPost<T>(path: string, body?: unknown): Promise<T> {
   const payload = await request<ApiSuccess<T>>(path, { method: 'POST', body: body ?? {} });
   return payload?.data;
+}
+
+/** Create-or-update of a singleton resource, e.g. the one Stripe connection. */
+export async function apiPut<T>(path: string, body: unknown): Promise<T> {
+  const payload = await request<ApiSuccess<T>>(path, { method: 'PUT', body });
+  return payload.data;
 }
 
 export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
