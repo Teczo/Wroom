@@ -143,7 +143,7 @@ features:
 
   - ref: WRM-020
     title: Project types admin
-    status: backlog
+    status: review
     priority: low
     size: m
     labels: [portal, api]

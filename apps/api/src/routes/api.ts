@@ -1,4 +1,8 @@
-import { uploadRequestSchema } from '@wroom/shared';
+import {
+  projectTypeCreateSchema,
+  projectTypeUpdateSchema,
+  uploadRequestSchema,
+} from '@wroom/shared';
 import { Router } from 'express';
 
 import { requestUpload } from '../controllers/assetController.js';
@@ -30,6 +34,10 @@ apiRouter.get('/me', meta.me);
 apiRouter.get('/features/csv-template', featureController.csvTemplate);
 apiRouter.get('/dashboard', dashboard.summary);
 apiRouter.get('/project-types', meta.listTypes);
+apiRouter.post('/project-types', validateBody(projectTypeCreateSchema), meta.createType);
+apiRouter.patch('/project-types/:id', validateBody(projectTypeUpdateSchema), meta.updateType);
+apiRouter.delete('/project-types/:id', meta.removeType);
+/** Last, so `/project-types/:key` does not swallow the routes above it. */
 apiRouter.get('/project-types/:key', meta.getType);
 
 apiRouter.use('/products', productsRouter);
