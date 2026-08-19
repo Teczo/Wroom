@@ -5,6 +5,7 @@ import type { ProjectListQuery } from '@wroom/shared';
 
 import { validated, validatedQuery } from '../middleware/validate.js';
 import * as projectService from '../services/projectService.js';
+import { updateProjectPortfolio } from '../services/portfolioEditService.js';
 import * as publishService from '../services/publishService.js';
 import { sendData, sendList } from '../utils/http.js';
 
@@ -66,4 +67,17 @@ export const publish: RequestHandler = async (req, res) => {
 export const unpublish: RequestHandler = async (req, res) => {
   await publishService.unpublishProject(req.params.id as string);
   res.status(204).end();
+};
+
+/**
+ * Edits the case study. Saves the source data and answers with the gate
+ * verdict — it never publishes.
+ */
+export const updatePortfolio: RequestHandler = async (req, res) => {
+  const { project, publishState, blockingProductName } = await updateProjectPortfolio(
+    req.params.id as string,
+    validated(req),
+  );
+
+  sendData(res, project, 200, { publishState, blockingProductName });
 };

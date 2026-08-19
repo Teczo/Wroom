@@ -10,6 +10,7 @@ import { CredentialsPage } from './pages/credentials/CredentialsPage';
 import { DashboardPage } from './pages/dashboard/DashboardPage';
 import { ProductsPage } from './pages/products/ProductsPage';
 import { NewProjectPage } from './pages/projects/NewProjectPage';
+import { CaseStudyPage } from './pages/projects/CaseStudyPage';
 import { ProjectAssetsPage } from './pages/projects/ProjectAssetsPage';
 import { ProjectBoardPage } from './pages/projects/ProjectBoardPage';
 import { ProjectDetailPage } from './pages/projects/ProjectDetailPage';
@@ -26,6 +27,7 @@ export function App() {
           <Route path="/projects/:id" element={<ProjectDetailPage />} />
           <Route path="/projects/:id/board" element={<ProjectBoardPage />} />
           <Route path="/projects/:id/assets" element={<ProjectAssetsPage />} />
+          <Route path="/projects/:id/case-study" element={<CaseStudyPage />} />
           <Route path="/products" element={<ProductsPage />} />
           <Route path="/accounts" element={<AccountsPage />} />
           <Route path="/accounts/:id" element={<AccountDetailPage />} />

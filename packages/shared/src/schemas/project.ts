@@ -118,6 +118,25 @@ export const projectCreateSchema = object(projectCreateShape);
 export const projectUpdateSchema = partial(projectCreateShape);
 
 /**
+ * The case study editor's payload — `projects.portfolio` and nothing else.
+ *
+ * Setting `visibility: "public"` marks the project *eligible* for the
+ * portfolio. It publishes nothing: writing `publishedProjects` stays the
+ * explicit action in WRM-044 (CLAUDE.md §8).
+ *
+ * `publishedAt` is absent on purpose. It records when a publish happened, so
+ * only the publish action may write it.
+ */
+export const projectPortfolioUpdateShape = {
+  visibility: enumOf(VISIBILITIES),
+  featured: boolean(),
+  caseStudy: caseStudySchema,
+  heroAssetId: nullable(objectId()),
+};
+
+export const projectPortfolioUpdateSchema = partial(projectPortfolioUpdateShape);
+
+/**
  * Query parameters for `GET /api/projects`.
  *
  * `status`, `productId`, `projectTypeKey` and `tag` may each be repeated: values

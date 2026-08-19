@@ -2,6 +2,19 @@
 
 ## 2026-08-19 (later)
 
+- WRM-043 — A project can carry a case study: the problem, your role, the
+  approach, the outcome, the metrics worth leading with, and a testimonial that
+  can be removed entirely rather than left as blank fields.
+- Pick a hero image from the project's own public files. Private ones are not
+  offered, and the page says why.
+- Marking a project public here makes it eligible for the portfolio and
+  publishes nothing — the page says so, and says which gate still blocks it,
+  naming the product when an NDA is the reason.
+- If the case study has been edited since it was last published, the page says
+  that too, and points at the publish action rather than doing it.
+
+## 2026-08-19 (later)
+
 - WRM-041 — A project's media is a library at `/projects/:id/assets`. Give each
   file a title, caption, alt text and device, say what kind it is, and put them
   in the order you want with up and down controls.
