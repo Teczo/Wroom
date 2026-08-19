@@ -4,6 +4,7 @@ import { Types } from 'mongoose';
 import { CostModel } from '../models/Cost.js';
 import { FeatureModel } from '../models/Feature.js';
 import { ProjectModel } from '../models/Project.js';
+import { RevenueModel } from '../models/Revenue.js';
 import { TimeEntryModel } from '../models/TimeEntry.js';
 
 /**
@@ -69,6 +70,19 @@ export async function sumCostsByCycle(
   >;
 }
 
+/**
+ * Paid entries only. Outstanding revenue is a promise, not money in — rolling
+ * it up would make every Net figure read better than reality.
+ */
+async function revenueRollup(projectId: Types.ObjectId) {
+  const [row] = await RevenueModel.aggregate<{ total: number }>([
+    { $match: { projectId, paid: true } },
+    { $group: { _id: null, total: { $sum: '$amountAud' } } },
+  ]);
+
+  return { totalRevenueAud: round(row?.total ?? 0) };
+}
+
 async function timeRollup(projectId: Types.ObjectId) {
   const [row] = await TimeEntryModel.aggregate<{ totalHours: number; timeCostAud: number }>([
     { $match: { projectId } },
@@ -102,16 +116,14 @@ async function lastActivityAt(projectId: Types.ObjectId): Promise<Date | null> {
   return stamps.reduce((latest, value) => (value > latest ? value : latest));
 }
 
-/**
- * Recomputes and persists the rollup. Revenue stays at 0 until the `revenue`
- * collection is built (v2 in docs/DATA_MODEL.md).
- */
+/** Recomputes and persists the rollup. */
 export async function recomputeProjectRollup(projectId: Types.ObjectId | string): Promise<void> {
   const id = typeof projectId === 'string' ? new Types.ObjectId(projectId) : projectId;
 
-  const [features, costs, time, activity] = await Promise.all([
+  const [features, costs, revenue, time, activity] = await Promise.all([
     featureRollup(id),
     costRollup(id),
+    revenueRollup(id),
     timeRollup(id),
     lastActivityAt(id),
   ]);
@@ -124,6 +136,7 @@ export async function recomputeProjectRollup(projectId: Types.ObjectId | string)
         'rollup.percentComplete': features.percentComplete,
         'rollup.monthlyCostAud': costs.monthlyCostAud,
         'rollup.totalSpendAud': costs.totalSpendAud,
+        'rollup.totalRevenueAud': revenue.totalRevenueAud,
         'rollup.totalHours': time.totalHours,
         'rollup.timeCostAud': time.timeCostAud,
         'rollup.lastActivityAt': activity,

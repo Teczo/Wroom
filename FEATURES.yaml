@@ -231,7 +231,7 @@ features:
 
   - ref: WRM-033
     title: Time cost reporting
-    status: backlog
+    status: review
     priority: low
     size: s
     labels: [portal, money]
@@ -240,7 +240,7 @@ features:
 
   - ref: WRM-034
     title: Manual revenue entry
-    status: backlog
+    status: review
     priority: medium
     size: s
     labels: [portal, api, money]

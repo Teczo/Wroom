@@ -121,6 +121,13 @@ export type BillingCycle = (typeof BILLING_CYCLES)[number];
 export const COST_SOURCES = ['manual', 'azure-api', 'atlas-api', 'stripe'] as const;
 export type CostSource = (typeof COST_SOURCES)[number];
 
+/** `stripe` is written by WRM-050's sync; a person enters the other two. */
+export const REVENUE_SOURCES = ['stripe', 'invoice', 'manual'] as const;
+export type RevenueSource = (typeof REVENUE_SOURCES)[number];
+
+/** What a person may enter by hand. Sync owns `stripe`. */
+export const MANUAL_REVENUE_SOURCES = ['invoice', 'manual'] as const;
+
 export const ASSET_KINDS = [
   'screenshot',
   'video',

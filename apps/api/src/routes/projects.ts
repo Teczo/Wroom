@@ -10,12 +10,14 @@ import * as controller from '../controllers/projectController.js';
 import { validateBody, validateQuery } from '../middleware/validate.js';
 import { assetsRouter } from './assets.js';
 import { costsRouter } from './costs.js';
+import { projectRevenueRouter } from './revenue.js';
 import { projectCredentialsRouter } from './credentials.js';
 import { projectDecisionsRouter } from './decisions.js';
 import { environmentsRouter, servicesRouter } from './infrastructure.js';
 import { featuresRouter } from './features.js';
 import { projectNotesRouter } from './notes.js';
 import { projectLinksRouter } from './projectLinks.js';
+import * as timeController from '../controllers/timeEntryController.js';
 import { timeEntriesRouter } from './timeEntries.js';
 
 export const projectsRouter: Router = Router();
@@ -45,6 +47,8 @@ projectsRouter.delete('/:id/publish', controller.unpublish);
 
 projectsRouter.use('/:projectId/features', featuresRouter);
 projectsRouter.use('/:projectId/costs', costsRouter);
+projectsRouter.use('/:projectId/revenue', projectRevenueRouter);
+projectsRouter.get('/:projectId/time-summary', timeController.projectTimeSummary);
 projectsRouter.use('/:projectId/time-entries', timeEntriesRouter);
 projectsRouter.use('/:projectId/assets', assetsRouter);
 projectsRouter.use('/:projectId/credentials', projectCredentialsRouter);
