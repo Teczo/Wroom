@@ -24,13 +24,18 @@ export const create: RequestHandler = async (req, res) => {
   sendData(res, asset, 201);
 };
 
+/**
+ * The gate result rides along, so marking something public can be answered with
+ * "yes, and the project still blocks it" rather than a silent success.
+ */
 export const update: RequestHandler = async (req, res) => {
-  const asset = await assetService.updateAsset(
+  const { asset, publishState: state } = await assetService.updateAsset(
     req.params.projectId as string,
     req.params.id as string,
     validated(req),
   );
-  sendData(res, asset);
+
+  sendData(res, asset, 200, { publishState: state });
 };
 
 export const remove: RequestHandler = async (req, res) => {
@@ -39,6 +44,14 @@ export const remove: RequestHandler = async (req, res) => {
 };
 
 /** Why this asset would or would not appear in the portfolio. */
+/** Writes a whole ordering at once, rather than one request per moved card. */
+export const reorder: RequestHandler = async (req, res) => {
+  const { assetIds } = validated<{ assetIds: string[] }>(req);
+  const reordered = await assetService.reorderAssets(req.params.projectId as string, assetIds);
+
+  sendData(res, { reordered });
+};
+
 export const publishState: RequestHandler = async (req, res) => {
   const state = await assetService.explainPublishState(
     req.params.projectId as string,

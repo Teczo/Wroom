@@ -1,4 +1,9 @@
-import { projectCreateSchema, projectListQuerySchema, projectUpdateSchema } from '@wroom/shared';
+import {
+  projectCreateSchema,
+  projectListQuerySchema,
+  projectPortfolioUpdateSchema,
+  projectUpdateSchema,
+} from '@wroom/shared';
 import { Router } from 'express';
 
 import * as controller from '../controllers/projectController.js';
@@ -29,6 +34,12 @@ projectsRouter.delete('/:id', controller.remove);
  * Publishing is its own explicit action — it is never a side effect of saving
  * the project (CLAUDE.md §8).
  */
+projectsRouter.patch(
+  '/:id/portfolio',
+  validateBody(projectPortfolioUpdateSchema),
+  controller.updatePortfolio,
+);
+
 projectsRouter.post('/:id/publish', controller.publish);
 projectsRouter.delete('/:id/publish', controller.unpublish);
 

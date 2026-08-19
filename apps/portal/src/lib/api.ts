@@ -150,6 +150,17 @@ export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
   return payload.data;
 }
 
+/**
+ * A PATCH whose `meta` matters — the case study editor needs the publish-gate
+ * verdict that comes back alongside the saved project.
+ */
+export async function apiPatchWithMeta<T, M>(
+  path: string,
+  body: unknown,
+): Promise<{ data: T; meta: M }> {
+  return request<{ data: T; meta: M }>(path, { method: 'PATCH', body });
+}
+
 export async function apiDelete(path: string): Promise<void> {
   await request<void>(path, { method: 'DELETE' });
 }

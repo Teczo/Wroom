@@ -2,6 +2,29 @@
 
 ## 2026-08-19 (later)
 
+- WRM-043 — A project can carry a case study: the problem, your role, the
+  approach, the outcome, the metrics worth leading with, and a testimonial that
+  can be removed entirely rather than left as blank fields.
+- Pick a hero image from the project's own public files. Private ones are not
+  offered, and the page says why.
+- Marking a project public here makes it eligible for the portfolio and
+  publishes nothing — the page says so, and says which gate still blocks it,
+  naming the product when an NDA is the reason.
+- If the case study has been edited since it was last published, the page says
+  that too, and points at the publish action rather than doing it.
+
+- WRM-041 — A project's media is a library at `/projects/:id/assets`. Give each
+  file a title, caption, alt text and device, say what kind it is, and put them
+  in the order you want with up and down controls.
+- Every file shows who can see it without opening it. Private is quiet, public
+  is loud, and making something public takes an explicit confirm that says what
+  it means.
+- Where a file is marked public but the project is not published or the product
+  is under NDA, the library says so and names which gate is holding it — so
+  "why isn't my screenshot showing" has an answer.
+- Marking a file public makes it eligible for the portfolio. It publishes
+  nothing; that stays a separate deliberate action.
+
 - WRM-031 — Wroom now answers what everything costs a month. A project shows
   its run rate and its total spend, each labelled so it is clear that annual
   costs are spread over twelve months and that one-offs and usage are not part
