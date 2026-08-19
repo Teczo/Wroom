@@ -6,6 +6,7 @@ import { Button } from '../../components/Button';
 import { PageHeader } from '../../components/PageHeader';
 import { Pill, ProjectStatusPill } from '../../components/Pill';
 import { ErrorState, LoadingState } from '../../components/StateViews';
+import { AssetsPanel } from '../../features/assets/AssetsPanel';
 import { CostsPanel } from '../../features/costs/CostsPanel';
 import { ProjectCredentials } from '../../features/credentials/ProjectCredentials';
 import { DecisionsPanel } from '../../features/decisions/DecisionsPanel';
@@ -93,6 +94,8 @@ function Overview({ project }: { project: Project }) {
           </div>
         ) : null}
       </section>
+
+      <AssetsPanel projectId={project._id} />
 
       <EnvironmentsPanel projectId={project._id} />
 

@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-08-19 (later)
+
+- WRM-040 — Screenshots and videos can be uploaded to a project from the
+  portal, including straight from a phone camera. The file goes to Azure
+  directly from the browser with a progress bar; it never passes through the
+  API, and the storage key never leaves the server.
+- The file's type and size are checked before anything is signed, so a file
+  Wroom will not accept is turned away without uploading a byte — and the
+  message tells you which limit it broke, separately from an upload that
+  started and failed.
+- Uploaded files are private. Nothing in this release makes one public.
+- Deleting a file removes it from Azure as well as from Wroom.
+
 ## 2026-08-19
 
 - WRM-029 — A blank CSV template is one tap from the features page, with the
