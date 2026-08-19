@@ -42,8 +42,16 @@ function Overview({ project }: { project: Project }) {
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
           { label: 'Complete', value: `${project.rollup.percentComplete}%` },
-          { label: 'Run rate', value: `${money(project.rollup.monthlyCostAud)}/mo` },
-          { label: 'Spent', value: money(project.rollup.totalSpendAud) },
+          {
+            label: 'Run rate',
+            value: `${money(project.rollup.monthlyCostAud)}/mo`,
+            hint: 'Monthly plus annual ÷ 12. One-offs and usage are not counted.',
+          },
+          {
+            label: 'Spent',
+            value: money(project.rollup.totalSpendAud),
+            hint: 'Everything recorded, including one-offs and usage.',
+          },
           { label: 'Hours', value: hours(project.rollup.totalHours) },
         ].map((stat) => (
           <div key={stat.label} className="rounded-xl border border-slate-200 bg-white p-4">
@@ -51,6 +59,9 @@ function Overview({ project }: { project: Project }) {
               {stat.label}
             </p>
             <p className="mt-1 text-lg font-semibold text-slate-900">{stat.value}</p>
+            {'hint' in stat && stat.hint ? (
+              <p className="mt-1 text-xs leading-snug text-slate-500">{stat.hint}</p>
+            ) : null}
           </div>
         ))}
       </div>

@@ -497,7 +497,7 @@ projects:        { productId: 1 }, { status: 1 }, { slug: 1 } unique,
 features:        { projectId: 1, status: 1, order: 1 },
                  { projectId: 1, ref: 1 } unique
 costs:           { projectId: 1, periodStart: -1 },
-                 { vendor: 1, externalId: 1 } unique sparse
+                 { vendor: 1, externalId: 1 } unique, partial on externalId being a string
 services:        { projectId: 1, environmentId: 1 }, { accountId: 1 }
 assets:          { projectId: 1, visibility: 1, sortOrder: 1 }
 credentials:     { expiresAt: 1 }
@@ -506,7 +506,14 @@ projectLinks:    { fromProjectId: 1 }, { toProjectId: 1 }
 publishedProjects: { slug: 1 } unique, { featured: -1, sortOrder: 1 }
 ```
 
-The unique sparse indexes on `externalId` are what make cost and revenue sync safely re-runnable.
+The unique indexes on `externalId` are what make cost and revenue sync safely re-runnable.
+
+They must be **partial**, not sparse. On a compound index `sparse` only skips a
+document when every indexed field is missing; `vendor` (or `source`) is always
+present, so a sparse index treats `externalId: null` as a value and permits only
+one manually entered row per vendor. Filtering on `externalId` being a string
+indexes exactly the synced rows the guarantee is about, and leaves manual entry
+unconstrained. `revenue` must do the same when it is built.
 
 ---
 

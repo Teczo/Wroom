@@ -2,6 +2,7 @@ import { uploadRequestSchema } from '@wroom/shared';
 import { Router } from 'express';
 
 import { requestUpload } from '../controllers/assetController.js';
+import * as costController from '../controllers/costController.js';
 import * as dashboard from '../controllers/dashboardController.js';
 import * as featureController from '../controllers/featureController.js';
 import * as meta from '../controllers/metaController.js';
@@ -29,6 +30,7 @@ apiRouter.get('/me', meta.me);
 /** Not under a project — the template is the same blank file for all of them. */
 apiRouter.get('/features/csv-template', featureController.csvTemplate);
 apiRouter.get('/dashboard', dashboard.summary);
+apiRouter.get('/costs/summary', costController.summary);
 apiRouter.get('/project-types', meta.listTypes);
 apiRouter.get('/project-types/:key', meta.getType);
 

@@ -1,10 +1,20 @@
-import { BASE_CURRENCY, type Infer, type costCreateShape } from '@wroom/shared';
+import {
+  BASE_CURRENCY,
+  BILLING_CYCLES,
+  countsTowardRunRate,
+  monthlyRunRate,
+  roundAud,
+  totalSpend,
+  type Infer,
+  type costCreateShape,
+} from '@wroom/shared';
 
 import { CostModel, type CostDocument } from '../models/Cost.js';
+import { ProjectModel } from '../models/Project.js';
 import { NotFoundError, UnprocessableError } from '../utils/errors.js';
 import type { Pagination } from '../utils/http.js';
 import { getProject } from './projectService.js';
-import { recomputeProjectRollup } from './rollupService.js';
+import { recomputeProjectRollup, sumCostsByCycle } from './rollupService.js';
 
 type CostInput = Infer<typeof costCreateShape>;
 
@@ -105,4 +115,48 @@ export async function deleteCost(projectId: string, id: string): Promise<void> {
   const cost = await getCost(projectId, id);
   await cost.deleteOne();
   await recomputeProjectRollup(projectId);
+}
+
+/** What everything costs, across every project still being worked on. */
+export type CostSummary = {
+  monthlyRunRateAud: number;
+  totalSpendAud: number;
+  byBillingCycle: Array<{
+    billingCycle: string;
+    totalAud: number;
+    /** Whether this cycle feeds the run-rate, so the UI need not decide. */
+    countsTowardRunRate: boolean;
+  }>;
+  byVendor: Array<{ vendor: string; totalAud: number; entries: number }>;
+};
+
+export async function summariseCosts(): Promise<CostSummary> {
+  // Archived projects are retired: their costs are history, not run-rate.
+  const live = await ProjectModel.find({ status: { $ne: 'archived' } }).select('_id').lean();
+  const projectIds = live.map((project) => project._id);
+  const match = { projectId: { $in: projectIds } };
+
+  const [totalsByCycle, vendorRows] = await Promise.all([
+    sumCostsByCycle(match),
+    CostModel.aggregate<{ _id: string; totalAud: number; entries: number }>([
+      { $match: match },
+      { $group: { _id: '$vendor', totalAud: { $sum: '$amountAud' }, entries: { $sum: 1 } } },
+      { $sort: { totalAud: -1 } },
+    ]),
+  ]);
+
+  return {
+    monthlyRunRateAud: monthlyRunRate(totalsByCycle),
+    totalSpendAud: totalSpend(totalsByCycle),
+    byBillingCycle: BILLING_CYCLES.map((billingCycle) => ({
+      billingCycle,
+      totalAud: roundAud(totalsByCycle[billingCycle] ?? 0),
+      countsTowardRunRate: countsTowardRunRate(billingCycle),
+    })),
+    byVendor: vendorRows.map((row) => ({
+      vendor: row._id,
+      totalAud: roundAud(row.totalAud),
+      entries: row.entries,
+    })),
+  };
 }

@@ -5,6 +5,8 @@ import { Button } from '../../components/Button';
 import { PageHeader } from '../../components/PageHeader';
 import { ProjectStatusPill } from '../../components/Pill';
 import { EmptyState, ErrorState, LoadingState } from '../../components/StateViews';
+import { vendorLabel } from '../../features/accounts/vendor';
+import { useCostSummary } from '../../features/costs/summary';
 import { useDashboard } from '../../features/dashboard/api';
 import { humanise, money, relativeDate } from '../../lib/format';
 
@@ -57,6 +59,8 @@ function QuietProjectRow({ project }: { project: DashboardProjectRow }) {
 
 export function DashboardPage() {
   const dashboard = useDashboard();
+  // The run-rate rule lives on the server; this is the portfolio-wide answer.
+  const summary = useCostSummary();
 
   if (dashboard.isPending) {
     return (
@@ -116,9 +120,36 @@ export function DashboardPage() {
       <section className="mt-8">
         <h2 className="mb-3 text-sm font-semibold text-slate-900">Spend</h2>
         <div className="grid grid-cols-2 gap-3">
-          <Stat label="Monthly cost" value={money(totals.monthlyCostAud)} hint="recurring, per month" />
-          <Stat label="Total spend" value={money(totals.totalSpendAud)} hint="to date" />
+          <Stat
+            label="Run rate"
+            value={money(summary.data?.monthlyRunRateAud ?? totals.monthlyCostAud)}
+            hint="per month — annual costs ÷ 12, one-offs and usage excluded"
+          />
+          <Stat
+            label="Total spend"
+            value={money(summary.data?.totalSpendAud ?? totals.totalSpendAud)}
+            hint="everything recorded, one-offs included"
+          />
         </div>
+
+        {summary.data && summary.data.byVendor.length > 0 ? (
+          <div className="mt-3 overflow-hidden rounded-xl border border-slate-200 bg-white">
+            <p className="border-b border-slate-100 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              By vendor
+            </p>
+            {summary.data.byVendor.map((row) => (
+              <div
+                key={row.vendor}
+                className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-2 last:border-0"
+              >
+                <span className="truncate text-sm text-slate-700">{vendorLabel(row.vendor)}</span>
+                <span className="shrink-0 text-sm font-medium text-slate-900">
+                  {money(row.totalAud)}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : null}
       </section>
 
       <section className="mt-8">
