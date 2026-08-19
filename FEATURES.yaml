@@ -307,7 +307,7 @@ features:
 
   - ref: WRM-046
     title: Portfolio case study page
-    status: in-progress
+    status: blocked
     priority: high
     size: m
     labels: [portfolio]

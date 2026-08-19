@@ -85,9 +85,16 @@ function CaseStudy({ project }: { project: PublishedProject }) {
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             {project.gallery.map((item) => (
               <figure key={item.url}>
+                {/*
+                 * The snapshot carries no alt for gallery items, so none is
+                 * invented here. The caption sits next to the image as real
+                 * text; copying it into alt would have a screen reader read it
+                 * twice, and an alt made up from a filename would be worse than
+                 * nothing. Empty alt marks it decorative, which is honest.
+                 */}
                 <img
                   src={item.thumbnailUrl ?? item.url}
-                  alt={item.caption}
+                  alt=""
                   loading="lazy"
                   className="w-full rounded-xl border border-slate-200 object-cover"
                 />
