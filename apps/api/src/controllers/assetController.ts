@@ -50,3 +50,13 @@ export const publishState: RequestHandler = async (req, res) => {
 export const requestUpload: RequestHandler = async (req, res) => {
   sendData(res, await createUploadTicket(validated(req)));
 };
+
+/** The project-scoped form: the project comes from the route, not the body. */
+export const requestProjectUpload: RequestHandler = async (req, res) => {
+  const input = validated<{ filename: string; mimeType: string; sizeBytes: number }>(req);
+
+  sendData(
+    res,
+    await createUploadTicket({ ...input, projectId: req.params.projectId as string }),
+  );
+};

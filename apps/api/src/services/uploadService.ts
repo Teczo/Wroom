@@ -8,7 +8,7 @@ import {
 import { randomUUID } from 'node:crypto';
 
 import { env } from '../config/env.js';
-import { AppError, UnprocessableError } from '../utils/errors.js';
+import { AppError, UnprocessableError, ValidationError } from '../utils/errors.js';
 
 /**
  * Issues a short-lived SAS URL so the browser uploads straight to Azure Blob
@@ -21,8 +21,12 @@ const SAS_MINUTES = 15;
 export type UploadTicket = {
   /** PUT the file here. Expires shortly. */
   uploadUrl: string;
-  /** The permanent URL to store on the asset once the upload succeeds. */
-  blobUrl: string;
+  /**
+   * The path inside the container. Send this back when registering the asset —
+   * the server rebuilds the permanent URL from it, so the client never gets to
+   * name where a record points.
+   */
+  blobName: string;
   expiresAt: string;
 };
 
@@ -96,7 +100,58 @@ export async function createUploadTicket(input: {
 
   return {
     uploadUrl: `${blob.url}?${sas}`,
-    blobUrl: blob.url,
+    blobName,
     expiresAt: expiresOn.toISOString(),
   };
+}
+
+/** The container client, or a 503 that says storage is not set up yet. */
+function containerClient() {
+  if (!env.azureStorage.configured) {
+    throw new AppError(503, 'INTERNAL', 'File storage is not configured on this environment yet.');
+  }
+
+  return BlobServiceClient.fromConnectionString(
+    env.azureStorage.connectionString,
+  ).getContainerClient(env.azureStorage.container);
+}
+
+/**
+ * Turns a blob name back into its permanent URL, having checked that it is one
+ * this project was given and that something was actually uploaded to it.
+ *
+ * This is what stops a hand-edited request registering an asset that points at
+ * another project's file, or at nothing at all.
+ */
+export async function resolveUploadedBlob(
+  projectId: string,
+  blobName: string,
+): Promise<string> {
+  if (!blobName.startsWith(`${projectId}/`)) {
+    throw new ValidationError('That upload does not belong to this project.', {
+      blobName: 'This is not a path the project was given.',
+    });
+  }
+
+  const blob = containerClient().getBlockBlobClient(blobName);
+
+  if (!(await blob.exists())) {
+    throw new ValidationError('Nothing has been uploaded to that path.', {
+      blobName: 'The upload did not arrive. Try uploading the file again.',
+    });
+  }
+
+  return blob.url;
+}
+
+/** Removes the file itself. Missing is not an error — the goal is that it is gone. */
+export async function deleteBlobByUrl(blobUrl: string): Promise<void> {
+  if (!env.azureStorage.configured) return;
+
+  const container = containerClient();
+  const prefix = `${container.url}/`;
+  if (!blobUrl.startsWith(prefix)) return;
+
+  const blobName = decodeURIComponent(blobUrl.slice(prefix.length));
+  await container.getBlockBlobClient(blobName).deleteIfExists();
 }

@@ -6,6 +6,7 @@ import { ProductModel } from '../models/Product.js';
 import type { UserDocument } from '../models/User.js';
 import { NotFoundError } from '../utils/errors.js';
 import { getProject } from './projectService.js';
+import { deleteBlobByUrl, resolveUploadedBlob } from './uploadService.js';
 
 type AssetInput = Infer<typeof assetCreateShape>;
 
@@ -28,7 +29,14 @@ export async function getAsset(projectId: string, id: string): Promise<AssetDocu
   return asset;
 }
 
-/** Registers an uploaded blob. New assets are private until explicitly changed. */
+/**
+ * Registers an uploaded blob.
+ *
+ * The URL is rebuilt from the `blobName` the API issued and checked to exist,
+ * rather than taken from the request — the client never says where a record
+ * points. Visibility is not read from the body at all: an asset is private
+ * when it is created, and only WRM-041 will change that.
+ */
 export async function createAsset(
   projectId: string,
   input: AssetInput,
@@ -36,8 +44,14 @@ export async function createAsset(
 ): Promise<AssetDocument> {
   await getProject(projectId);
 
+  const { blobName, ...fields } = input;
+  const blobUrl = await resolveUploadedBlob(projectId, blobName);
+
   return AssetModel.create({
-    ...input,
+    ...fields,
+    blobUrl,
+    thumbnailUrl: null,
+    visibility: 'private',
     projectId,
     uploadedByUserId: user._id as Types.ObjectId,
   });
@@ -54,8 +68,11 @@ export async function updateAsset(
   return asset;
 }
 
+/** Takes the file with it — a record removed but a blob left behind is a leak. */
 export async function deleteAsset(projectId: string, id: string): Promise<void> {
   const asset = await getAsset(projectId, id);
+
+  await deleteBlobByUrl(asset.blobUrl);
   await asset.deleteOne();
 }
 
