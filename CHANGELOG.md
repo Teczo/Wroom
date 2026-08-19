@@ -2,6 +2,19 @@
 
 ## 2026-08-19 (later)
 
+- WRM-046 — Each published project has its own page at /work/its-slug, showing
+  the case study, the metrics, the testimonial and the gallery in the order it
+  was published in. A project with no metrics or testimonial renders without
+  empty headings rather than blank sections.
+- Gallery images no longer borrow the caption as their alt text. The caption is
+  already on the page as real text, so repeating it would have a screen reader
+  say everything twice.
+- An unknown or unpublished link shows a plain not-found page with a way back
+  to the work index. Unpublishing takes a page offline immediately, with no
+  deploy.
+
+## 2026-08-19 (later)
+
 - WRM-040 — Screenshots and videos can be uploaded to a project from the
   portal, including straight from a phone camera. The file goes to Azure
   directly from the browser with a progress bar; it never passes through the
