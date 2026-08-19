@@ -10,6 +10,7 @@ import { CredentialsPage } from './pages/credentials/CredentialsPage';
 import { DashboardPage } from './pages/dashboard/DashboardPage';
 import { ProductsPage } from './pages/products/ProductsPage';
 import { NewProjectPage } from './pages/projects/NewProjectPage';
+import { ProjectAssetsPage } from './pages/projects/ProjectAssetsPage';
 import { ProjectBoardPage } from './pages/projects/ProjectBoardPage';
 import { ProjectDetailPage } from './pages/projects/ProjectDetailPage';
 import { ProjectsPage } from './pages/projects/ProjectsPage';
@@ -24,6 +25,7 @@ export function App() {
           <Route path="/projects/new" element={<NewProjectPage />} />
           <Route path="/projects/:id" element={<ProjectDetailPage />} />
           <Route path="/projects/:id/board" element={<ProjectBoardPage />} />
+          <Route path="/projects/:id/assets" element={<ProjectAssetsPage />} />
           <Route path="/products" element={<ProductsPage />} />
           <Route path="/accounts" element={<AccountsPage />} />
           <Route path="/accounts/:id" element={<AccountDetailPage />} />

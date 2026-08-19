@@ -1,13 +1,14 @@
-import { ASSET_KINDS } from '../constants.js';
+import { ASSET_KINDS, VISIBILITIES } from '../constants.js';
 import {
+  arrayOf,
   enumOf,
   isoDate,
   nullable,
   number,
   object,
   objectId,
-  partial,
   string,
+  strictPartial,
   withDefault,
 } from '../validate.js';
 
@@ -65,10 +66,14 @@ export const assetCreateShape = {
 export const assetCreateSchema = object(assetCreateShape);
 
 /**
- * What an edit may touch. Neither the blob it points at nor its visibility —
- * the first would repoint a record at another file, the second is WRM-041.
+ * What an edit may touch — how an asset is described and who may see it.
+ *
+ * Strict, so `blobUrl`, `filename`, `mimeType`, `sizeBytes` and
+ * `uploadedByUserId` come back as a 400 naming the field rather than being
+ * quietly dropped. Which file a record points at, and how big it is, are facts
+ * about the upload; they are not editable after the fact.
  */
-export const assetUpdateSchema = partial({
+export const assetUpdateSchema = strictPartial({
   featureId: assetCreateShape.featureId,
   kind: assetCreateShape.kind,
   title: assetCreateShape.title,
@@ -77,4 +82,14 @@ export const assetUpdateSchema = partial({
   device: assetCreateShape.device,
   sortOrder: assetCreateShape.sortOrder,
   capturedAt: assetCreateShape.capturedAt,
+  /**
+   * Making an asset public makes it *eligible* for the portfolio. It does not
+   * publish anything — that stays an explicit action (CLAUDE.md §8).
+   */
+  visibility: withDefault(enumOf(VISIBILITIES), 'private' as const),
+});
+
+/** Body for PATCH /api/projects/:id/assets/order — the whole order at once. */
+export const assetOrderSchema = object({
+  assetIds: arrayOf(objectId(), { max: 500 }),
 });

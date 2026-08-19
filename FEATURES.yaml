@@ -260,7 +260,7 @@ features:
 
   - ref: WRM-041
     title: Asset library per project
-    status: backlog
+    status: review
     priority: high
     size: m
     labels: [portal, media]

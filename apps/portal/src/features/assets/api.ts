@@ -1,13 +1,19 @@
-import type { Asset } from '@wroom/shared';
+import type { Asset, PublishGateResult } from '@wroom/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { apiDelete, apiList, apiPost } from '../../lib/api';
+import { apiDelete, apiList, apiPatch, apiPost } from '../../lib/api';
 
 export type UploadTicket = {
   uploadUrl: string;
   blobName: string;
   expiresAt: string;
 };
+
+/**
+ * The API attaches the gate result to every asset, computed with the shared
+ * function. The portal renders it and never works out publishability itself.
+ */
+export type AssetWithPublishState = Asset & { publishState: PublishGateResult };
 
 export const assetKeys = {
   forProject: (projectId: string) => ['assets', projectId] as const,
@@ -16,7 +22,28 @@ export const assetKeys = {
 export function useAssets(projectId: string) {
   return useQuery({
     queryKey: assetKeys.forProject(projectId),
-    queryFn: () => apiList<Asset>(`/api/projects/${projectId}/assets`),
+    queryFn: () => apiList<AssetWithPublishState>(`/api/projects/${projectId}/assets`),
+  });
+}
+
+export function useUpdateAsset(projectId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, ...input }: { id: string } & Record<string, unknown>) =>
+      apiPatch<Asset>(`/api/projects/${projectId}/assets/${id}`, input),
+    onSuccess: () => client.invalidateQueries({ queryKey: assetKeys.forProject(projectId) }),
+  });
+}
+
+/** The whole ordering in one request, so a move is one write. */
+export function useReorderAssets(projectId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (assetIds: string[]) =>
+      apiPatch<{ reordered: number }>(`/api/projects/${projectId}/assets/order`, { assetIds }),
+    onSuccess: () => client.invalidateQueries({ queryKey: assetKeys.forProject(projectId) }),
   });
 }
 

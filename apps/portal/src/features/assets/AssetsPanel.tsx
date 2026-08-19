@@ -1,6 +1,7 @@
 import type { Asset } from '@wroom/shared';
 import { UPLOAD_LIMITS } from '@wroom/shared';
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 
 import { Button } from '../../components/Button';
 import { Pill } from '../../components/Pill';
@@ -210,7 +211,17 @@ export function AssetsPanel({ projectId }: { projectId: string }) {
   return (
     <section className="rounded-xl border border-slate-200 bg-white">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 p-4">
-        <h3 className="text-sm font-semibold text-slate-900">Media</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-slate-900">Media</h3>
+          {items.length > 0 ? (
+            <Link
+              to={`/projects/${projectId}/assets`}
+              className="text-xs text-slate-500 underline underline-offset-2 hover:text-slate-900"
+            >
+              Open the library
+            </Link>
+          ) : null}
+        </div>
 
         <label className="inline-flex">
           <span className="sr-only">Choose a file to upload</span>

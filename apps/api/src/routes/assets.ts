@@ -1,5 +1,6 @@
 import {
   assetCreateSchema,
+  assetOrderSchema,
   assetUpdateSchema,
   projectUploadRequestSchema,
 } from '@wroom/shared';
@@ -22,6 +23,9 @@ assetsRouter.post(
   validateBody(projectUploadRequestSchema),
   controller.requestProjectUpload,
 );
+
+/** Also ahead of `/:id` — "order" is not an asset id. */
+assetsRouter.patch('/order', validateBody(assetOrderSchema), controller.reorder);
 
 assetsRouter.post('/', validateBody(assetCreateSchema), controller.create);
 assetsRouter.patch('/:id', validateBody(assetUpdateSchema), controller.update);

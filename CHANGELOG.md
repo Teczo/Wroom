@@ -2,6 +2,20 @@
 
 ## 2026-08-19 (later)
 
+- WRM-041 — A project's media is a library at `/projects/:id/assets`. Give each
+  file a title, caption, alt text and device, say what kind it is, and put them
+  in the order you want with up and down controls.
+- Every file shows who can see it without opening it. Private is quiet, public
+  is loud, and making something public takes an explicit confirm that says what
+  it means.
+- Where a file is marked public but the project is not published or the product
+  is under NDA, the library says so and names which gate is holding it — so
+  "why isn't my screenshot showing" has an answer.
+- Marking a file public makes it eligible for the portfolio. It publishes
+  nothing; that stays a separate deliberate action.
+
+## 2026-08-19 (later)
+
 - WRM-040 — Screenshots and videos can be uploaded to a project from the
   portal, including straight from a phone camera. The file goes to Azure
   directly from the browser with a progress bar; it never passes through the
