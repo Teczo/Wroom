@@ -24,6 +24,12 @@
   records where the key lives; the key itself is read from the server's
   environment at the moment a sync runs. Nothing here writes to Stripe.
 
+- Portfolio images now load. They were stored as plain storage URLs, which the
+  storage account refuses to serve to anyone not signed in, so every published
+  picture came out blank. The public API now signs each image URL as it serves
+  it, valid for an hour. Nothing else in storage became reachable — an
+  unpublished screenshot is still refused.
+
 ## 2026-08-19 (later)
 
 - WRM-046 — Each published project has its own page at /work/its-slug, showing

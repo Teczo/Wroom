@@ -144,6 +144,71 @@ export async function resolveUploadedBlob(
   return blob.url;
 }
 
+/**
+ * How long a portfolio image URL stays valid. Long enough that nobody watches a
+ * picture expire mid-visit, short enough that a URL copied out of the page is
+ * not a permanent handle on the file.
+ */
+const READ_SAS_MINUTES = 60;
+
+/**
+ * The pieces needed to sign a URL, worked out once.
+ *
+ * Signing is pure local crypto — no call to Azure — but rebuilding the client
+ * from the connection string for every image on every request is waste on the
+ * one path that gets public traffic.
+ */
+let signer: { containerName: string; prefix: string; credential: StorageSharedKeyCredential } | null =
+  null;
+
+function blobSigner() {
+  if (signer) return signer;
+  if (!env.azureStorage.configured) return null;
+
+  const client = BlobServiceClient.fromConnectionString(env.azureStorage.connectionString);
+  const credential = client.credential;
+  if (!(credential instanceof StorageSharedKeyCredential)) return null;
+
+  signer = {
+    containerName: env.azureStorage.container,
+    prefix: `${client.getContainerClient(env.azureStorage.container).url}/`,
+    credential,
+  };
+  return signer;
+}
+
+/**
+ * A short-lived read-only URL for a blob in our own container.
+ *
+ * The storage account does not allow anonymous access, so a bare blob URL is
+ * unreadable to a browser. Rather than open the account up — which would make
+ * every private, unpublished screenshot readable to anyone holding a URL, and
+ * reduce the publish gates to controlling what is *listed* — a read signature
+ * is minted per request for the images a published project actually shows.
+ * Nothing else in the container becomes reachable.
+ *
+ * A URL that is not ours is handed back untouched, and so is anything we cannot
+ * sign: an unconfigured environment should render a broken image, not a 500.
+ */
+export function signBlobUrlForRead(blobUrl: string, minutes = READ_SAS_MINUTES): string {
+  const parts = blobSigner();
+  if (!parts || !blobUrl.startsWith(parts.prefix)) return blobUrl;
+
+  const sas = generateBlobSASQueryParameters(
+    {
+      containerName: parts.containerName,
+      blobName: decodeURIComponent(blobUrl.slice(parts.prefix.length)),
+      permissions: BlobSASPermissions.parse('r'),
+      // A minute of slack, so a small clock difference does not reject it.
+      startsOn: new Date(Date.now() - 60 * 1000),
+      expiresOn: new Date(Date.now() + minutes * 60 * 1000),
+    },
+    parts.credential,
+  ).toString();
+
+  return `${blobUrl}?${sas}`;
+}
+
 /** Removes the file itself. Missing is not an error — the goal is that it is gone. */
 export async function deleteBlobByUrl(blobUrl: string): Promise<void> {
   if (!env.azureStorage.configured) return;
