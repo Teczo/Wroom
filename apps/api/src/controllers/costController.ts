@@ -33,3 +33,8 @@ export const remove: RequestHandler = async (req, res) => {
   await costService.deleteCost(req.params.projectId as string, req.params.id as string);
   res.status(204).end();
 };
+
+/** Portfolio-wide totals. Archived projects are excluded. */
+export const summary: RequestHandler = async (_req, res) => {
+  sendData(res, await costService.summariseCosts());
+};

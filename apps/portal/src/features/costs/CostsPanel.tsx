@@ -1,4 +1,4 @@
-import { BILLING_CYCLES, VENDORS } from '@wroom/shared';
+import { BILLING_CYCLES, VENDORS, countsTowardRunRate } from '@wroom/shared';
 import { useState } from 'react';
 
 import { Button } from '../../components/Button';
@@ -152,6 +152,10 @@ export function CostsPanel({ projectId }: { projectId: string }) {
               <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
                 <Pill label={humanise(cost.vendor)} />
                 <span>{humanise(cost.billingCycle)}</span>
+                {/* Whether it recurs is the shared rule's call, not this file's. */}
+                {countsTowardRunRate(cost.billingCycle) ? null : (
+                  <Pill label="not in run rate" tone="amber" />
+                )}
               </div>
             </div>
 

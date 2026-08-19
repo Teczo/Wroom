@@ -28,7 +28,19 @@ const costSchema = new Schema(
 );
 
 costSchema.index({ projectId: 1, periodStart: -1 });
-costSchema.index({ vendor: 1, externalId: 1 }, { unique: true, sparse: true });
+/**
+ * Idempotency for vendor sync: the same invoice cannot import twice.
+ *
+ * Partial, not sparse. On a compound index `sparse` only skips a document when
+ * every indexed field is missing — and `vendor` is always present — so a sparse
+ * index here treats `externalId: null` as a value and allows only one manual
+ * cost per vendor. Filtering on the type indexes only the rows that actually
+ * carry an external id, which is the ones the guarantee is about.
+ */
+costSchema.index(
+  { vendor: 1, externalId: 1 },
+  { unique: true, partialFilterExpression: { externalId: { $type: 'string' } } },
+);
 
 export type Cost = InferSchemaType<typeof costSchema>;
 export type CostDocument = HydratedDocument<Cost>;

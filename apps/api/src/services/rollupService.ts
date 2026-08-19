@@ -1,3 +1,4 @@
+import { monthlyRunRate, totalSpend, type BillingCycle } from '@wroom/shared';
 import { Types } from 'mongoose';
 
 import { CostModel } from '../models/Cost.js';
@@ -41,18 +42,31 @@ async function featureRollup(projectId: Types.ObjectId) {
 }
 
 async function costRollup(projectId: Types.ObjectId) {
+  const totalsByCycle = await sumCostsByCycle({ projectId });
+
+  // The rule itself lives in @wroom/shared, so this and the portfolio summary
+  // cannot drift apart.
+  return {
+    monthlyCostAud: monthlyRunRate(totalsByCycle),
+    totalSpendAud: totalSpend(totalsByCycle),
+  };
+}
+
+/**
+ * `amountAud` summed per billing cycle. Always `amountAud` — never `amount`,
+ * which is whatever currency it was paid in.
+ */
+export async function sumCostsByCycle(
+  match: Record<string, unknown>,
+): Promise<Partial<Record<BillingCycle, number>>> {
   const rows = await CostModel.aggregate<{ _id: string; total: number }>([
-    { $match: { projectId } },
+    { $match: match },
     { $group: { _id: '$billingCycle', total: { $sum: '$amountAud' } } },
   ]);
 
-  const byCycle = new Map(rows.map((row) => [row._id, row.total]));
-
-  // Run-rate rule: monthly + annual/12. One-off and usage are excluded.
-  const monthlyCostAud = round((byCycle.get('monthly') ?? 0) + (byCycle.get('annual') ?? 0) / 12);
-  const totalSpendAud = round(rows.reduce((sum, row) => sum + row.total, 0));
-
-  return { monthlyCostAud, totalSpendAud };
+  return Object.fromEntries(rows.map((row) => [row._id, row.total])) as Partial<
+    Record<BillingCycle, number>
+  >;
 }
 
 async function timeRollup(projectId: Types.ObjectId) {

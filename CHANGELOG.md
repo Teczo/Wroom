@@ -2,6 +2,15 @@
 
 ## 2026-08-19 (later)
 
+- WRM-031 — Wroom now answers what everything costs a month. A project shows
+  its run rate and its total spend, each labelled so it is clear that annual
+  costs are spread over twelve months and that one-offs and usage are not part
+  of the recurring figure.
+- The cost list marks the entries that do not count toward the run rate, so a
+  one-off invoice no longer looks like it was missed.
+- The dashboard shows the whole portfolio: run rate, total spend, and what each
+  vendor takes. Archived projects are left out of those totals.
+
 - WRM-020 — Project types are editable in the portal at Settings → Project
   types. Define a new kind of project, give it its own form fields, and create a
   project of that type immediately — no seed script, no deploy.

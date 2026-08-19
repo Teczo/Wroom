@@ -213,7 +213,7 @@ features:
 
   - ref: WRM-031
     title: Run-rate and spend rollup
-    status: backlog
+    status: review
     priority: high
     size: s
     labels: [api, money]
