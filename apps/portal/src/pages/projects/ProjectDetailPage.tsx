@@ -22,6 +22,7 @@ import { RevenuePanel } from '../../features/revenue/RevenuePanel';
 import { PublishPanel } from '../../features/projects/PublishPanel';
 import { ServicesPanel } from '../../features/services/ServicesPanel';
 import { useProject } from '../../features/projects/api';
+import { EffortPanel } from '../../features/time/EffortPanel';
 import { TimePanel } from '../../features/time/TimePanel';
 import { hours, money, relativeDate, shortDate } from '../../lib/format';
 
@@ -95,6 +96,8 @@ function Overview({ project }: { project: Project }) {
           </div>
         ) : null}
       </section>
+
+      <EffortPanel projectId={project._id} />
 
       <RevenuePanel project={project} />
 

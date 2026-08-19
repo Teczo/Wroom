@@ -2,6 +2,21 @@
 
 ## 2026-08-19 (later)
 
+- WRM-033 — Logged hours are now readable. A project shows what the work took,
+  broken down by activity and by feature, with hours logged against nothing in
+  particular kept in their own bucket rather than dropped.
+- Effort sits in its own section, apart from hosting spend, because the two
+  measure different things — time cost is what the hours are worth, not money
+  that left an account, and it is in no total by default.
+- The Kanban card shows hours; the cost sits behind the card's panel, since
+  money is not part of deciding what to pick up next.
+- Where Net is shown there is now a tick box to count time cost into it. It is
+  off, and it is not saved anywhere — it is a way of looking at the number.
+- Hours logged at no rate show a dash rather than $0.00, so uncosted work and
+  free work do not look the same.
+
+## 2026-08-19 (later)
+
 - WRM-034 — A project can record money in as well as money out. Add an invoice
   or a payment with who it was for, what it was for, the amount and whether it
   has been paid, and mark an outstanding one paid in a single action.

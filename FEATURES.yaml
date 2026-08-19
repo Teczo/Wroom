@@ -231,7 +231,7 @@ features:
 
   - ref: WRM-033
     title: Time cost reporting
-    status: backlog
+    status: review
     priority: low
     size: s
     labels: [portal, money]

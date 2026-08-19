@@ -229,8 +229,15 @@ export function RevenuePanel({ project }: { project: Project }) {
   const outstandingTotal = outstanding.reduce((sum, entry) => sum + entry.amountAud, 0);
 
   // Net uses the rollup's paid revenue and total spend. Time cost is excluded
-  // by the resolved decision — hours logged never move this figure.
-  const net = project.rollup.totalRevenueAud - project.rollup.totalSpendAud;
+  // by default — hours logged never move this figure unless asked. The toggle
+  // is local state on purpose: it is a way of looking at the number, not a
+  // setting, and nothing about it is saved.
+  const [includeTimeCost, setIncludeTimeCost] = useState(false);
+
+  const net =
+    project.rollup.totalRevenueAud -
+    project.rollup.totalSpendAud -
+    (includeTimeCost ? project.rollup.timeCostAud : 0);
 
   return (
     <section className="rounded-xl border border-slate-200 bg-white">
@@ -262,8 +269,23 @@ export function RevenuePanel({ project }: { project: Project }) {
             {money(net)}
           </p>
           <p className="mt-0.5 text-xs leading-snug text-slate-500">
-            paid revenue minus spend — hours are not counted
+            paid revenue minus spend
           </p>
+
+          {project.rollup.timeCostAud > 0 ? (
+            <label className="mt-1.5 flex min-h-9 items-start gap-1.5 text-xs text-slate-600">
+              <input
+                type="checkbox"
+                className="mt-0.5 size-3.5 shrink-0 rounded border-slate-300"
+                checked={includeTimeCost}
+                onChange={(event) => setIncludeTimeCost(event.target.checked)}
+              />
+              <span>
+                count {money(project.rollup.timeCostAud)} of time
+                <span className="block text-slate-400">not saved — just this view</span>
+              </span>
+            </label>
+          ) : null}
         </div>
       </div>
 

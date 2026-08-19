@@ -12,7 +12,8 @@ import { DependencyPicker } from '../../features/features/DependencyPicker';
 import { useFeatures, useMoveFeature } from '../../features/features/api';
 import { useProject } from '../../features/projects/api';
 import { ApiRequestError } from '../../lib/api';
-import { humanise } from '../../lib/format';
+import { hours as hoursLabel, humanise } from '../../lib/format';
+import { useProjectTimeSummary } from '../../features/time/summary';
 
 /**
  * The board.
@@ -52,6 +53,7 @@ function Card({
   projectId,
   feature,
   candidates,
+  loggedHours,
   onDragStart,
   onDropBefore,
   onMoveTo,
@@ -60,6 +62,7 @@ function Card({
   projectId: string;
   feature: Feature;
   candidates: Feature[];
+  loggedHours: number;
   onDragStart: () => void;
   onDropBefore: () => void;
   onMoveTo: (status: FeatureStatus) => void;
@@ -113,6 +116,11 @@ function Card({
 
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
         <Pill label={feature.size.toUpperCase()} />
+        {/* Hours only. Cost is in the panel — a card is for choosing what to
+            work on, and money is not part of that call. */}
+        {loggedHours > 0 ? (
+          <span className="text-xs text-slate-500">{hoursLabel(loggedHours)}</span>
+        ) : null}
         {feature.labels.map((label) => (
           <Pill key={label} label={label} tone="blue" />
         ))}
@@ -161,6 +169,14 @@ export function ProjectBoardPage() {
   const [reason, setReason] = useState('');
 
   const items = features.data?.items ?? [];
+
+  // One request for the project, rather than one per card.
+  const timeSummary = useProjectTimeSummary(id);
+  const hoursByFeature = new Map(
+    (timeSummary.data?.byFeature ?? [])
+      .filter((row) => row.featureId !== null)
+      .map((row) => [row.featureId as string, row.hours]),
+  );
 
   const columnOf = (status: FeatureStatus) =>
     items
@@ -327,6 +343,7 @@ export function ProjectBoardPage() {
                       projectId={id}
                       feature={feature}
                       candidates={items}
+                      loggedHours={hoursByFeature.get(feature._id) ?? 0}
                       isDragging={dragging?._id === feature._id}
                       onDragStart={() => setDragging(feature)}
                       onDropBefore={() => {

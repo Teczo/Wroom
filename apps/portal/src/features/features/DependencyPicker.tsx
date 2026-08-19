@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { Button } from '../../components/Button';
 import { Pill } from '../../components/Pill';
 import { ApiRequestError } from '../../lib/api';
+import { hours as hoursLabel, money } from '../../lib/format';
+import { useFeatureTimeSummary } from '../time/summary';
 import { useUpdateFeature } from './api';
 
 /**
@@ -25,6 +27,10 @@ export function DependencyPicker({
   const update = useUpdateFeature(projectId);
   const [selected, setSelected] = useState<string[]>(feature.dependsOnFeatureIds);
 
+  // Cost lives here rather than on the card — a card is for deciding what to
+  // pick up next, and a dollar figure is not part of that decision.
+  const time = useFeatureTimeSummary(feature._id);
+
   const dependencies = feature.dependencies ?? [];
   const dependents = feature.dependents ?? [];
   const others = candidates.filter((candidate) => candidate._id !== feature._id);
@@ -41,6 +47,20 @@ export function DependencyPicker({
 
   return (
     <div className="mt-2 space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+      {time.data && time.data.totalHours > 0 ? (
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Effort</p>
+          <p className="mt-1 text-xs text-slate-700">
+            {hoursLabel(time.data.totalHours)} ·{' '}
+            {time.data.uncosted ? (
+              <span className="text-slate-500">no rate on these hours</span>
+            ) : (
+              money(time.data.timeCostAud)
+            )}
+          </p>
+        </div>
+      ) : null}
+
       <div>
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
           Waits on
