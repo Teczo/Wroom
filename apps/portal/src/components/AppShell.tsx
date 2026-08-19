@@ -11,6 +11,7 @@ const navigation = [
   { to: '/accounts', label: 'Accounts', end: false },
   { to: '/credentials', label: 'Keys', end: false },
   { to: '/settings/project-types', label: 'Types', end: false },
+  { to: '/settings/integrations', label: 'Sync', end: false },
 ];
 
 function SignOutButton() {

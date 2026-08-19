@@ -45,6 +45,19 @@ export const env = {
     },
   },
 
+  /**
+   * Read at the moment a sync runs and never stored. `vendorConnections`
+   * records a pointer to where this lives, never the value (CLAUDE.md §8).
+   * Optional at boot so the API still starts before Stripe is wired up; the
+   * sync route reports it as unconfigured instead of crashing.
+   */
+  stripe: {
+    secretKey: optional('STRIPE_SECRET_KEY'),
+    get configured(): boolean {
+      return Boolean(this.secretKey);
+    },
+  },
+
   corsOrigins: optional('CORS_ORIGINS')
     .split(',')
     .map((origin) => origin.trim())

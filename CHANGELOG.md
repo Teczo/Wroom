@@ -1,5 +1,29 @@
 # Changelog
 
+## 2026-08-19 (later still)
+
+- WRM-050 — Stripe invoices now import themselves as revenue. Connect Stripe
+  under Sync, press "Sync now", and every invoice tagged with a project slug
+  lands against that project, with whether it was paid and when taken from
+  Stripe rather than assumed.
+- Running the same sync twice changes nothing. An invoice whose amount moved in
+  Stripe is updated where it sits rather than added a second time, so the
+  numbers can be trusted after any number of runs.
+- An invoice Stripe cannot be attributed to a project is listed back with its
+  id and customer, so the metadata can be fixed at the Stripe end. Nothing is
+  written for it and nothing is guessed at.
+- A sync that fails imports nothing at all — not half a period. The reason is
+  kept against the connection and shown on the page, including whatever Stripe
+  itself said.
+- An invoice in a currency other than AUD stops the run and says so, rather
+  than storing a converted figure with no exchange rate recorded behind it.
+- Synced rows are marked in the revenue list and cannot be edited by hand,
+  because the next sync would overwrite the edit without saying so. They can
+  still be removed.
+- Wroom never asks for a Stripe key and has nowhere to put one. The connection
+  records where the key lives; the key itself is read from the server's
+  environment at the moment a sync runs. Nothing here writes to Stripe.
+
 ## 2026-08-19 (later)
 
 - WRM-046 — Each published project has its own page at /work/its-slug, showing

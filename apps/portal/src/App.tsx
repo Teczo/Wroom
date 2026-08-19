@@ -15,6 +15,7 @@ import { ProjectAssetsPage } from './pages/projects/ProjectAssetsPage';
 import { ProjectBoardPage } from './pages/projects/ProjectBoardPage';
 import { ProjectDetailPage } from './pages/projects/ProjectDetailPage';
 import { ProjectsPage } from './pages/projects/ProjectsPage';
+import { IntegrationsPage } from './pages/settings/IntegrationsPage';
 import { ProjectTypesPage } from './pages/settings/ProjectTypesPage';
 
 export function App() {
@@ -35,6 +36,7 @@ export function App() {
           <Route path="/credentials" element={<CredentialsPage />} />
           <Route path="/credentials/:id" element={<CredentialDetailPage />} />
           <Route path="/settings/project-types" element={<ProjectTypesPage />} />
+          <Route path="/settings/integrations" element={<IntegrationsPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </AppShell>
