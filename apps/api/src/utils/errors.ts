@@ -59,3 +59,23 @@ export class UnprocessableError extends AppError {
     super(422, 'UNPROCESSABLE', message, details);
   }
 }
+
+/**
+ * Too much body. Used by the one public write, which caps its payload far
+ * tighter than the global parser does.
+ */
+export class PayloadTooLargeError extends AppError {
+  constructor(message: string, details?: Record<string, unknown>) {
+    super(413, 'PAYLOAD_TOO_LARGE', message, details);
+  }
+}
+
+/**
+ * Too many requests. The public enquiry route is the only thing that throws
+ * this — it is the one endpoint anyone on the internet can write through.
+ */
+export class RateLimitedError extends AppError {
+  constructor(message: string, details?: Record<string, unknown>) {
+    super(429, 'RATE_LIMITED', message, details);
+  }
+}

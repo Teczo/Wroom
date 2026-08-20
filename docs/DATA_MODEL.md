@@ -25,6 +25,8 @@
 | `credentials` | Where a key lives + when it expires (never the key) | v1 |
 | `decisions` | ADR-lite | v1 |
 | `timeEntries` | Hours logged per project/feature | v1 |
+| `siteContent` | Portfolio page copy, draft + published | v1 |
+| `enquiries` | Inbound contact, tracked to won or lost | v1 |
 | `revenue` | Money in, Stripe-synced or manual | v2 |
 | `vendorConnections` | API creds for cost/revenue sync | v2 |
 | `deployments` | Release history from GitHub | v2 |
@@ -330,7 +332,10 @@ Run-rate rule (same as your workbook): monthly + annual/12. One-off and usage ex
 ### `notes`
 ```js
 {
-  _id, projectId, featureId: null,
+  _id,
+  projectId: null,              // exactly one of projectId or enquiryId is required
+  featureId: null,
+  enquiryId: null,              // follow-up history on an enquiry
   body,                         // markdown
   kind: "note",                 // "note" | "meeting" | "idea" | "issue"
   visibility: "private",
@@ -338,6 +343,9 @@ Run-rate rule (same as your workbook): monthly + annual/12. One-off and usage ex
   authorUserId, createdAt, updatedAt
 }
 ```
+
+`enquiryId` exists so enquiry follow-ups reuse this collection rather than
+getting one of their own. Pinning, kinds and markdown already work here.
 
 ---
 
@@ -393,6 +401,71 @@ One indexed query on `expiresAt` drives a "expiring soon" dashboard panel. This 
 Day-granularity entries with a rate snapshot. Two reasons: a timer UI is a project of its own and you won't use it, and snapshotting the rate means changing your rate later doesn't silently rewrite history.
 
 `timeCostAud` stays out of the Net figure by default — you want "am I burning money on hosting" separate from "what would this have cost a client".
+
+---
+
+### `siteContent`
+Portfolio page copy. Keyed, so a new page is a new record rather than a schema change.
+
+```js
+{
+  _id, key,                     // "about" | "contact" | "home"
+  draft: {
+    title, body,                // body is markdown
+    meta: { title, description }
+  },
+  published: {
+    title, body,
+    meta: { title, description }
+  } | null,                     // null = never published; the page 404s
+  publishedAt, publishedByUserId,
+  updatedAt, updatedByUserId
+}
+```
+
+Same philosophy as `publishedProjects`: editing writes `draft` and changes nothing
+public. Publishing copies `draft` into `published`. `/public/content/:key` returns
+the `published` sub-document only — **never** `draft`.
+
+Seed with `about` and `contact`, both `published: null`.
+
+---
+
+### `enquiries`
+Inbound contact from the portfolio. This is the front of the pipeline, not a
+clients collection — see Resolved decisions #4.
+
+```js
+{
+  _id,
+  name, email, phone: null,
+  company: null,
+  message,                      // plain text as submitted; never rendered as HTML
+  source: "portfolio-form",     // "portfolio-form" | "manual" | "referral"
+  relatedProjectId: null,       // set when sent from a case study page
+
+  requirement: {
+    budgetRange: null,          // free text in v1 — no picker
+    timeline: null,
+    interest: null
+  },
+
+  status: "new",                // "new" | "read" | "qualified" | "quoted" |
+                                // "won" | "lost" | "spam"
+  ownerUserId: null,
+  convertedToProductId: null,   // → products, when an enquiry becomes real work
+
+  meta: { ip, userAgent, submittedInMs },
+  createdAt, updatedAt
+}
+```
+
+**Server-set only.** `status`, `source`, `ownerUserId`, `convertedToProductId`,
+`meta` and both timestamps are written by the server. If any of them appear in a
+public request body they are stripped, not honoured.
+
+`convertedToProductId` is what makes the trail from first contact to live client
+work traceable without a clients collection.
 
 ---
 
@@ -483,9 +556,9 @@ The portfolio does **not** query `projects`. Publishing writes a flattened snaps
 
 Backend routes split by namespace:
 - `/api/*` — authenticated, full model
-- `/public/*` — unauthenticated, reads `publishedProjects` **only**, no other collection
+- `/public/*` — unauthenticated. Every route appears in the allowlist in `CLAUDE.md` §6. Reads are limited to `publishedProjects` and the `published` sub-document of `siteContent`. The only write is enquiry intake, which writes `enquiries` and reads nothing.
 
-That single rule means a bug in the public API cannot leak a client project, a cost figure, or an account email. Regenerate the snapshot on an explicit "Publish" action, not on save.
+The allowlist means a bug in the public API cannot leak a client project, a cost figure, or an account email. Adding a route to `/public` is an edit to `CLAUDE.md`, not a decision made inside a session. Regenerate the snapshot on an explicit "Publish" action, not on save.
 
 ---
 
@@ -504,6 +577,10 @@ credentials:     { expiresAt: 1 }
 revenue:         { projectId: 1 }, { source: 1, externalId: 1 } unique sparse
 projectLinks:    { fromProjectId: 1 }, { toProjectId: 1 }
 publishedProjects: { slug: 1 } unique, { featured: -1, sortOrder: 1 }
+siteContent:     { key: 1 } unique
+enquiries:       { createdAt: -1 }, { status: 1, createdAt: -1 },
+                 { convertedToProductId: 1 } sparse
+notes:           { projectId: 1 } sparse, { enquiryId: 1 } sparse
 ```
 
 The unique indexes on `externalId` are what make cost and revenue sync safely re-runnable.
@@ -522,8 +599,9 @@ unconstrained. `revenue` must do the same when it is built.
 1. **Mobile counterparts are separate projects**, linked `component-of` to the same product. Own repo, own stack, own lifecycle.
 2. **All money stored in AUD**, converted at entry. `fxRate` recorded when the source wasn't AUD.
 3. **Time tracking included in v1** — `timeEntries`, day granularity, rate snapshotted per entry.
-4. **No clients collection.** `isClientWork` + `clientName` on `products` is enough. No client role.
+4. **No clients collection.** `isClientWork` + `clientName` on `products` is enough to describe work you already have. `enquiries` is a separate thing — it tracks people who have not become work yet, and closes with `convertedToProductId` pointing at the product they became. This is not a reversal: there is still no clients collection, no client role and no client login.
 5. **Option B: the database is the source of truth**, `FEATURES.yaml` is an export.
+6. **Portfolio page copy is managed content**, not hardcoded. `siteContent` holds it with a draft/published split, editable from the portal.
 
 ---
 

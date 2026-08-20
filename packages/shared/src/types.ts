@@ -12,6 +12,8 @@ import type {
   CredentialKind,
   DecisionStatus,
   EnvironmentName,
+  EnquirySource,
+  EnquiryStatus,
   FeaturePriority,
   FeatureSize,
   FeatureSource,
@@ -24,6 +26,7 @@ import type {
   ProjectStatus,
   ServiceRole,
   ServiceStatus,
+  SiteContentKey,
   SyncStatus,
   TimeActivity,
   Vendor,
@@ -422,7 +425,9 @@ export type Asset = {
 
 export type Note = Timestamps & {
   _id: Id;
-  projectId: Id;
+  /** Exactly one of `projectId` and `enquiryId` is set. */
+  projectId: Id | null;
+  enquiryId: Id | null;
   featureId: Id | null;
   body: string;
   kind: NoteKind;
@@ -556,4 +561,63 @@ export type PublishedProject = {
   sortOrder: number;
   publishedAt: IsoDate;
   publishedByUserId: Id | null;
+};
+
+// --- site content -----------------------------------------------------------
+
+/**
+ * The words on one portfolio page. `draft` and `published` are the same shape,
+ * which is what makes publishing a copy rather than a transformation.
+ */
+export type SiteContentBody = {
+  title: string;
+  body: string;
+  meta: { title: string; description: string };
+};
+
+export type SiteContent = {
+  _id: Id;
+  key: SiteContentKey;
+  draft: SiteContentBody;
+  /** Null means never published — the public route 404s. */
+  published: SiteContentBody | null;
+  publishedAt: IsoDate | null;
+  publishedByUserId: Id | null;
+  updatedAt: IsoDate;
+  updatedByUserId: Id | null;
+};
+
+/** A row of `GET /api/content`: which page, whether it is live, last edited. */
+export type SiteContentSummary = {
+  _id: Id;
+  key: SiteContentKey;
+  isPublished: boolean;
+  updatedAt: IsoDate;
+};
+
+// --- enquiries --------------------------------------------------------------
+
+/**
+ * Inbound contact from the portfolio. Everything a caller may set is content;
+ * everything else on this record is written by the server.
+ */
+export type Enquiry = Timestamps & {
+  _id: Id;
+  name: string;
+  email: string;
+  phone: string | null;
+  company: string | null;
+  /** Plain text as submitted. Never rendered as HTML. */
+  message: string;
+  source: EnquirySource;
+  relatedProjectId: Id | null;
+  requirement: {
+    budgetRange: string | null;
+    timeline: string | null;
+    interest: string | null;
+  };
+  status: EnquiryStatus;
+  ownerUserId: Id | null;
+  convertedToProductId: Id | null;
+  meta: { ip: string; userAgent: string; submittedInMs: number | null };
 };

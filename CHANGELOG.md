@@ -1,5 +1,110 @@
 # Changelog
 
+## 2026-08-19 (evening, last)
+
+- WRM-063 — Enquiries now have somewhere to live. Inbox lists everything that
+  has come in, newest first, and the shell carries a count of how many nobody
+  has looked at yet, wherever you are in the app.
+- Opening one shows the whole thing: who wrote, how to reach them, what they
+  said, and which case study they were reading when they decided to write.
+- The message is shown exactly as it was typed and never as markup, so a
+  message containing a script tag reads as the text someone sent, which is all
+  it will ever be.
+- What arrived cannot be edited — not the name, the address, the message or
+  where it came from. An enquiry is a record of what someone sent, and the
+  parts you decide about it afterwards are kept separate from the parts they
+  wrote.
+- Status moves through new, read, qualified, quoted, then won or lost, with
+  spam for the rest. Marking something spam takes it out of the list without
+  throwing it away, and it is still there when you filter for it.
+- What someone needs — budget, timeline, kind of work — is editable as you
+  learn more, rather than frozen at whatever they typed in a hurry.
+- Notes work against an enquiry exactly as they do against a project, using the
+  same thread, kinds and pinning. Project notes are untouched.
+- A won enquiry can be linked to the product it became, and that link shows
+  from both ends: the enquiry names the product, and the product says which
+  enquiry it started as. Nothing was added to the product to make that work.
+- The link can only be made once an enquiry is won, because that is what
+  winning means. It does not trap the record, though — one that went wrong
+  later can still be moved on.
+- The menu on a phone now scrolls sideways instead of squeezing every entry
+  into a share of the screen, which had started breaking the longer labels
+  across two lines.
+
+## 2026-08-19 (evening, later still)
+
+- WRM-049 — Anyone looking at the portfolio can now get in touch. /contact
+  takes a name, email, message and, if they want to give them, a phone, a
+  company, a budget, a timeline and what kind of work it is.
+- Every message is stored as an enquiry the moment it is sent, so nothing
+  depends on email being set up and nothing is lost while it is not. Reading
+  and managing them is the next ticket.
+- Sending from a case study records which project prompted it, so you know what
+  someone had just been looking at when they decided to write.
+- The form says clearly that the message arrived, and repeats the address it
+  will reply to. If the form is being hammered and has to turn someone away, it
+  says so in a way that makes plain it is not their fault and that their words
+  are still on screen.
+- The page's own words come from the contact record when you have published
+  one, and the form stands on its own when you have not — an unwritten page
+  cannot take the form away.
+- Nothing a sender puts in the body can set who owns the enquiry, what state it
+  is in, where it came from or when it arrived. Those are the server's to write,
+  and a message that tries to set them is stored with the right values anyway
+  rather than being refused.
+- The form is the only place on the whole site that writes anything, so it is
+  the one thing that had to be hard to abuse: a message shaped like a database
+  query is refused outright, too many from one place in a short time are turned
+  away, there is a cap on the day as a whole, an oversized message is refused
+  before it is read, and a submission filled in faster than a person could type
+  is not stored at all.
+- The handler reads nothing. Not a project, not a duplicate, not a count — the
+  only thing it does to the database is insert the enquiry.
+
+## 2026-08-19 (evening, later)
+
+- WRM-047 — The portfolio now has an about page at /about, and its words come
+  from the record you edit in the portal. Rewrite it from your phone, publish,
+  refresh — no deploy.
+- The page title and the description a search result shows also come from the
+  record, so those are editable too rather than fixed in the code.
+- Editing the draft without publishing changes nothing on the public page.
+  Unpublishing turns it back into the ordinary not-found page rather than an
+  empty shell.
+- The body renders as real markdown — headings, lists, links, bold — with any
+  HTML in it stripped before it reaches the page. A link that tried to run
+  script does not survive, which was checked with a deliberately hostile page.
+- The public site now has a small header on every page with the Teczo name,
+  Work and About, so the about page is reachable from anywhere including a
+  case study.
+
+## 2026-08-19 (evening)
+
+- WRM-021 — The words on the portfolio's about and contact pages are now
+  something you edit in Wroom, under Content. Changing a sentence no longer
+  means a code change and a deploy.
+- Editing writes a draft and nothing else. You can leave a page half-written
+  for a week and the public site keeps showing what it showed before, or
+  nothing at all if you have never published it.
+- Publishing is a separate, confirmed action. The confirmation names the page
+  and says what it will do to the live site, so it is clear whether you are
+  replacing words that are already public or putting a page up for the first
+  time.
+- Each page says whether its draft is ahead of what is live, so you can tell at
+  a glance that something is written but not yet published without having to
+  compare the two yourself.
+- Unpublishing takes the page off the public site and keeps your draft exactly
+  as it is, ready to publish again.
+- Publishing sends the draft you saved, not the text sitting in the boxes, so
+  the button is unavailable until you save. It says why.
+- Nothing unpublished can escape. The public route serves only the published
+  copy, never loads the draft from the database, and returns nothing at all for
+  a page that has never been published. A save that tries to write the
+  published half is refused outright rather than quietly ignored.
+- The about and contact records are created by the seed script, both
+  unpublished. Running it again never touches a record that already exists, so
+  it cannot cost you a page you wrote.
+
 ## 2026-08-19 (later still)
 
 - WRM-050 — Stripe invoices now import themselves as revenue. Connect Stripe

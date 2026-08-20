@@ -26,6 +26,16 @@ const featureStatusTones: Record<string, Tone> = {
   done: 'green',
 };
 
+const enquiryStatusTones: Record<string, Tone> = {
+  new: 'blue',
+  read: 'neutral',
+  qualified: 'violet',
+  quoted: 'amber',
+  won: 'green',
+  lost: 'neutral',
+  spam: 'red',
+};
+
 const priorityTones: Record<string, Tone> = {
   low: 'neutral',
   medium: 'blue',
@@ -53,4 +63,8 @@ export function FeatureStatusPill({ status }: { status: string }) {
 
 export function PriorityPill({ priority }: { priority: string }) {
   return <Pill label={priority} tone={priorityTones[priority] ?? 'neutral'} />;
+}
+
+export function EnquiryStatusPill({ status }: { status: string }) {
+  return <Pill label={status} tone={enquiryStatusTones[status] ?? 'neutral'} />;
 }

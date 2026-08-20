@@ -177,6 +177,60 @@ export type CredentialKind = (typeof CREDENTIAL_KINDS)[number];
 export const DECISION_STATUSES = ['proposed', 'accepted', 'superseded'] as const;
 export type DecisionStatus = (typeof DECISION_STATUSES)[number];
 
+export const ENQUIRY_STATUSES = [
+  'new',
+  'read',
+  'qualified',
+  'quoted',
+  'won',
+  'lost',
+  'spam',
+] as const;
+export type EnquiryStatus = (typeof ENQUIRY_STATUSES)[number];
+
+export const ENQUIRY_SOURCES = ['portfolio-form', 'manual', 'referral'] as const;
+export type EnquirySource = (typeof ENQUIRY_SOURCES)[number];
+
+/**
+ * What a person may type in by hand. `portfolio-form` means it came through
+ * the public form, so only the public form may claim it.
+ */
+export const MANUAL_ENQUIRY_SOURCES = ['manual', 'referral'] as const;
+
+/**
+ * Length caps on the one public write. Exported so the form can refuse a value
+ * the server would refuse anyway, rather than letting someone type six thousand
+ * characters and find out on submit.
+ */
+export const ENQUIRY_LIMITS = {
+  name: 120,
+  email: 200,
+  phone: 40,
+  company: 160,
+  message: 5000,
+  requirement: 200,
+} as const;
+
+/**
+ * The bot checks, both halves of which have to agree between the form and the
+ * server. The honeypot is a field a person never sees and never fills; the
+ * minimum is how long a real person takes to write a message, below which the
+ * submission is a script.
+ */
+export const ENQUIRY_HONEYPOT_FIELD = 'website';
+export const ENQUIRY_MIN_SUBMIT_MS = 2500;
+
+/**
+ * `siteContent.key`. A page's copy is a record rather than a schema change, so
+ * this list is what a page may be keyed by — not what exists. Only `about` and
+ * `contact` are seeded, and `key` is not creatable through the API.
+ */
+export const SITE_CONTENT_KEYS = ['about', 'contact', 'home'] as const;
+export type SiteContentKey = (typeof SITE_CONTENT_KEYS)[number];
+
+/** The whole set of records, seeded on a fresh database. */
+export const SEEDED_SITE_CONTENT_KEYS: readonly SiteContentKey[] = ['about', 'contact'];
+
 export const TIME_ACTIVITIES = [
   'build',
   'debug',
@@ -201,6 +255,8 @@ export const ERROR_CODES = [
   'NOT_FOUND',
   'CONFLICT',
   'UNPROCESSABLE',
+  'PAYLOAD_TOO_LARGE',
+  'RATE_LIMITED',
   'INTERNAL',
 ] as const;
 export type ErrorCode = (typeof ERROR_CODES)[number];

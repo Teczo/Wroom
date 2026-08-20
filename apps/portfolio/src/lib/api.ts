@@ -13,26 +13,50 @@ const baseUrl = (
 
 export class ApiRequestError extends Error {
   readonly status: number;
+  readonly details: Record<string, unknown> | undefined;
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, details?: Record<string, unknown>) {
     super(message);
     this.name = 'ApiRequestError';
     this.status = status;
+    this.details = details;
+  }
+
+  /** Field-level messages from a rejected submission, for form display. */
+  get fieldErrors(): Record<string, string> {
+    const output: Record<string, string> = {};
+    for (const [key, value] of Object.entries(this.details ?? {})) {
+      if (Array.isArray(value)) output[key] = String(value[0]);
+      else if (typeof value === 'string') output[key] = value;
+    }
+    return output;
   }
 }
 
-async function request<T>(path: string, query?: Record<string, string | number | undefined>) {
+async function request<T>(
+  path: string,
+  query?: Record<string, string | number | undefined>,
+  init?: { method: 'POST'; body: unknown },
+) {
   const url = new URL(path.replace(/^\//, ''), `${baseUrl}/`);
   for (const [key, value] of Object.entries(query ?? {})) {
     if (value !== undefined && value !== '') url.searchParams.set(key, String(value));
   }
 
-  const response = await fetch(url.toString());
+  const response = await fetch(url.toString(), {
+    method: init?.method ?? 'GET',
+    headers: init ? { 'Content-Type': 'application/json' } : undefined,
+    body: init ? JSON.stringify(init.body) : undefined,
+  });
   const payload: unknown = await response.json().catch(() => null);
 
   if (!response.ok) {
     const error = (payload as ApiError | null)?.error;
-    throw new ApiRequestError(response.status, error?.message ?? 'That could not be loaded.');
+    throw new ApiRequestError(
+      response.status,
+      error?.message ?? 'That could not be loaded.',
+      error?.details,
+    );
   }
 
   return payload as T;
@@ -49,4 +73,13 @@ export async function publicList<T>(
 ): Promise<{ items: T[]; meta: ListMeta }> {
   const payload = await request<ApiList<T>>(path, query);
   return { items: payload.data, meta: payload.meta };
+}
+
+/**
+ * The one public write. `/public/enquiries` is the only endpoint the portfolio
+ * posts to, and there is no token here — see CLAUDE.md §8.
+ */
+export async function publicPost<T>(path: string, body: unknown): Promise<T> {
+  const payload = await request<ApiSuccess<T>>(path, undefined, { method: 'POST', body });
+  return payload.data;
 }

@@ -8,10 +8,10 @@ import { Pill } from '../../components/Pill';
 import { EmptyState, ErrorState, LoadingState } from '../../components/StateViews';
 import { ApiRequestError } from '../../lib/api';
 import { humanise, relativeDate } from '../../lib/format';
-import { useCreateNote, useDeleteNote, useNotes, useUpdateNote } from './api';
+import { useCreateNote, useDeleteNote, useNotes, useUpdateNote, type NoteOwner } from './api';
 
 /**
- * Free notes on a project, pinned ones first.
+ * Free notes on a project or an enquiry, pinned ones first.
  *
  * The body is written as markdown but rendered as pre-wrapped plain text:
  * formatting it properly needs a markdown dependency, which CLAUDE.md §2 rule 2
@@ -33,15 +33,15 @@ function NoteBody({ body }: { body: string }) {
 }
 
 function NoteForm({
-  projectId,
+  owner,
   note,
   onDone,
 }: {
-  projectId: string;
+  owner: NoteOwner;
   note?: Note;
   onDone: () => void;
 }) {
-  const create = useCreateNote(projectId);
+  const create = useCreateNote(owner);
   const update = useUpdateNote();
   const save = note ? update : create;
 
@@ -110,7 +110,7 @@ function NoteForm({
   );
 }
 
-function NoteRow({ projectId, note }: { projectId: string; note: Note }) {
+function NoteRow({ owner, note }: { owner: NoteOwner; note: Note }) {
   const update = useUpdateNote();
   const remove = useDeleteNote();
   const [editing, setEditing] = useState(false);
@@ -119,7 +119,7 @@ function NoteRow({ projectId, note }: { projectId: string; note: Note }) {
   if (editing) {
     return (
       <div className="border-b border-slate-100 p-4 last:border-0">
-        <NoteForm projectId={projectId} note={note} onDone={() => setEditing(false)} />
+        <NoteForm owner={owner} note={note} onDone={() => setEditing(false)} />
       </div>
     );
   }
@@ -187,10 +187,10 @@ function NoteRow({ projectId, note }: { projectId: string; note: Note }) {
   );
 }
 
-export function NotesPanel({ projectId }: { projectId: string }) {
+export function NotesPanel({ owner }: { owner: NoteOwner }) {
   const [kind, setKind] = useState('');
   const [adding, setAdding] = useState(false);
-  const notes = useNotes(projectId, kind ? { kind } : {});
+  const notes = useNotes(owner, kind ? { kind } : {});
 
   const items = notes.data?.items ?? [];
   const pinned = items.filter((note) => note.pinned);
@@ -242,7 +242,7 @@ export function NotesPanel({ projectId }: { projectId: string }) {
 
       {adding ? (
         <div className="border-b border-slate-100 p-4">
-          <NoteForm projectId={projectId} onDone={() => setAdding(false)} />
+          <NoteForm owner={owner} onDone={() => setAdding(false)} />
         </div>
       ) : null}
 
@@ -274,13 +274,13 @@ export function NotesPanel({ projectId }: { projectId: string }) {
             Pinned
           </p>
           {pinned.map((note) => (
-            <NoteRow key={note._id} projectId={projectId} note={note} />
+            <NoteRow key={note._id} owner={owner} note={note} />
           ))}
         </div>
       ) : null}
 
       {rest.map((note) => (
-        <NoteRow key={note._id} projectId={projectId} note={note} />
+        <NoteRow key={note._id} owner={owner} note={note} />
       ))}
     </section>
   );

@@ -1,9 +1,14 @@
 import { createApp } from './app.js';
 import { connectDatabase, disconnectDatabase } from './config/db.js';
 import { env } from './config/env.js';
+import { startPublishedProjectCache } from './services/publishedProjectCache.js';
 
 async function main(): Promise<void> {
   await connectDatabase();
+
+  // Filled here, and refreshed on a timer, so the public enquiry route can
+  // check a project id without reading a collection inside a request.
+  await startPublishedProjectCache();
 
   const app = createApp();
   const server = app.listen(env.port, () => {

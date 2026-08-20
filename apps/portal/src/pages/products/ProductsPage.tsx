@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 
 import { Button } from '../../components/Button';
 import { Field, inputClasses } from '../../components/Field';
 import { PageHeader } from '../../components/PageHeader';
 import { Pill } from '../../components/Pill';
 import { EmptyState, ErrorState, LoadingState } from '../../components/StateViews';
+import { useEnquiries } from '../../features/enquiries/api';
 import { useCreateProduct, useProducts } from '../../features/products/api';
 import { ApiRequestError } from '../../lib/api';
 import { humanise } from '../../lib/format';
@@ -123,6 +125,16 @@ export function ProductsPage() {
   const products = useProducts();
   const [isAdding, setIsAdding] = useState(false);
 
+  /*
+   * The other half of the enquiry link. It is stored on the enquiry and nowhere
+   * else — no field was added to a product — so the way back is to read the won
+   * enquiries and see which product each one became.
+   */
+  const wonEnquiries = useEnquiries({ status: 'won' });
+
+  const enquiryForProduct = (productId: string) =>
+    wonEnquiries.data?.items.find((enquiry) => enquiry.convertedToProductId === productId);
+
   return (
     <>
       <PageHeader
@@ -166,6 +178,20 @@ export function ProductsPage() {
                   {product.isClientWork ? product.clientName || 'Client work' : 'Internal'} ·{' '}
                   {product.slug}
                 </p>
+                {(() => {
+                  const enquiry = enquiryForProduct(product._id);
+                  return enquiry ? (
+                    <p className="mt-1 text-xs text-slate-500">
+                      Started as an enquiry from{' '}
+                      <Link
+                        to={`/enquiries/${enquiry._id}`}
+                        className="font-medium text-slate-900 underline"
+                      >
+                        {enquiry.name}
+                      </Link>
+                    </p>
+                  ) : null;
+                })()}
               </div>
               <div className="flex gap-2">
                 {product.ndaRestricted ? <Pill label="NDA" tone="red" /> : null}

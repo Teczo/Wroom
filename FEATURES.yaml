@@ -149,6 +149,14 @@ features:
     labels: [portal, api]
     acceptance: Add a project type and its fieldDefs through the UI; the create-project form picks it up without a deploy.
 
+  - ref: WRM-021
+    title: Site content records and portal editor
+    status: backlog
+    priority: medium
+    size: m
+    labels: [portal, api, portfolio]
+    acceptance: Edit about and contact page copy as markdown in the portal; a draft never changes the live site until published; /public/content/:key returns the published sub-document only.
+
   # ---------------------------------------------------------------
   # Features / Kanban
   # ---------------------------------------------------------------
@@ -315,12 +323,22 @@ features:
     acceptance: A published project renders its case study and gallery at a slug URL, with correct meta and OG tags.
 
   - ref: WRM-047
-    title: Portfolio contact and about
+    title: Portfolio about page
     status: backlog
     priority: medium
     size: s
     labels: [portfolio]
-    acceptance: Contact form submits to the API and stores the enquiry; about page renders from a single content record.
+    dependsOn: [WRM-021]
+    acceptance: The about page renders published site content as markdown with correct meta tags, and shows nothing when unpublished.
+
+  - ref: WRM-049
+    title: Public enquiry intake
+    status: backlog
+    priority: medium
+    size: m
+    labels: [portfolio, api, security]
+    dependsOn: [WRM-021]
+    acceptance: A contact form submits to POST /public/enquiries and stores an enquiry; the handler reads no collection; rate limit, honeypot and timing checks reject bot submissions.
 
   - ref: WRM-048
     title: One-pager PDF export
@@ -435,6 +453,28 @@ features:
     labels: [api, team]
     dependsOn: [WRM-060]
     acceptance: Every write records actor, action, entity and changed fields; viewable per project, owner only.
+
+  # ---------------------------------------------------------------
+  # Enquiries and client pipeline
+  # ---------------------------------------------------------------
+
+  - ref: WRM-063
+    title: Enquiry inbox and pipeline
+    status: backlog
+    priority: medium
+    size: m
+    labels: [portal, api, crm]
+    dependsOn: [WRM-049]
+    acceptance: Enquiries list newest first with status filtering; status can be moved through the pipeline; notes can be added against an enquiry; converting one links it to a product.
+
+  - ref: WRM-064
+    title: Bot protection service on enquiry intake
+    status: backlog
+    priority: low
+    size: s
+    labels: [api, security]
+    dependsOn: [WRM-049]
+    acceptance: Turnstile or hCaptcha verification runs server-side before an enquiry is stored; a failed challenge is rejected, not stored as spam.
 
   # ---------------------------------------------------------------
   # Later

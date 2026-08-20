@@ -3,6 +3,10 @@ import { Route, Routes } from 'react-router-dom';
 import { AppShell } from './components/AppShell';
 import { AuthGate } from './components/AuthGate';
 import { NotFoundPage } from './pages/NotFoundPage';
+import { ContentEditorPage } from './pages/content/ContentEditorPage';
+import { ContentPage } from './pages/content/ContentPage';
+import { EnquiriesPage } from './pages/enquiries/EnquiriesPage';
+import { EnquiryDetailPage } from './pages/enquiries/EnquiryDetailPage';
 import { AccountDetailPage } from './pages/accounts/AccountDetailPage';
 import { AccountsPage } from './pages/accounts/AccountsPage';
 import { CredentialDetailPage } from './pages/credentials/CredentialDetailPage';
@@ -35,6 +39,10 @@ export function App() {
           <Route path="/accounts/:id" element={<AccountDetailPage />} />
           <Route path="/credentials" element={<CredentialsPage />} />
           <Route path="/credentials/:id" element={<CredentialDetailPage />} />
+          <Route path="/content" element={<ContentPage />} />
+          <Route path="/content/:key" element={<ContentEditorPage />} />
+          <Route path="/enquiries" element={<EnquiriesPage />} />
+          <Route path="/enquiries/:id" element={<EnquiryDetailPage />} />
           <Route path="/settings/project-types" element={<ProjectTypesPage />} />
           <Route path="/settings/integrations" element={<IntegrationsPage />} />
           <Route path="*" element={<NotFoundPage />} />

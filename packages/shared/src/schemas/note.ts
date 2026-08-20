@@ -1,5 +1,15 @@
 import { NOTE_KINDS } from '../constants.js';
-import { boolean, enumOf, nullable, object, objectId, partial, string, withDefault } from '../validate.js';
+import {
+  boolean,
+  enumOf,
+  nullable,
+  object,
+  objectId,
+  partial,
+  strictObject,
+  string,
+  withDefault,
+} from '../validate.js';
 
 /**
  * `authorUserId` and `visibility` are deliberately absent.
@@ -18,3 +28,20 @@ export const noteCreateShape = {
 
 export const noteCreateSchema = object(noteCreateShape);
 export const noteUpdateSchema = partial(noteCreateShape);
+
+/**
+ * A note against an enquiry. Same body as a project note minus `featureId`,
+ * which has no meaning here — an enquiry has no features to hang a note off.
+ */
+export const enquiryNoteCreateShape = {
+  body: noteCreateShape.body,
+  kind: noteCreateShape.kind,
+  pinned: noteCreateShape.pinned,
+};
+
+/**
+ * Strict: an unknown key is an error rather than something quietly dropped.
+ * A body naming a `featureId` is someone misunderstanding what an enquiry note
+ * is, and silently ignoring it would leave them believing it had been stored.
+ */
+export const enquiryNoteCreateSchema = strictObject(enquiryNoteCreateShape);

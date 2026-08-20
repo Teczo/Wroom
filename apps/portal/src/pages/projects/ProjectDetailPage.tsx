@@ -122,7 +122,7 @@ function Overview({ project }: { project: Project }) {
 
       <ProjectLinksPanel projectId={project._id} />
 
-      <NotesPanel projectId={project._id} />
+      <NotesPanel owner={{ projectId: project._id }} />
 
       <DecisionsPanel projectId={project._id} />
 

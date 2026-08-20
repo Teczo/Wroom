@@ -1,19 +1,23 @@
 /**
  * Seeds the reference data a fresh database needs to be usable: the project
- * types listed in docs/DATA_MODEL.md.
+ * types listed in docs/DATA_MODEL.md, and the two portfolio content records.
  *
- * Only `projectTypes` is seeded. The data model also suggests seeding accounts
- * from the infrastructure sheet, but those rows carry real login emails and
- * CLAUDE.md §2 forbids committing one — add accounts through the portal instead.
+ * The data model also suggests seeding accounts from the infrastructure sheet,
+ * but those rows carry real login emails and CLAUDE.md §2 forbids committing
+ * one — add accounts through the portal instead.
  *
  * Safe to re-run: every type is upserted on `key`, and `fieldDefs` you have
- * edited in the portal are left alone.
+ * edited in the portal are left alone. A content record that already exists is
+ * never touched, because the words in it are yours.
  *
  * Run with: npm run seed --workspace @wroom/api
  */
 
+import { SEEDED_SITE_CONTENT_KEYS } from '@wroom/shared';
+
 import { connectDatabase, disconnectDatabase } from '../config/db.js';
 import { ProjectTypeModel } from '../models/ProjectType.js';
+import { SiteContentModel } from '../models/SiteContent.js';
 
 type SeedType = {
   key: string;
@@ -190,6 +194,37 @@ const projectTypes: SeedType[] = [
   },
 ];
 
+/**
+ * The two content records, created empty and unpublished.
+ *
+ * No copy is seeded: words on the public site are written in the portal, and a
+ * placeholder sentence is the kind of thing that gets published by accident.
+ * An existing record is left exactly as it is and reported rather than
+ * overwritten — re-running this must never cost someone a page they wrote.
+ */
+async function seedSiteContent(): Promise<void> {
+  const created: string[] = [];
+  const existing: string[] = [];
+
+  for (const key of SEEDED_SITE_CONTENT_KEYS) {
+    if (await SiteContentModel.exists({ key })) {
+      existing.push(key);
+      continue;
+    }
+
+    await SiteContentModel.create({ key, published: null });
+    created.push(key);
+  }
+
+  console.log(
+    `[seed] site content — ${created.length} created${
+      created.length > 0 ? ` (${created.join(', ')})` : ''
+    }, ${existing.length} already present and left untouched${
+      existing.length > 0 ? ` (${existing.join(', ')})` : ''
+    }`,
+  );
+}
+
 async function seed(): Promise<void> {
   await connectDatabase();
 
@@ -218,6 +253,9 @@ async function seed(): Promise<void> {
   }
 
   console.log(`[seed] project types — ${created} created, ${updated} left in place`);
+
+  await seedSiteContent();
+
   await disconnectDatabase();
 }
 

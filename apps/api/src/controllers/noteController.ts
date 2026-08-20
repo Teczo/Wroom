@@ -6,8 +6,19 @@ import { validated } from '../middleware/validate.js';
 import * as noteService from '../services/noteService.js';
 import { queryString, sendData, sendList } from '../utils/http.js';
 
+/**
+ * The same four handlers serve project notes and enquiry notes. Which owner is
+ * in play comes from the route the request arrived on, never from the body.
+ */
+function owner(req: Parameters<RequestHandler>[0]): noteService.NoteOwner {
+  const enquiryId = req.params.enquiryId as string | undefined;
+  return enquiryId
+    ? { enquiryId }
+    : { projectId: req.params.projectId as string };
+}
+
 export const list: RequestHandler = async (req, res) => {
-  const items = await noteService.listNotes(req.params.projectId as string, {
+  const items = await noteService.listNotes(owner(req), {
     kind: queryString(req, 'kind'),
     featureId: queryString(req, 'featureId'),
   });
@@ -17,7 +28,7 @@ export const list: RequestHandler = async (req, res) => {
 
 export const create: RequestHandler = async (req, res) => {
   const note = await noteService.createNote(
-    req.params.projectId as string,
+    owner(req),
     validated(req),
     currentUser(req)._id as Types.ObjectId,
   );

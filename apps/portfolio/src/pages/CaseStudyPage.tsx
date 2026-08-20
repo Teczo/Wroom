@@ -110,6 +110,23 @@ function CaseStudy({ project }: { project: PublishedProject }) {
         </section>
       ) : null}
 
+      {/*
+       * Carries the project, so an enquiry sent from here records which case
+       * study prompted it. The server keeps that only if the project is still
+       * published, and stores null otherwise.
+       */}
+      <section className="mt-12 border-t border-slate-200 pt-8">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+          Something like this?
+        </h2>
+        <Link
+          to={`/contact?project=${project.projectId}`}
+          className="mt-3 inline-flex min-h-11 items-center rounded-lg bg-slate-900 px-5 text-sm font-medium text-white hover:bg-slate-700"
+        >
+          Talk about your project
+        </Link>
+      </section>
+
       {project.techStack.length > 0 ? (
         <section className="mt-12 border-t border-slate-200 pt-8">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Built with</h2>

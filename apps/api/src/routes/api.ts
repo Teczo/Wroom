@@ -13,8 +13,10 @@ import * as timeController from '../controllers/timeEntryController.js';
 import * as meta from '../controllers/metaController.js';
 import { loadCurrentUser, requireAuth } from '../middleware/auth.js';
 import { validateBody } from '../middleware/validate.js';
+import { contentRouter } from './content.js';
 import { credentialsRouter } from './credentials.js';
 import { decisionsRouter } from './decisions.js';
+import { enquiriesRouter } from './enquiriesAdmin.js';
 import { accountsRouter } from './infrastructure.js';
 import { integrationsRouter } from './integrations.js';
 import { revenueRouter } from './revenue.js';
@@ -55,6 +57,8 @@ apiRouter.use('/credentials', credentialsRouter);
 apiRouter.use('/project-links', projectLinkAdminRouter);
 apiRouter.use('/notes', notesRouter);
 apiRouter.use('/decisions', decisionsRouter);
+apiRouter.use('/content', contentRouter);
+apiRouter.use('/enquiries', enquiriesRouter);
 
 /** Hands back a short-lived SAS URL; the storage key never leaves the server. */
 apiRouter.post('/uploads/sas', validateBody(uploadRequestSchema), requestUpload);

@@ -141,9 +141,18 @@ If a ticket needs a new env var, add it to `.env.example` with a comment, and na
 **Two namespaces, and the split is a security boundary.**
 
 - `/api/*` — Auth0 JWT required on every route. Full access to all collections.
-- `/public/*` — no auth. **Reads `publishedProjects` only.** No other collection may be queried from a `/public` handler, ever. No writes.
+- `/public/*` — no auth. **Every route must appear in this allowlist:**
 
-Never add a route to `/public` that touches `projects`, `costs`, `revenue`, `accounts`, `credentials`, `services`, `timeEntries`, or `users`. If a ticket seems to ask for this, stop and report.
+```
+GET   /public/projects         → publishedProjects            (read)
+GET   /public/projects/:slug   → publishedProjects            (read)
+GET   /public/content/:key     → siteContent.published only   (read)
+POST  /public/enquiries        → enquiries                    (write, reads nothing)
+```
+
+Adding a route to `/public` is an edit to this file, not a decision made inside a session.
+
+A `/public` handler may never query `projects`, `costs`, `revenue`, `accounts`, `credentials`, `services`, `timeEntries` or `users`. It may never return the `draft` sub-document of `siteContent`. If a ticket seems to ask for any of this, stop and report.
 
 **Shape.** Resource-based, plural: `/api/projects`, `/api/projects/:id/features`. Standard verbs. Validate every request body with the shared schema in `packages/shared`.
 
@@ -192,6 +201,18 @@ Implement this as one shared function. Never inline the check.
 **Credentials collection stores locations, never values.** `storedIn` is a human-readable pointer like `"Azure Key Vault"`. If a ticket asks you to store a key value, stop and report.
 
 **Uploads.** Validate mime type and size server-side. Generate SAS URLs with expiry; never expose the storage connection string to a client.
+
+**The one public write.** `POST /public/enquiries` is the single unauthenticated write in the system. It must:
+
+- validate the whole body with a Zod schema from `packages/shared` — reject any non-string where a string is expected, which is what closes NoSQL injection
+- set `status`, `source`, `ownerUserId`, `convertedToProductId`, `meta` and timestamps server-side, stripping them from the body if present
+- rate limit per IP, cap total submissions per day, and cap body size
+- reject a filled honeypot field or a submission completed implausibly fast
+- read no collection at all
+
+Enquiry text renders as plain text in the portal, never as HTML.
+
+**Published content only.** `GET /public/content/:key` returns the `published` sub-document of a `siteContent` record. If `published` is null the route returns 404. The `draft` sub-document must never leave an `/api/*` route.
 
 ---
 
