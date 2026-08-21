@@ -2,7 +2,7 @@
 
 Read this first. `CLAUDE.md` says *what the rules are*; this says *why*, and where the build currently stands.
 
-Last updated: 19 August 2026
+Last updated: 21 August 2026
 
 ---
 
@@ -26,7 +26,7 @@ The old `CLAUDE.md` did three jobs at once — described the product, planned th
 | `FEATURES.yaml` | Ledger — what to build, what's built | Constantly |
 | `CHANGELOG.md` | What actually happened, plain language | Every session |
 
-Plus a per-session **ticket**: one ref, scope, out-of-scope, exit criteria. The only thing pasted into Claude Code each time.
+Plus a per-session **work order** — the only thing pasted into Claude Code each time. Usually a **ticket**: one ref, scope, out-of-scope, exit criteria. For a bug fix or a small change to something already built, a prompt tagged `developnow` instead, where the prompt itself is the scope and no ticket gets written. `CLAUDE.md` §2.1 decides which applies.
 
 This pattern is intended for all of Jaya's projects, not just Wroom.
 
@@ -91,9 +91,13 @@ Exit criteria must be checkable by using the deployed app, not descriptions of t
 
 **The out-of-scope section is the one that matters.** It's what stops "while I was in there".
 
+**Working without a ticket.** Once something is deployed, most changes to it are bug fixes and small adjustments, and a one-page ticket for a status pill that wraps costs more than the fix does. A prompt tagged `developnow` skips the ticket; `hotfix` is the same for a broken production. Neither relaxes the stack, security or definition-of-done rules.
+
+A `developnow` prompt has no out-of-scope section, so the escalation list in `CLAUDE.md` §2.1 does that job instead: schema, a dependency, a new route, auth, publish gates, money, or more than a handful of files, and the session stops and asks for a ticket. That list is the whole reason the shortcut is safe to have. Without it, "just fix the spacing" becomes a feature built without anyone deciding to build it — which is failure the second one in §1.
+
 **Style.** Jaya wants concise and direct. No preamble. Coding-agent prompts need explicit scope boundaries and completion criteria; status reports in plain language — what a user can now do, not which files changed.
 
-**Stack is locked.** React 18 + Vite + Tailwind + React Router + TanStack Query, Express 5 + Node 20 + Mongoose, MongoDB Atlas, Auth0, Azure Blob, Stripe, Claude API. Not used: Next.js, any SQL database, Firebase, Prisma, Redux, GraphQL, component libraries shipping their own design system.
+**Stack is locked.** React 18 + Vite + Tailwind + React Router + TanStack Query, Express 5 + Node 24 + Mongoose, MongoDB Atlas, Auth0, Azure Blob, Stripe, Claude API. Not used: Next.js, any SQL database, Firebase, Prisma, Redux, GraphQL, component libraries shipping their own design system.
 
 ---
 

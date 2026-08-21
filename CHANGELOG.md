@@ -9,6 +9,11 @@
   security and definition-of-done rules are untouched by either tag, and a
   `developnow` that turns out to need schema, a dependency, a new route or more
   than a handful of files stops and asks for a ticket instead.
+- The context document now describes the two ways a session can start, instead
+  of only the ticket, and records the backend as Node 24 to match the
+  constitution.
+- The branch-naming example in the constitution used a ref prefix from a
+  different project. It now reads WRM.
 - The API deploy to Azure now builds only the API and the shared package, so a
   deploy no longer waits on the two frontends or fails because of something
   that has nothing to do with the server.

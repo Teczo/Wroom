@@ -272,7 +272,7 @@ Enquiry text renders as plain text in the portal, never as HTML.
 - You must set `offlineEdits: true` in the file header.
 - Change nothing else in the file.
 
-**Branches.** One branch per feature ref: `feat/HOLO-014-short-description`. PR title starts with the ref. Squash merge to `main`.
+**Branches.** One branch per feature ref: `feat/WRM-014-short-description`. PR title starts with the ref. Squash merge to `main`.
 
 Untickled work has no ref, so it gets its own prefixes: `now/short-description` and `hotfix/short-description` (§2.1). The prefix is how the history shows, at a glance, which changes went through a ticket and which didn't. Never add untickled work to `FEATURES.yaml` — not in normal mode, not in offline mode.
 
