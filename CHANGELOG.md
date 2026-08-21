@@ -18,6 +18,12 @@
 - The constitution now records the backend as Node 24. Node 20 reached end of
   life in April 2026 and Azure no longer offers it, so the rule could not be
   followed as written.
+- There is now a one-command way to build the database indexes on a new
+  environment: `npm run ensure-indexes --workspace @wroom/api`. Production does
+  not build indexes on start-up, by design, so until this runs every query
+  reads the whole collection. It only adds what is missing and never removes
+  an index, so anything set up by hand in Atlas survives it, and running it
+  twice does nothing the second time.
 
 ## 2026-08-19 (evening, last)
 
