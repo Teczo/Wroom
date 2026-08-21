@@ -1,5 +1,24 @@
 # Changelog
 
+## 2026-08-21
+
+- The API deploy to Azure now builds only the API and the shared package, so a
+  deploy no longer waits on the two frontends or fails because of something
+  that has nothing to do with the server.
+- What gets shipped to Azure is now just the built API, the shared package and
+  the production dependencies. Development tooling — TypeScript, Vite, ESLint —
+  no longer travels to the server, and the whole repository is no longer
+  packaged up on every deploy.
+- The shared package is copied into the deployment as a real folder rather than
+  a workspace link, because links do not survive the trip to App Service.
+- The deploy only runs when something the API actually depends on changes.
+- Deep links now work on both public sites. Loading a project page or a case
+  study straight from the address bar, a bookmark or a shared link gives you
+  the page instead of a 404.
+- The constitution now records the backend as Node 24. Node 20 reached end of
+  life in April 2026 and Azure no longer offers it, so the rule could not be
+  followed as written.
+
 ## 2026-08-19 (evening, last)
 
 - WRM-063 — Enquiries now have somewhere to live. Inbox lists everything that

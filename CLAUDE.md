@@ -42,7 +42,7 @@ Do not substitute any of these.
 
 **Frontend (both apps)** — React 18, Vite, Tailwind CSS, React Router, TanStack Query for server state, plain React state locally.
 
-**Backend** — Node 20, Express 5, Mongoose. REST, not GraphQL.
+**Backend** — Node 24, Express 5, Mongoose. REST, not GraphQL.
 
 **Database** — MongoDB Atlas.
 
