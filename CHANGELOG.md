@@ -2,6 +2,13 @@
 
 ## 2026-08-21
 
+- Work can now start two ways. A ticket, as before — or a prompt tagged
+  `developnow`, which skips the ticket entirely and treats the prompt itself as
+  the scope. Meant for bug fixes and small changes to things that already
+  exist. `hotfix` is the same thing for when production is broken. The stack,
+  security and definition-of-done rules are untouched by either tag, and a
+  `developnow` that turns out to need schema, a dependency, a new route or more
+  than a handful of files stops and asks for a ticket instead.
 - The API deploy to Azure now builds only the API and the shared package, so a
   deploy no longer waits on the two frontends or fails because of something
   that has nothing to do with the server.
