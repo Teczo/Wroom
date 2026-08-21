@@ -10,7 +10,8 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint src",
-    "seed": "tsx src/jobs/seed.ts"
+    "seed": "tsx src/jobs/seed.ts",
+    "ensure-indexes": "tsx src/jobs/ensureIndexes.ts"
   },
   "dependencies": {
     "@azure/storage-blob": "^12.26.0",
