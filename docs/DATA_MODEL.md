@@ -1,8 +1,10 @@
-# Teczo Dev Portal + Portfolio — Data Model (draft v0.1)
+# Wroom — Data Model (v0.2)
 
-**Stack assumed:** MongoDB Atlas · Express 5 / Node · React + Vite + Tailwind · Azure App Service (backend) · Render or Vercel (frontends) · Azure Blob (media) · Auth0 · Stripe · Claude API
+**Stack assumed:** MongoDB Atlas · Express 5 / Node 24 · React 18 + Vite + Tailwind v4 · Azure App Service (backend) · Vercel (both frontends) · Azure Blob (media) · Auth0 · Stripe · Claude API
 
-**Two frontends, one backend, one database.** The portfolio never reads the operational collections — it reads only `publishedProjects`. See "Publishing" at the end.
+**Two frontends, one backend, one database.** The portfolio never reads the operational collections — it reads only `publishedProjects`, `siteContent.published`, and public blob URLs. See "Publishing" at the end.
+
+**This document is authoritative.** If a prompt seems to require a field or collection that is not here, stop and report. Do not invent schema.
 
 ---
 
@@ -21,16 +23,17 @@
 | `features` | Kanban cards / feature ledger | v1 |
 | `costs` | Every charge | v1 |
 | `assets` | Screenshots, videos, files | v1 |
-| `notes` | Free notes per project | v1 |
+| `mediaLibrary` | Reusable marks — tech, platform, client, social | v1 |
+| `notes` | Free notes per project or enquiry | v1 |
 | `credentials` | Where a key lives + when it expires (never the key) | v1 |
 | `decisions` | ADR-lite | v1 |
 | `timeEntries` | Hours logged per project/feature | v1 |
-| `siteContent` | Portfolio page copy, draft + published | v1 |
-| `enquiries` | Inbound contact, tracked to won or lost | v1 |
+| `siteContent` | Portfolio's own copy, draft/published | v1 |
+| `enquiries` | Inbound contact from the public form | v1 |
+| `publishedProjects` | Portfolio snapshot | v1 |
 | `revenue` | Money in, Stripe-synced or manual | v2 |
 | `vendorConnections` | API creds for cost/revenue sync | v2 |
 | `deployments` | Release history from GitHub | v2 |
-| `publishedProjects` | Portfolio snapshot | v2 |
 | `auditLog` | Who changed what | v2 |
 | `memberships` | Per-project access for team + clients | v2 |
 
@@ -49,19 +52,18 @@
   createdAt, updatedAt
 }
 ```
-`globalRole` is enough for v1 (just you). Per-project access moves to `memberships` in v2 without changing this shape.
+`globalRole` is enough for v1. Per-project access moves to `memberships` in v2 without changing this shape.
 
 ---
 
 ### `projectTypes`
-This is what makes the "first question: what type of project is this?" work without a code change every time you add a type.
+This is what makes "first question: what type of project is this?" work without a code change every time you add a type.
 
 ```js
 {
-  _id, key,                     // "web" | "mobile-rn" | "unity" | "api" | "xr" | "desktop"
+  _id, key,                     // "web" | "mobile-rn" | "unity" | "api" | "xr" | "internal-tool"
   label, icon, sortOrder, active: true,
 
-  // Fields rendered on top of the shared project fields
   fieldDefs: [
     {
       key: "targetPlatforms",
@@ -75,30 +77,29 @@ This is what makes the "first question: what type of project is this?" work with
     }
   ],
 
-  // Which service roles this type expects — drives env setup prompts
   expectedServiceRoles: ["backend", "database", "storage"],
-
   defaultTechStack: { frontend: [], backend: [] }
 }
 ```
 
-Seed with: `web`, `mobile-rn`, `unity`, `api`, `xr`, `internal-tool`.
+`key` is an unconstrained `String` in the model. `PROJECT_TYPE_KEYS` in `packages/shared` is the real list.
 
 ---
 
 ### `products`
-Your product groups. FusionSite360XR, Brewpass, Explorers, LOCUM, VoxForm, Vaanam, HoloXR, Vynaa AI, MindApp, SWMS.
-
 ```js
 {
   _id, name, slug, description,
   isClientWork: false,          // no clients collection — a flag is enough
   clientName: null,             // free text, display only
+  clientMediaKey: null,         // → mediaLibrary.key, kind "client"; null unless approved
   ndaRestricted: false,         // blocks portfolio publishing for all children
   status,                       // "active" | "paused" | "archived"
   createdAt, updatedAt
 }
 ```
+
+`clientMediaKey` exists so a client logo can appear on a case study. It is **only** populated when `mediaLibrary.usageApproved` is true for that key. An NDA-restricted product never publishes at all, so the two never conflict.
 
 ---
 
@@ -120,7 +121,7 @@ Your product groups. FusionSite360XR, Brewpass, Explorers, LOCUM, VoxForm, Vaana
     webhookConfigured: false
   },
 
-  techStack: {
+  techStack: {                  // operational record — free text, for your own reference
     frontend: ["React", "Vite", "Tailwind CSS"],
     backend: ["Express 5", "Node.js"],
     database: ["MongoDB Atlas"],
@@ -131,27 +132,15 @@ Your product groups. FusionSite360XR, Brewpass, Explorers, LOCUM, VoxForm, Vaana
 
   tags: ["xr", "bim"],
 
-  // Option B — DB is the editing surface, git is the durable record
   featuresExport: {
     repoPath: "FEATURES.yaml",
     lastExportedAt: null,
-    exportVersion: 0,           // increments each export; written into the file header
-    offlineEditsDetected: false // set on import if the file's header says offlineEdits: true
+    exportVersion: 0,
+    offlineEditsDetected: false
   },
 
-  portfolio: {
-    visibility: "private",      // "private" | "client-only" | "public"
-    featured: false,
-    caseStudy: {
-      problem: "", role: "", approach: "",
-      outcome: "", metrics: [{ label, value }],
-      testimonial: { quote, attribution } | null
-    },
-    heroAssetId: null,
-    publishedAt: null
-  },
+  portfolio: { /* see below */ },
 
-  // denormalised, recomputed on write — cheap dashboard reads
   rollup: {
     featureCounts: { backlog: 0, todo: 0, inProgress: 0, blocked: 0, done: 0 },
     percentComplete: 0,
@@ -159,7 +148,7 @@ Your product groups. FusionSite360XR, Brewpass, Explorers, LOCUM, VoxForm, Vaana
     totalSpendAud: 0,
     totalRevenueAud: 0,
     totalHours: 0,
-    timeCostAud: 0,             // hours × rate; excluded from Net unless you opt in
+    timeCostAud: 0,
     lastActivityAt: null
   },
 
@@ -167,13 +156,111 @@ Your product groups. FusionSite360XR, Brewpass, Explorers, LOCUM, VoxForm, Vaana
 }
 ```
 
-**Note:** `portfolio.visibility` defaults to `private`. Nothing is ever public by accident.
+**A published portfolio entry is a project, not a product.** A product may have several published projects under it. This is deliberate — a visitor understands "FusionSite360XR Web" faster than a product group containing web, mobile and XR builds. A product-level landing page may come later; it is not in this model.
+
+---
+
+### `projects.portfolio`
+
+Everything the public site renders about a project. Authored in the portal, snapshotted on publish.
+
+```js
+portfolio: {
+  visibility: "private",        // "private" | "client-only" | "public"
+  featured: false,
+  sortOrder: 0,
+
+  // --- header ---
+  category: "XR / Web Platform",   // the chip above the title
+  tagline: "XR Digital Twin Platform for AECO & Energy",
+  overview: "",                    // one paragraph under the tagline
+  liveUrl: null,                   // "Visit Platform" target — authored, not derived
+
+  // --- body sections; each hides entirely when empty ---
+  featureCards: [                  // "Built for Complex Projects"
+    { iconKey: "cube", title: "Immersive 3D / XR", body: "" }
+  ],
+  keyModules: [                    // "Key Modules"
+    { title: "3D Model Viewer", body: "" }
+  ],
+  headlineMetric: { value: "40%", label: "Faster Decision Making" } | null,
+  testimonial: { quote: "", attribution: "" } | null,
+
+  demoVideo: {
+    provider: "blob",              // "blob" | "youtube" | "vimeo"
+    assetId: null,                 // required when provider is "blob"
+    externalId: null,              // required when provider is "youtube" | "vimeo"
+    posterAssetId: null            // REQUIRED for every provider
+  } | null,
+
+  caseStudies: [
+    {
+      slug: "offshore-platform",   // unique within this project
+      sector: "Oil & Gas",
+      title: "Offshore Platform Project",
+      summary: "",                 // the card blurb on the carousel
+      heroAssetId: null,
+      problem: "", role: "", approach: "", outcome: "",
+      metrics: [{ label: "", value: "" }],
+      testimonial: { quote: "", attribution: "" } | null,
+      sortOrder: 0
+    }
+  ],
+
+  // --- reference data ---
+  techStackKeys: ["react", "threejs", "webxr", "nodejs", "mongodb", "azure"],
+  platformKeys: ["web", "desktop", "vr", "mobile"],
+
+  // --- media ---
+  heroAssetId: null,
+  ogAssetId: null,                 // 1200x630; falls back to heroAssetId if null
+  publishedAt: null
+}
+```
+
+**Notes.**
+
+`liveUrl` is authored rather than read from the primary environment's `publicUrl`, because the "Visit Platform" target and the deployed app URL are not always the same thing — one may be a marketing page.
+
+`featureCards` and `keyModules` are optional. A thin project renders without those sections rather than rendering an empty heading. The same applies to `headlineMetric`, `testimonial`, `demoVideo` and `caseStudies`.
+
+`caseStudies` replaces the single `caseStudy` object from v0.1. `problem`, `role`, `approach` and `outcome` now live on each case study, not on the project. The project-level narrative is `tagline` + `overview` + `featureCards` + `keyModules`.
+
+`caseStudies[].slug` is unique **within a project**, not globally. The eventual route is `/work/:projectSlug/case/:caseSlug`. Case study routes are not built yet; until they are, the carousel cards render without links.
+
+`techStackKeys` and `platformKeys` reference `mediaLibrary.key`. They are keys, not labels — the label and the icon come from the library so one edit updates every project.
+
+---
+
+### `mediaLibrary`
+
+Reusable marks, managed once in the portal instead of re-uploaded per project.
+
+```js
+{
+  _id,
+  kind,                         // "tech" | "platform" | "client" | "social"
+  key: "react",                 // stable, lowercase, referenced from projects and siteContent
+  label: "React",
+  svg: "<svg viewBox=…>…</svg>",// inline markup, sanitised server-side on write
+  blobUrl: null,                // alternative to svg for raster marks
+  usageApproved: true,          // false blocks it from every published surface
+  sortOrder: 0,
+  createdAt, updatedAt
+}
+```
+
+**Why inline SVG rather than a blob URL.** These render at 24–40px in grids of five to eleven. Inline markup costs no request, scales cleanly, and inherits `currentColor`, so one asset works on a light and a dark surface without a second file. `blobUrl` exists for marks only available as raster.
+
+**`svg` is markup entering a public page.** It is sanitised server-side on write — no `<script>`, no `on*` attributes, no external `href` or `xlink:href`. This is a write-time gate, not a render-time one.
+
+**`usageApproved`** is the trademark gate. Brand marks used for "built with" attribution are fine; a client's mark is not, without permission. `false` means the mark never reaches a published surface — the publish action drops it silently rather than failing, and the portal shows why.
+
+Seed `kind: "platform"` with `web`, `desktop`, `vr`, `mobile`, `tablet`. Seed `kind: "social"` with `github`, `linkedin`, `email`.
 
 ---
 
 ### `accounts`
-Your recurring pain point — "which account is this on, and is it my secondary?"
-
 ```js
 {
   _id, vendor,                  // "azure" | "mongodb-atlas" | "vercel" | "render" |
@@ -189,13 +276,9 @@ Your recurring pain point — "which account is this on, and is it my secondary?
 }
 ```
 
-Seed from your Infrastructure sheet: `teczodevelopment@`, `testingjaya26@`, `admin@teczo.co`, `winarmstudios@`, `testingjaya7@`.
-
 ---
 
 ### `environments`
-One project has several. This is the fix for the flattened Infrastructure sheet.
-
 ```js
 {
   _id, projectId,
@@ -203,16 +286,16 @@ One project has several. This is the fix for the flattened Infrastructure sheet.
   branch: "main",
   publicUrl: "https://holoxr.onrender.com",
   isPrimary: true,              // the one shown on the project card
-  healthCheckUrl: null,         // used by uptime monitoring in v3
+  healthCheckUrl: null,
   createdAt, updatedAt
 }
 ```
 
+`publicUrl` is operational. It is never snapshotted and never reaches the portfolio — the public "Visit Platform" link is `portfolio.liveUrl`.
+
 ---
 
 ### `services`
-A single hosted thing inside an environment. This replaces the "Frontend Hosting / Backend Hosting / MongoDB Account" columns and stops them going stale.
-
 ```js
 {
   _id, projectId, environmentId,
@@ -230,13 +313,11 @@ A single hosted thing inside an environment. This replaces the "Frontend Hosting
 }
 ```
 
-`externalRef` matters — it's how an Azure cost line gets attributed to the right project automatically.
+`externalRef` is how an Azure cost line gets attributed to the right project automatically.
 
 ---
 
 ### `projectLinks`
-Two edge types, as discussed.
-
 ```js
 {
   _id,
@@ -247,19 +328,15 @@ Two edge types, as discussed.
 }
 ```
 
-Query "what breaks if I kill this?" = all links where `toProjectId = X` and `type = depends-on`.
-
 ---
 
 ### `features`
-Your Kanban board and the CSV import target.
-
 ```js
 {
   _id, projectId,
-  ref: "HOLO-014",              // human-readable, used in branch names and PR titles
+  ref: "HOLO-014",
   title, description,
-  acceptanceCriteria: "",       // one or two lines — becomes the ticket exit criteria
+  acceptanceCriteria: "",
 
   status,                       // "backlog" | "todo" | "in-progress" | "blocked" | "review" | "done"
   priority,                     // "low" | "medium" | "high" | "critical"
@@ -276,7 +353,7 @@ Your Kanban board and the CSV import target.
   blockedReason: null,
 
   source: "manual",             // "manual" | "csv" | "repo-sync"
-  externalKey: null,            // dedupe key for re-imports
+  externalKey: null,
   createdAt, updatedAt
 }
 ```
@@ -299,12 +376,12 @@ Import rule: match on `ref` within the project → update; no match → insert. 
   billingCycle,                 // "monthly" | "annual" | "one-off" | "usage"
   periodStart, periodEnd,
   source: "manual",             // "manual" | "azure-api" | "atlas-api" | "stripe"
-  externalId: null,             // idempotency key for API sync
+  externalId: null,
   createdAt, updatedAt
 }
 ```
 
-Run-rate rule (same as your workbook): monthly + annual/12. One-off and usage excluded.
+Run-rate rule: monthly + annual/12. One-off and usage excluded.
 
 ---
 
@@ -313,19 +390,34 @@ Run-rate rule (same as your workbook): monthly + annual/12. One-off and usage ex
 {
   _id, projectId, featureId: null,
   kind,                         // "screenshot" | "video" | "logo" | "diagram" | "document"
-  blobUrl, thumbnailUrl,
+  blobName, blobUrl,            // private container — read requires a SAS token
+  thumbnailUrl,
   filename, mimeType, sizeBytes,
   width, height, durationSec,
 
+  variants: {                   // written at upload; null for video and document
+    thumb: { blobName, url, width: 400 },
+    card:  { blobName, url, width: 800 },
+    hero:  { blobName, url, width: 1600 }
+  },
+
+  publicBlobName: null,         // set when copied to the public container on publish
+  publicBlobUrl: null,          // stable, cacheable, no SAS token
+  publicVariants: null,         // same shape as variants, public URLs
+
   title, caption, altText,
-  device: "iPhone 15 Pro",      // useful for portfolio device framing
+  device: "iPhone 15 Pro",
   visibility: "private",        // "private" | "client-only" | "public"
   sortOrder: 0,
-  capturedAt, uploadedByUserId, createdAt
+  capturedAt, uploadedByUserId, createdAt, updatedAt
 }
 ```
 
-**Rule:** an asset is publishable only if `asset.visibility === "public"` **and** `project.portfolio.visibility === "public"` **and** `product.ndaRestricted === false`. Three gates, all must pass.
+**Rule:** an asset is publishable only if `asset.visibility === "public"` **and** `project.portfolio.visibility === "public"` **and** `product.ndaRestricted === false`. Three gates, all must pass. Implemented once in `packages/shared/src/publish.ts`.
+
+**Variants** are generated at upload from the original, at 400 / 800 / 1600px wide, in WebP with the original format as a fallback. The portfolio picks a variant per surface: `thumb` for the thumbnail strip and tech grids, `card` for carousel and index cards, `hero` for the main image. Serving a 2400px original into a 135px slot is the single largest performance loss available on this site.
+
+**`publicBlobUrl` and `publicVariants` are null until the project is published.** The publish action copies the blob into the public container; unpublishing deletes the copies and nulls the fields. A SAS-signed URL never appears in `publishedProjects` — see "Publishing".
 
 ---
 
@@ -333,19 +425,18 @@ Run-rate rule (same as your workbook): monthly + annual/12. One-off and usage ex
 ```js
 {
   _id,
-  projectId: null,              // exactly one of projectId or enquiryId is required
+  projectId: null,              // one of projectId or enquiryId is set
   featureId: null,
-  enquiryId: null,              // follow-up history on an enquiry
+  enquiryId: null,
   body,                         // markdown
-  kind: "note",                 // "note" | "meeting" | "idea" | "issue"
+  kind: "note",                 // "note" | "meeting" | "idea" | "issue" | "follow-up"
   visibility: "private",
   pinned: false,
   authorUserId, createdAt, updatedAt
 }
 ```
 
-`enquiryId` exists so enquiry follow-ups reuse this collection rather than
-getting one of their own. Pinning, kinds and markdown already work here.
+Enquiry follow-ups reuse this collection rather than getting their own. A note carries exactly one of `projectId` or `enquiryId`.
 
 ---
 
@@ -365,8 +456,6 @@ Registry only. **No secret values ever stored here.**
   createdAt, updatedAt
 }
 ```
-
-One indexed query on `expiresAt` drives a "expiring soon" dashboard panel. This is where your SWMS API-key note belongs.
 
 ---
 
@@ -388,7 +477,7 @@ One indexed query on `expiresAt` drives a "expiring soon" dashboard panel. This 
 ```js
 {
   _id, projectId, featureId: null, userId,
-  date: ISODate("2026-08-18"),  // day granularity — avoids a start/stop timer UI
+  date: ISODate("2026-08-18"),  // day granularity — no start/stop timer
   hours: 2.5,
   activity,                     // "build" | "debug" | "design" | "meeting" | "research" | "admin"
   note,
@@ -398,74 +487,138 @@ One indexed query on `expiresAt` drives a "expiring soon" dashboard panel. This 
 }
 ```
 
-Day-granularity entries with a rate snapshot. Two reasons: a timer UI is a project of its own and you won't use it, and snapshotting the rate means changing your rate later doesn't silently rewrite history.
-
-`timeCostAud` stays out of the Net figure by default — you want "am I burning money on hosting" separate from "what would this have cost a client".
+`timeCostAud` stays out of the Net figure by default.
 
 ---
 
 ### `siteContent`
-Portfolio page copy. Keyed, so a new page is a new record rather than a schema change.
 
-```js
-{
-  _id, key,                     // "about" | "contact" | "home"
-  draft: {
-    title, body,                // body is markdown
-    meta: { title, description }
-  },
-  published: {
-    title, body,
-    meta: { title, description }
-  } | null,                     // null = never published; the page 404s
-  publishedAt, publishedByUserId,
-  updatedAt, updatedByUserId
-}
-```
-
-Same philosophy as `publishedProjects`: editing writes `draft` and changes nothing
-public. Publishing copies `draft` into `published`. `/public/content/:key` returns
-the `published` sub-document only — **never** `draft`.
-
-Seed with `about` and `contact`, both `published: null`.
-
----
-
-### `enquiries`
-Inbound contact from the portfolio. This is the front of the pipeline, not a
-clients collection — see Resolved decisions #4.
+The portfolio's own copy. Draft/published split so changing a sentence never requires a deploy.
 
 ```js
 {
   _id,
-  name, email, phone: null,
-  company: null,
-  message,                      // plain text as submitted; never rendered as HTML
-  source: "portfolio-form",     // "portfolio-form" | "manual" | "referral"
-  relatedProjectId: null,       // set when sent from a case study page
+  key,                          // "landing" | "about" | "contact" | "skills"
+  draft:     { body: "", data: {} },
+  published: { body: "", data: {} } | null,
+  publishedAt: null,
+  updatedByUserId, createdAt, updatedAt
+}
+```
 
-  requirement: {
-    budgetRange: null,          // free text in v1 — no picker
-    timeline: null,
-    interest: null
+`body` is markdown, rendered with `react-markdown` + `rehype-sanitize`. `data` is structured and validated against a per-key schema in `packages/shared/src/schemas/siteContent/`. Markdown alone cannot express a hero with an accent-coloured name, a social row and a CTA label — that is what `data` is for.
+
+**`data` by key:**
+
+```js
+// landing
+{
+  greeting: "Hi, I'm",
+  name: "Jayagaren",
+  statement: "I build apps that solve real-world problems",
+  disciplines: ["Mobile", "Web", "XR", "AI"],
+  badge: { title: "CODE. BUILD. SOLVE.", body: "Shipping digital solutions that matter." },
+  terminalLines: ["developer@teczo:~$ whoami", "jayagaren"],
+  socials: [{ mediaKey: "github", url: "" }],
+  ctaLabel: "Let's build something great",
+  featuredLimit: 6
+}
+
+// about
+{ headline: "", portraitAssetId: null }   // narrative lives in body
+
+// skills
+{
+  groups: [
+    { label: "Frontend", items: [{ mediaKey: "react", label: "React" }] }
+  ]
+}
+
+// contact
+{ headline: "", intro: "", email: "", socials: [{ mediaKey: "linkedin", url: "" }] }
+```
+
+Skills carries no proficiency level, years, or per-item prose. It is icon and label, grouped. `mediaKey` references `mediaLibrary.key` — the same library the tech grids use.
+
+`terminalLines` is decorative and hidden below `md`.
+
+---
+
+### `enquiries`
+
+Inbound contact from the one public write in the system.
+
+```js
+{
+  _id,
+  name, email, message,         // all required strings
+  company: null, phone: null,
+  relatedProjectId: null,       // validated against an in-memory cache, not a query
+
+  status: "new",                // "new" | "read" | "replied" | "qualified" | "won" | "lost" | "spam"
+  source: "portfolio-contact",  // set server-side
+  ownerUserId: null,            // assigned in the portal
+  convertedToProductId: null,   // set when an enquiry becomes work
+
+  meta: {                       // set server-side, never from the body
+    ip, userAgent, submittedAt, timeToSubmitMs, referrer
   },
 
-  status: "new",                // "new" | "read" | "qualified" | "quoted" |
-                                // "won" | "lost" | "spam"
-  ownerUserId: null,
-  convertedToProductId: null,   // → products, when an enquiry becomes real work
-
-  meta: { ip, userAgent, submittedInMs },
   createdAt, updatedAt
 }
 ```
 
-**Server-set only.** `status`, `source`, `ownerUserId`, `convertedToProductId`,
-`meta` and both timestamps are written by the server. If any of them appear in a
-public request body they are stripped, not honoured.
+`status`, `source`, `ownerUserId`, `convertedToProductId`, `meta` and both timestamps are **set server-side and stripped from the body if present**. The full write chain is specified in `CLAUDE.md` §8 and any change to it is a ticket.
 
-`convertedToProductId` is what makes the trail from first contact to live client
-work traceable without a clients collection.
+Follow-up notes live in `notes` with `enquiryId` set. There is no `clients` collection — an enquiry that becomes work points at a product via `convertedToProductId`.
+
+---
+
+### `publishedProjects`
+
+The flattened snapshot. This is the **only** project data the portfolio reads.
+
+```js
+{
+  _id, projectId, slug,
+  name, productName,
+  category, tagline, overview, shortDescription,
+  liveUrl,
+
+  featureCards: [{ icon: { svg, label }, title, body }],
+  keyModules:   [{ title, body }],
+  headlineMetric: { value, label } | null,
+  testimonial: { quote, attribution } | null,
+
+  demoVideo: {
+    provider, url, externalId,
+    poster: { url, alt, variants: { thumb, card, hero } }
+  } | null,
+
+  caseStudies: [{
+    slug, sector, title, summary,
+    hero: { url, alt, variants },
+    problem, role, approach, outcome,
+    metrics: [{ label, value }],
+    testimonial, sortOrder
+  }],
+
+  techStack: [{ key, label, svg }],     // resolved from mediaLibrary at publish
+  platforms: [{ key, label, svg }],
+  clientLogo: { label, svg } | null,    // only when usageApproved
+
+  heroImage: { url, alt, variants: { thumb, card, hero } },
+  ogImage:   { url, width: 1200, height: 630 },
+  gallery: [{ url, variants, caption, kind, device, alt }],
+
+  status: "live",
+  startedAt, launchedAt,
+  featured: false, sortOrder,
+  publishedAt, publishedByUserId
+}
+```
+
+**Every `url` here is a public-container URL with no SAS token.** No account email, no cost figure, no environment URL, no operational collection reference. Icons are resolved to inline `svg` at publish time so the public site makes no library lookup.
 
 ---
 
@@ -476,12 +629,12 @@ work traceable without a clients collection.
 {
   _id, projectId,
   source: "stripe",             // "stripe" | "invoice" | "manual"
-  externalId: "in_1P...",       // Stripe invoice/charge id — idempotency
+  externalId: "in_1P...",
   customerRef, description,
   amount, currency, amountAud,
   paid: true, paidAt, dueAt,
   periodStart, periodEnd,
-  createdAt
+  createdAt, updatedAt
 }
 ```
 
@@ -492,13 +645,11 @@ work traceable without a clients collection.
   authType: "service-principal", // "service-principal" | "api-key" | "oauth"
   secretRef: "kv://teczo/azure-cost-sp",  // pointer, not the secret
   scope: { subscriptionId, orgId, teamId },
-  syncEnabled: true,
+  syncEnabled: false,
   lastSyncAt, lastSyncStatus, lastSyncError,
   createdAt, updatedAt
 }
 ```
-
-Realistic coverage: **Azure Cost Management** and **Stripe** work well. **Atlas** invoices API works. **Vercel** partial. **Render** thin. Build manual entry first; treat sync as an enhancement per vendor.
 
 ### `deployments`
 ```js
@@ -518,14 +669,13 @@ Realistic coverage: **Azure Cost Management** and **Stripe** work well. **Atlas*
   invitedByUserId, acceptedAt, createdAt
 }
 ```
-No client role for now. If you later want to give a client read-only progress, add `"client"` to this enum plus a permission rule hiding costs, revenue and accounts — the `visibility` fields on assets already support it.
 
 ### `auditLog`
 ```js
 {
   _id, userId, action: "project.update",
   entityType, entityId,
-  before: {}, after: {},        // changed fields only
+  before: {}, after: {},
   ip, userAgent, createdAt
 }
 ```
@@ -534,31 +684,29 @@ No client role for now. If you later want to give a client read-only progress, a
 
 ## Publishing — how the portfolio stays safe
 
-The portfolio does **not** query `projects`. Publishing writes a flattened snapshot:
+The portfolio does **not** query `projects`. Publishing is an explicit action that does four things, in order:
 
-```js
-// publishedProjects
-{
-  _id, projectId, slug,
-  name, shortDescription, productName,
-  caseStudy: { problem, role, approach, outcome, metrics, testimonial },
-  techStack: [],                // flattened labels only, no accounts or URLs
-  liveUrl, platforms: [],
-  heroImage: { url, alt },
-  gallery: [{ url, thumbnailUrl, caption, kind, device }],
-  status: "live",
-  startedAt, launchedAt,
-  featured: false,
-  sortOrder,
-  publishedAt, publishedByUserId
-}
-```
+1. **Runs the three gates** via `packages/shared/src/publish.ts`. Fails closed.
+2. **Copies every publishable blob** — hero, OG, gallery, video poster, case study heroes, and all their variants — from the private container into the public container. Sets `publicBlobName`, `publicBlobUrl` and `publicVariants` on each asset.
+3. **Resolves `techStackKeys`, `platformKeys` and `clientMediaKey`** against `mediaLibrary`, dropping anything with `usageApproved: false`.
+4. **Writes the flattened `publishedProjects` document** using public URLs only.
 
-Backend routes split by namespace:
+**Unpublishing reverses step 2 before step 4.** Deleting the snapshot row without deleting the blob copies leaves a public, permanently cacheable URL for content that is no longer published. The blob delete is the operation that actually revokes access.
+
+### Why two containers
+
+Read access to a private container needs a SAS token, which puts the token in the query string. The URL then changes on every request, so the browser cache misses, any CDN misses, and each image needs an API round-trip before it can start loading. A product page carries roughly twenty images. That is twenty signatures and twenty cold downloads on every visit.
+
+The public container holds only what has already passed the three gates. The gate runs once, at publish, rather than on every request — the same reasoning that produced the snapshot in the first place.
+
+Container names come from `AZURE_STORAGE_CONTAINER` and `AZURE_STORAGE_PUBLIC_CONTAINER`.
+
+### Route namespaces
+
 - `/api/*` — authenticated, full model
-- `/public/*` — unauthenticated. Every route appears in the allowlist in `CLAUDE.md` §6. Reads are limited to `publishedProjects` and the `published` sub-document of `siteContent`. The only write is enquiry intake, which writes `enquiries` and reads nothing.
+- `/public/*` — unauthenticated, closed allowlist in `CLAUDE.md` §6
 
-The allowlist means a bug in the public API cannot leak a client project, a cost figure, or an account email. Adding a route to `/public` is an edit to `CLAUDE.md`, not a decision made inside a session. Regenerate the snapshot on an explicit "Publish" action, not on save.
+A bug in the public API cannot leak a client project, a cost figure, or an account email, because the public routes read three things and one of them is write-only.
 
 ---
 
@@ -573,24 +721,23 @@ costs:           { projectId: 1, periodStart: -1 },
                  { vendor: 1, externalId: 1 } unique, partial on externalId being a string
 services:        { projectId: 1, environmentId: 1 }, { accountId: 1 }
 assets:          { projectId: 1, visibility: 1, sortOrder: 1 }
+mediaLibrary:    { key: 1 } unique, { kind: 1, sortOrder: 1 }
+notes:           { projectId: 1, pinned: -1, createdAt: -1 },
+                 { enquiryId: 1, createdAt: -1 }
 credentials:     { expiresAt: 1 }
-revenue:         { projectId: 1 }, { source: 1, externalId: 1 } unique sparse
+siteContent:     { key: 1 } unique
+enquiries:       { status: 1, createdAt: -1 }, { convertedToProductId: 1 },
+                 { "meta.ip": 1, createdAt: -1 }
+revenue:         { projectId: 1 }, { source: 1, externalId: 1 } unique partial
 projectLinks:    { fromProjectId: 1 }, { toProjectId: 1 }
 publishedProjects: { slug: 1 } unique, { featured: -1, sortOrder: 1 }
-siteContent:     { key: 1 } unique
-enquiries:       { createdAt: -1 }, { status: 1, createdAt: -1 },
-                 { convertedToProductId: 1 } sparse
-notes:           { projectId: 1 } sparse, { enquiryId: 1 } sparse
 ```
 
 The unique indexes on `externalId` are what make cost and revenue sync safely re-runnable.
 
-They must be **partial**, not sparse. On a compound index `sparse` only skips a
-document when every indexed field is missing; `vendor` (or `source`) is always
-present, so a sparse index treats `externalId: null` as a value and permits only
-one manually entered row per vendor. Filtering on `externalId` being a string
-indexes exactly the synced rows the guarantee is about, and leaves manual entry
-unconstrained. `revenue` must do the same when it is built.
+They must be **partial**, not sparse. On a compound index `sparse` only skips a document when every indexed field is missing; `vendor` (or `source`) is always present, so a sparse index treats `externalId: null` as a value and permits only one manually entered row per vendor. Filtering on `externalId` being a string indexes exactly the synced rows the guarantee is about, and leaves manual entry unconstrained.
+
+`enquiries` on `{ "meta.ip": 1, createdAt: -1 }` backs the per-IP daily cap. It is the one index the public write path depends on.
 
 ---
 
@@ -598,41 +745,10 @@ unconstrained. `revenue` must do the same when it is built.
 
 1. **Mobile counterparts are separate projects**, linked `component-of` to the same product. Own repo, own stack, own lifecycle.
 2. **All money stored in AUD**, converted at entry. `fxRate` recorded when the source wasn't AUD.
-3. **Time tracking included in v1** — `timeEntries`, day granularity, rate snapshotted per entry.
-4. **No clients collection.** `isClientWork` + `clientName` on `products` is enough to describe work you already have. `enquiries` is a separate thing — it tracks people who have not become work yet, and closes with `convertedToProductId` pointing at the product they became. This is not a reversal: there is still no clients collection, no client role and no client login.
-5. **Option B: the database is the source of truth**, `FEATURES.yaml` is an export.
-6. **Portfolio page copy is managed content**, not hardcoded. `siteContent` holds it with a draft/published split, editable from the portal.
-
----
-
-## The Option B sync contract
-
-Wroom is where you edit. Git is what survives.
-
-**Export** — Wroom writes `FEATURES.yaml` to the repo on: the "generate ticket" action, a manual Export button, and a nightly job across all connected repos.
-
-```yaml
-# FEATURES.yaml — generated by Wroom. Do not hand-edit unless in offline mode.
-source: wroom
-project: holoxr-web
-exportedAt: 2026-08-18T09:14:00Z
-exportVersion: 47
-offlineEdits: false
-features:
-  - ref: HOLO-014
-    title: Lesson progress tracking
-    status: in-progress
-    priority: high
-    acceptance: Progress persists per user per lesson; visible on lesson card.
-    branch: feat/HOLO-014-progress
-```
-
-**Normal mode rule in CLAUDE.md** — never edit `FEATURES.yaml`; report what changed in `CHANGELOG.md` in plain language.
-
-**Offline mode** — when Wroom is unreachable and you say so in the prompt, Claude Code may set `status` and `completedAt`, and must flip `offlineEdits: true` in the header.
-
-**Import back** — same match-on-`ref`, update-or-insert, never-delete logic as the CSV importer, with a diff preview. `offlineEdits: true` makes Wroom surface the reconciliation instead of silently overwriting.
-
-**Drift ceiling:** one session, because export is coupled to ticket generation.
-
-**Backup property:** every connected repo holds a git-tracked ledger and changelog. Losing the Wroom database loses the editing surface, not the history.
+3. **Time tracking in v1** — `timeEntries`, day granularity, rate snapshotted per entry.
+4. **No clients collection.** `isClientWork` + `clientName` on `products`. Inbound contact is `enquiries`, closing with `convertedToProductId`.
+5. **The database is the source of truth**, `FEATURES.yaml` is a hand-maintained ledger (see `CLAUDE.md` §9).
+6. **A published entry is a project.** Products group projects internally; they do not have their own public page.
+7. **Case studies belong to a project**, many per project, slug unique within the project.
+8. **Published media lives in a second, public container.** The gate runs at publish, not per request.
+9. **Icons are data**, not code. `mediaLibrary` is edited in the portal; no icon library is installed.
