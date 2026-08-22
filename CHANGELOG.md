@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-08-22
+
+- The repository now has a README at the root. Anyone landing on the repo can
+  see what Wroom is, which of the three apps does what, how to install and run
+  it locally, which one-off commands a fresh environment needs, what the two API
+  namespaces are and why the split matters, and the rules that govern changes —
+  without opening the constitution first.
+
 ## 2026-08-21
 
 - Work can now start two ways. A ticket, as before — or a prompt tagged
