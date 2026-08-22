@@ -13,6 +13,14 @@ import sharp from 'sharp';
 /** WebP quality. High enough that a screenshot's text stays crisp at 1:1. */
 const WEBP_QUALITY = 82;
 
+/**
+ * The Open Graph card size every unfurler expects. LinkedIn, Slack and iMessage
+ * all crop to roughly this ratio; giving them the exact pixels means they crop
+ * nothing and the card looks composed rather than sliced.
+ */
+export const OG_IMAGE_WIDTH = 1200;
+export const OG_IMAGE_HEIGHT = 630;
+
 export type GeneratedVariant = {
   name: AssetVariantName;
   /** What came out, which is never larger than the original. */
@@ -86,4 +94,32 @@ export async function generateVariants(original: Buffer): Promise<GeneratedVaria
   }
 
   return variants;
+}
+
+/**
+ * A 1200x630 Open Graph card cropped from an image.
+ *
+ * Used at publish time when a project has no `ogAssetId` of its own: the hero is
+ * cropped rather than letterboxed, because an unfurled card with bars down the
+ * sides reads as a broken image in a LinkedIn feed. `cover` fills the frame and
+ * `attention` picks the crop window by where the detail is, which on a product
+ * screenshot is the interface rather than the empty chrome around it.
+ */
+export async function generateOgCrop(original: Buffer): Promise<GeneratedVariant> {
+  // Measuring first turns a non-image into NotAnImageError here rather than a
+  // raw sharp failure in the middle of a publish.
+  await measureOriginal(original);
+
+  const buffer = await sharp(original, { failOn: 'error' })
+    .autoOrient()
+    .resize({
+      width: OG_IMAGE_WIDTH,
+      height: OG_IMAGE_HEIGHT,
+      fit: 'cover',
+      position: sharp.strategy.attention,
+    })
+    .webp({ quality: WEBP_QUALITY })
+    .toBuffer();
+
+  return { name: 'hero', width: OG_IMAGE_WIDTH, buffer, contentType: 'image/webp' };
 }

@@ -353,6 +353,22 @@ export async function uploadPublicBlob(
 }
 
 /**
+ * The name of a blob in the public container, worked out from its URL.
+ *
+ * The generated OG card is the one public blob that belongs to no asset record,
+ * so its URL in the snapshot is the only handle on it. Unpublishing needs a name
+ * to delete. A URL that is not in our public container returns null.
+ */
+export function publicBlobNameFromUrl(blobUrl: string): string | null {
+  if (!env.azureStorage.publicConfigured) return null;
+
+  const prefix = `${publicContainerClient().url}/`;
+  if (!blobUrl.startsWith(prefix)) return null;
+
+  return decodeURIComponent(blobUrl.slice(prefix.length).split('?')[0] as string);
+}
+
+/**
  * Removes a public copy. Missing is not an error — the goal is that it is gone.
  *
  * This is what actually revokes access. Nulling the record only stops the URL

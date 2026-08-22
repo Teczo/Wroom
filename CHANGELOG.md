@@ -2,6 +2,27 @@
 
 ## 2026-08-22
 
+- Publishing a project now puts its images on the public site properly. The
+  three gates run first, every approved image and its resized copies are copied
+  into the public container, and the snapshot is written pointing at those —
+  so a portfolio image loads straight from the URL with nothing to sign, and
+  caches like any other picture on the internet.
+- The published snapshot now carries everything the new project page needs: the
+  category chip, tagline, overview, feature cards, key modules, headline metric,
+  testimonial, demo video and every case study.
+- Tech and platform icons are resolved at publish, so the public site looks
+  nothing up. A mark you have not approved for use is left out and the publish
+  still goes through — the row shows one fewer icon rather than failing.
+- The "Visit Platform" link now comes from what you typed on the project. It
+  used to be taken from the primary environment's URL, which is an internal
+  detail and should never have been on a public page.
+- A project with no OG image of its own gets one made at publish: a 1200x630
+  crop of the hero, so a link shared to LinkedIn or Slack unfurls with a proper
+  card instead of a cropped-at-random one.
+- Unpublishing now deletes the image files before it removes the page. Anyone
+  holding an old image URL — a cache, a scraper, a copied link — gets a 404
+  rather than the picture.
+
 - Uploading a screenshot, logo or diagram now also produces three resized
   copies — 400, 800 and 1600px wide, in WebP — so the portfolio can send a
   thumbnail-sized file to a thumbnail slot instead of the full-size original.
