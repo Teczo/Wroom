@@ -26,12 +26,50 @@ export type PortfolioUpdateResult = {
   blockingProductName: string | null;
 };
 
+/**
+ * Mirrors `projectPortfolioUpdateShape`. Every key is optional and only the
+ * ones present are written, so the portal can save one section at a time.
+ */
 export type PortfolioInput = {
   visibility?: Visibility;
   featured?: boolean;
-  caseStudy?: Record<string, unknown>;
+  sortOrder?: number;
+  category?: string;
+  tagline?: string;
+  overview?: string;
+  liveUrl?: string | null;
+  featureCards?: unknown[];
+  keyModules?: unknown[];
+  headlineMetric?: unknown;
+  testimonial?: unknown;
+  demoVideo?: unknown;
+  caseStudies?: unknown[];
+  techStackKeys?: string[];
+  platformKeys?: string[];
   heroAssetId?: string | null;
+  ogAssetId?: string | null;
 };
+
+/** Everything this path may write, as dotted keys under `portfolio`. */
+const WRITABLE_FIELDS = [
+  'visibility',
+  'featured',
+  'sortOrder',
+  'category',
+  'tagline',
+  'overview',
+  'liveUrl',
+  'featureCards',
+  'keyModules',
+  'headlineMetric',
+  'testimonial',
+  'demoVideo',
+  'caseStudies',
+  'techStackKeys',
+  'platformKeys',
+  'heroAssetId',
+  'ogAssetId',
+] as const satisfies ReadonlyArray<keyof PortfolioInput>;
 
 export async function updateProjectPortfolio(
   projectId: string,
@@ -45,12 +83,13 @@ export async function updateProjectPortfolio(
   }
 
   // Only the portfolio subtree, key by key — a whole-object set would wipe
-  // `publishedAt`, which this path must never touch.
+  // `publishedAt`, which this path must never touch. Driving it from a list
+  // rather than a line per field means a field added to the shared schema is
+  // one edit, not two that can drift.
   const patch: Record<string, unknown> = {};
-  if (input.visibility !== undefined) patch['portfolio.visibility'] = input.visibility;
-  if (input.featured !== undefined) patch['portfolio.featured'] = input.featured;
-  if (input.caseStudy !== undefined) patch['portfolio.caseStudy'] = input.caseStudy;
-  if (input.heroAssetId !== undefined) patch['portfolio.heroAssetId'] = input.heroAssetId;
+  for (const field of WRITABLE_FIELDS) {
+    if (input[field] !== undefined) patch[`portfolio.${field}`] = input[field];
+  }
 
   await ProjectModel.updateOne({ _id: projectId }, { $set: patch });
 

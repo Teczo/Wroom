@@ -1,28 +1,77 @@
-import { PROJECT_STATUSES, VISIBILITIES } from '@wroom/shared';
+import { DEMO_VIDEO_PROVIDERS, PROJECT_STATUSES, VISIBILITIES } from '@wroom/shared';
 import { Schema, model, type HydratedDocument, type InferSchemaType } from 'mongoose';
 
+const metricSchema = new Schema(
+  { label: { type: String, required: true }, value: { type: String, required: true } },
+  { _id: false },
+);
+
+const testimonialSchema = new Schema(
+  { quote: { type: String, required: true }, attribution: { type: String, required: true } },
+  { _id: false },
+);
+
+/**
+ * One case study on a project. `slug` is unique within the project rather than
+ * globally — the eventual route is /work/:projectSlug/case/:caseSlug, so the
+ * project slug already disambiguates. Uniqueness is enforced in the shared
+ * validation schema, where the whole array is in view.
+ */
 const caseStudySchema = new Schema(
   {
+    slug: { type: String, required: true, trim: true, lowercase: true },
+    sector: { type: String, default: '' },
+    title: { type: String, default: '' },
+    /** The card blurb on the carousel. */
+    summary: { type: String, default: '' },
+    heroAssetId: { type: Schema.Types.ObjectId, ref: 'Asset', default: null },
     problem: { type: String, default: '' },
     role: { type: String, default: '' },
     approach: { type: String, default: '' },
     outcome: { type: String, default: '' },
-    metrics: {
-      type: [
-        new Schema(
-          { label: { type: String, required: true }, value: { type: String, required: true } },
-          { _id: false },
-        ),
-      ],
-      default: [],
+    metrics: { type: [metricSchema], default: [] },
+    testimonial: { type: testimonialSchema, default: null },
+    sortOrder: { type: Number, default: 0 },
+  },
+  { _id: false },
+);
+
+/** One card under "Built for Complex Projects". `iconKey` is a mediaLibrary key. */
+const featureCardSchema = new Schema(
+  {
+    iconKey: { type: String, default: '' },
+    title: { type: String, required: true },
+    body: { type: String, default: '' },
+  },
+  { _id: false },
+);
+
+const keyModuleSchema = new Schema(
+  { title: { type: String, required: true }, body: { type: String, default: '' } },
+  { _id: false },
+);
+
+const headlineMetricSchema = new Schema(
+  { value: { type: String, required: true }, label: { type: String, required: true } },
+  { _id: false },
+);
+
+/**
+ * `posterAssetId` is required for every provider, and which of `assetId` and
+ * `externalId` is required depends on the provider. Both rules live in the
+ * shared validation schema — a Mongoose `required` cannot express "only when",
+ * and putting half the rule here would mean two places to keep in step.
+ */
+const demoVideoSchema = new Schema(
+  {
+    provider: {
+      type: String,
+      enum: DEMO_VIDEO_PROVIDERS as unknown as string[],
+      default: 'blob',
     },
-    testimonial: {
-      type: new Schema(
-        { quote: { type: String, required: true }, attribution: { type: String, required: true } },
-        { _id: false },
-      ),
-      default: null,
-    },
+    assetId: { type: Schema.Types.ObjectId, ref: 'Asset', default: null },
+    externalId: { type: String, default: null },
+    posterAssetId: { type: Schema.Types.ObjectId, ref: 'Asset', default: null },
   },
   { _id: false },
 );
@@ -58,13 +107,44 @@ const featuresExportSchema = new Schema(
   { _id: false },
 );
 
+/**
+ * Everything the public site renders about a project.
+ *
+ * Every body section defaults to empty or null, which is what lets the public
+ * site drop a section — heading included — rather than render an empty one
+ * (CLAUDE.md §7.4).
+ */
 const portfolioSchema = new Schema(
   {
     /** Private by default. Nothing is ever public by accident. */
     visibility: { type: String, enum: VISIBILITIES as unknown as string[], default: 'private' },
     featured: { type: Boolean, default: false },
-    caseStudy: { type: caseStudySchema, default: () => ({}) },
+    sortOrder: { type: Number, default: 0 },
+
+    // --- header ---
+    /** The chip above the title. */
+    category: { type: String, default: '' },
+    tagline: { type: String, default: '' },
+    overview: { type: String, default: '' },
+    /** The "Visit Platform" target — authored, not read from an environment. */
+    liveUrl: { type: String, default: null },
+
+    // --- body sections ---
+    featureCards: { type: [featureCardSchema], default: [] },
+    keyModules: { type: [keyModuleSchema], default: [] },
+    headlineMetric: { type: headlineMetricSchema, default: null },
+    testimonial: { type: testimonialSchema, default: null },
+    demoVideo: { type: demoVideoSchema, default: null },
+    caseStudies: { type: [caseStudySchema], default: [] },
+
+    // --- reference data; both are mediaLibrary keys, not labels ---
+    techStackKeys: { type: [String], default: [] },
+    platformKeys: { type: [String], default: [] },
+
+    // --- media ---
     heroAssetId: { type: Schema.Types.ObjectId, ref: 'Asset', default: null },
+    /** 1200x630. Falls back to heroAssetId when null. */
+    ogAssetId: { type: Schema.Types.ObjectId, ref: 'Asset', default: null },
     publishedAt: { type: Date, default: null },
   },
   { _id: false },

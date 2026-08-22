@@ -162,6 +162,15 @@ export const ASSET_KINDS = [
 ] as const;
 export type AssetKind = (typeof ASSET_KINDS)[number];
 
+/**
+ * `projects.portfolio.demoVideo.provider`. A blob is one of our own uploads;
+ * the other two are embeds. Which one is set decides whether `assetId` or
+ * `externalId` is the required half — `posterAssetId` is required either way,
+ * because a video with no poster is a black rectangle until it buffers.
+ */
+export const DEMO_VIDEO_PROVIDERS = ['blob', 'youtube', 'vimeo'] as const;
+export type DemoVideoProvider = (typeof DEMO_VIDEO_PROVIDERS)[number];
+
 export const NOTE_KINDS = ['note', 'meeting', 'idea', 'issue'] as const;
 export type NoteKind = (typeof NOTE_KINDS)[number];
 
