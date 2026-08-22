@@ -72,14 +72,19 @@ export function CaseStudyPage() {
 
   // Seed the form once the project arrives, then leave it to the user.
   if (portfolio && !loaded) {
-    setProblem(portfolio.caseStudy.problem);
-    setRole(portfolio.caseStudy.role);
-    setApproach(portfolio.caseStudy.approach);
-    setOutcome(portfolio.caseStudy.outcome);
-    setMetrics(portfolio.caseStudy.metrics);
-    setQuote(portfolio.caseStudy.testimonial?.quote ?? '');
-    setAttribution(portfolio.caseStudy.testimonial?.attribution ?? '');
-    setHasTestimonial(portfolio.caseStudy.testimonial !== null);
+    // A project now holds many case studies. This editor still writes the
+    // first one — the multi-case-study UI is not built yet (WRM-082 covered
+    // the data model only), and reading [0] is what the single object used
+    // to be. A project with none yet edits into a new first entry.
+    const study = portfolio.caseStudies[0];
+    setProblem(study?.problem ?? '');
+    setRole(study?.role ?? '');
+    setApproach(study?.approach ?? '');
+    setOutcome(study?.outcome ?? '');
+    setMetrics(study?.metrics ?? []);
+    setQuote(study?.testimonial?.quote ?? '');
+    setAttribution(study?.testimonial?.attribution ?? '');
+    setHasTestimonial(Boolean(study?.testimonial));
     setHeroAssetId(portfolio.heroAssetId);
     setVisibility(portfolio.visibility);
     setFeatured(portfolio.featured);
@@ -115,6 +120,19 @@ export function CaseStudyPage() {
   const staleSincePublish =
     publishedAt !== null && new Date(project.data.updatedAt) > new Date(publishedAt);
 
+  /**
+   * The first case study, or the shell of one for a project that has none yet.
+   * Read out here, where the project is known to have loaded.
+   */
+  const existingCaseStudy = portfolio?.caseStudies[0] ?? {
+    slug: project.data.slug,
+    sector: '',
+    title: project.data.name,
+    summary: '',
+    heroAssetId: null,
+    sortOrder: 0,
+  };
+
   function submit(nextVisibility = visibility): void {
     setSaved(null);
 
@@ -123,15 +141,21 @@ export function CaseStudyPage() {
         visibility: nextVisibility,
         featured,
         heroAssetId,
-        caseStudy: {
-          problem,
-          role,
-          approach,
-          outcome,
-          metrics,
-          // Cleared means null, not an object of empty strings.
-          testimonial: hasTestimonial && quote.trim() ? { quote, attribution } : null,
-        },
+        // Keeps whatever the first entry already had — its slug above all,
+        // which is what a case study is addressed by — and replaces only the
+        // fields this form owns.
+        caseStudies: [
+          {
+            ...existingCaseStudy,
+            problem,
+            role,
+            approach,
+            outcome,
+            metrics,
+            // Cleared means null, not an object of empty strings.
+            testimonial: hasTestimonial && quote.trim() ? { quote, attribution } : null,
+          },
+        ],
       },
       {
         onSuccess: (_data, _vars, _ctx) => {
@@ -214,7 +238,7 @@ export function CaseStudyPage() {
               label={field.label}
               htmlFor={`cs-${field.key}`}
               hint={`${field.hint} ${value.length} characters.`}
-              error={errors[`caseStudy.${field.key}`]}
+              error={errors[`caseStudies[0].${field.key}`]}
             >
               <textarea
                 id={`cs-${field.key}`}
@@ -325,7 +349,7 @@ export function CaseStudyPage() {
 
           {hasTestimonial ? (
             <>
-              <Field label="Quote" htmlFor="cs-quote" error={errors['caseStudy.testimonial.quote']}>
+              <Field label="Quote" htmlFor="cs-quote" error={errors['caseStudies[0].testimonial.quote']}>
                 <textarea
                   id="cs-quote"
                   rows={3}
@@ -337,7 +361,7 @@ export function CaseStudyPage() {
               <Field
                 label="Who said it"
                 htmlFor="cs-attribution"
-                error={errors['caseStudy.testimonial.attribution']}
+                error={errors['caseStudies[0].testimonial.attribution']}
               >
                 <input
                   id="cs-attribution"

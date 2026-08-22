@@ -23,6 +23,24 @@ import { getProject } from './projectService.js';
  * or a private asset, so a bug in the public API cannot leak one.
  */
 
+/**
+ * The case study the v0.1 snapshot shape expects, taken from the first entry of
+ * the v0.2 array. A project with none publishes empty prose, which is what an
+ * unwritten case study did before.
+ */
+function firstCaseStudy(project: ProjectDocument) {
+  const study = project.portfolio.caseStudies?.[0];
+
+  return {
+    problem: study?.problem ?? '',
+    role: study?.role ?? '',
+    approach: study?.approach ?? '',
+    outcome: study?.outcome ?? '',
+    metrics: study?.metrics ?? [],
+    testimonial: study?.testimonial ?? null,
+  };
+}
+
 function flattenTechStack(project: ProjectDocument): string[] {
   const { frontend, backend, database, other } = project.techStack;
   return [...frontend, ...backend, ...database, ...other].filter(Boolean);
@@ -101,7 +119,10 @@ export async function publishProject(
     name: project.name,
     shortDescription: project.shortDescription,
     productName: product.name,
-    caseStudy: project.portfolio.caseStudy,
+    // The snapshot still carries one case study; `publishedProjects` is
+    // WRM-083's to reshape. Reading the first entry keeps this path doing
+    // exactly what it did when the source was a single object.
+    caseStudy: firstCaseStudy(project),
     techStack: flattenTechStack(project),
     liveUrl: primaryEnvironment?.publicUrl ?? null,
     platforms: readPlatforms(project),
