@@ -2,6 +2,24 @@
 
 ## 2026-08-22
 
+- The portfolio's own copy is now four pages rather than three: landing, about,
+  skills and contact. Each is a record you edit in the portal and publish when
+  it is ready, with no deploy in between.
+- Each page now carries structured content alongside its markdown — the landing
+  hero's greeting, name, disciplines, badge, social row and CTA label; the
+  skills groups; the contact details. Markdown alone could not express those as
+  separate things.
+- Each page's structured content is checked against that page's own field list.
+  Sending the skills shape to the landing page is refused, naming the fields
+  that do not belong, instead of quietly saving an empty landing page.
+- The public site still cannot see an unpublished page. The request asks the
+  database for the published half only — the draft is never loaded, not merely
+  left out of the reply — and a page that has never been published answers 404.
+- Saving with an empty body no longer blanks a page. It used to write empty
+  strings over whatever was there.
+- The portal's "draft is ahead of live" badge now notices a change to the
+  structured content, not just to the words.
+
 - The portal's navigation now sits in a sidebar down the left of the screen
   instead of across the top. On a phone nothing changes — the bottom bar is
   still there — and the name and sign out move into the sidebar on wider

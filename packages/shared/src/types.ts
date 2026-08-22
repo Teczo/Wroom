@@ -571,8 +571,16 @@ export type PublishedProject = {
  */
 export type SiteContentBody = {
   title: string;
+  /** Markdown, rendered with react-markdown + rehype-sanitize. */
   body: string;
   meta: { title: string; description: string };
+  /**
+   * Structured content, validated against the per-key schema in
+   * `schemas/siteContent/`. Markdown alone cannot express a hero with an
+   * accent-coloured name, a social row and a CTA label — that is what this is
+   * for. Its shape depends on the record's `key`.
+   */
+  data: Record<string, unknown>;
 };
 
 export type SiteContent = {

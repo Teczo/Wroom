@@ -1,6 +1,6 @@
 /**
  * Seeds the reference data a fresh database needs to be usable: the project
- * types listed in docs/DATA_MODEL.md, and the two portfolio content records.
+ * types listed in docs/DATA_MODEL.md, and the four portfolio content records.
  *
  * The data model also suggests seeding accounts from the infrastructure sheet,
  * but those rows carry real login emails and CLAUDE.md §2 forbids committing
@@ -195,10 +195,13 @@ const projectTypes: SeedType[] = [
 ];
 
 /**
- * The two content records, created empty and unpublished.
+ * The four content records — landing, about, skills and contact — created with
+ * empty drafts and unpublished.
  *
- * No copy is seeded: words on the public site are written in the portal, and a
- * placeholder sentence is the kind of thing that gets published by accident.
+ * No copy is seeded, and no `data` shape either: words on the public site are
+ * written in the portal, and a placeholder sentence is the kind of thing that
+ * gets published by accident. `data` starts as `{}` and takes its shape from
+ * the per-key schema on the first save.
  * An existing record is left exactly as it is and reported rather than
  * overwritten — re-running this must never cost someone a page they wrote.
  */
