@@ -2,6 +2,10 @@
 
 ## 2026-08-22
 
+- The portal's navigation now sits in a sidebar down the left of the screen
+  instead of across the top. On a phone nothing changes — the bottom bar is
+  still there — and the name and sign out move into the sidebar on wider
+  screens, so the top bar disappears there entirely.
 - The repository now has a README at the root. Anyone landing on the repo can
   see what Wroom is, which of the three apps does what, how to install and run
   it locally, which one-off commands a fresh environment needs, what the two API
