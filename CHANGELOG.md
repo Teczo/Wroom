@@ -11,6 +11,10 @@
   it locally, which one-off commands a fresh environment needs, what the two API
   namespaces are and why the split matters, and the rules that govern changes —
   without opening the constitution first.
+- The API now has the `sharp` image library installed. Nothing calls it yet
+  — this only puts the library in place so image resizing can be built on top
+  of it. It has been listed as an approved API dependency all along but was
+  never actually added to the package.
 
 ## 2026-08-21
 
