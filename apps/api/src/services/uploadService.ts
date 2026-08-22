@@ -5,7 +5,7 @@ import {
   StorageSharedKeyCredential,
   generateBlobSASQueryParameters,
 } from '@azure/storage-blob';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 
 import { env } from '../config/env.js';
 import { AppError, UnprocessableError, ValidationError } from '../utils/errors.js';
@@ -207,6 +207,166 @@ export function signBlobUrlForRead(blobUrl: string, minutes = READ_SAS_MINUTES):
   ).toString();
 
   return `${blobUrl}?${sas}`;
+}
+
+/**
+ * The blob's path inside the private container, worked out from its URL.
+ *
+ * Assets created before `blobName` was stored carry only `blobUrl`, and the
+ * variant and publish paths need a name to work with. A URL that is not ours
+ * returns null rather than a guess.
+ */
+export function blobNameFromUrl(blobUrl: string): string | null {
+  if (!env.azureStorage.configured) return null;
+
+  const prefix = `${BlobServiceClient.fromConnectionString(env.azureStorage.connectionString)
+    .getContainerClient(env.azureStorage.container)
+    .url}/`;
+
+  if (!blobUrl.startsWith(prefix)) return null;
+
+  // A query string means a SAS-signed URL was stored somewhere it should not
+  // have been; take the path either way rather than folding it into the name.
+  return decodeURIComponent(blobUrl.slice(prefix.length).split('?')[0] as string);
+}
+
+/** Reads a blob out of the private container, for resizing or for copying. */
+export async function downloadBlob(blobName: string): Promise<Buffer> {
+  const blob = containerClient().getBlockBlobClient(blobName);
+
+  if (!(await blob.exists())) {
+    throw new ValidationError('That file is no longer in storage.', {
+      blobName: 'The original could not be read back. It may have been deleted.',
+    });
+  }
+
+  return blob.downloadToBuffer();
+}
+
+/**
+ * Writes a blob the server generated — a variant — into the private container.
+ *
+ * Nothing a client sent reaches this. The name is derived from the original's
+ * name and the variant, and the bytes come out of sharp.
+ */
+export async function uploadDerivedBlob(
+  blobName: string,
+  body: Buffer,
+  contentType: string,
+): Promise<string> {
+  const blob = containerClient().getBlockBlobClient(blobName);
+  await blob.uploadData(body, { blobHTTPHeaders: { blobContentType: contentType } });
+  return blob.url;
+}
+
+/** The name a variant of `originalBlobName` is stored under, in either container. */
+export function derivedBlobName(originalBlobName: string, variant: string): string {
+  return `${originalBlobName}.${variant}.webp`;
+}
+
+// --- the public container ---------------------------------------------------
+
+/**
+ * The public container client, or a 503 saying it is not set up.
+ *
+ * Separate from `containerClient` on purpose: these two containers are a
+ * security boundary (CLAUDE.md §8), and code that means to write a published
+ * copy should not be able to reach the private one by passing a different
+ * string.
+ */
+function publicContainerClient() {
+  if (!env.azureStorage.publicConfigured) {
+    throw new AppError(
+      503,
+      'INTERNAL',
+      'The public media container is not configured on this environment yet.',
+    );
+  }
+
+  return BlobServiceClient.fromConnectionString(
+    env.azureStorage.connectionString,
+  ).getContainerClient(env.azureStorage.publicContainer);
+}
+
+const EXTENSION_BY_CONTENT_TYPE: Record<string, string> = {
+  'image/webp': '.webp',
+  'image/png': '.png',
+  'image/jpeg': '.jpg',
+  'image/gif': '.gif',
+  'image/svg+xml': '.svg',
+  'video/mp4': '.mp4',
+  'video/webm': '.webm',
+  'application/pdf': '.pdf',
+};
+
+/**
+ * The name a public copy is stored under: a SHA-256 over the asset id and the
+ * bytes, hex, plus an extension for tidiness.
+ *
+ * Unguessable, which is the point — a sequential or filename-derived name turns
+ * a public container into a directory listing of everything ever published,
+ * including things since unpublished (CLAUDE.md §8). Deterministic, so copying
+ * an asset twice overwrites rather than accumulates.
+ *
+ * The asset id is in the hash as well as the content, so two assets holding
+ * identical bytes get different public blobs. Pure content addressing would
+ * have them share one, and unpublishing either would then 404 the other's live
+ * page — the exact failure the delete is supposed to prevent.
+ */
+export function publicBlobNameFor(
+  assetId: string,
+  body: Buffer,
+  contentType: string,
+): string {
+  const digest = createHash('sha256')
+    .update(assetId)
+    .update(':')
+    .update(body)
+    .digest('hex');
+
+  return `${digest}${EXTENSION_BY_CONTENT_TYPE[contentType] ?? ''}`;
+}
+
+/**
+ * Writes one public copy and returns its permanent URL.
+ *
+ * No SAS is minted here and none should ever be: the container is anonymously
+ * readable, so the URL works with no query string on it, stays cacheable, and
+ * carries nothing that expires.
+ */
+export async function uploadPublicBlob(
+  blobName: string,
+  body: Buffer,
+  contentType: string,
+): Promise<string> {
+  const blob = publicContainerClient().getBlockBlobClient(blobName);
+
+  await blob.uploadData(body, {
+    blobHTTPHeaders: {
+      blobContentType: contentType,
+      // Immutable: the name changes whenever the bytes do.
+      blobCacheControl: 'public, max-age=31536000, immutable',
+    },
+  });
+
+  return blob.url;
+}
+
+/**
+ * Removes a public copy. Missing is not an error — the goal is that it is gone.
+ *
+ * This is what actually revokes access. Nulling the record only stops the URL
+ * being linked to; the blob is what a cached or copied URL still reaches.
+ */
+export async function deletePublicBlob(blobName: string): Promise<void> {
+  if (!env.azureStorage.publicConfigured) return;
+  await publicContainerClient().getBlockBlobClient(blobName).deleteIfExists();
+}
+
+/** Removes one private blob by name. Missing is not an error. */
+export async function deletePrivateBlob(blobName: string): Promise<void> {
+  if (!env.azureStorage.configured) return;
+  await containerClient().getBlockBlobClient(blobName).deleteIfExists();
 }
 
 /** Removes the file itself. Missing is not an error — the goal is that it is gone. */

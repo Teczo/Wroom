@@ -162,6 +162,35 @@ export const ASSET_KINDS = [
 ] as const;
 export type AssetKind = (typeof ASSET_KINDS)[number];
 
+/**
+ * The three image variants, and the only place their widths are written down.
+ *
+ * A width never comes from a request. The client says nothing about size that
+ * the server acts on — `sharp` reads the real dimensions off the validated
+ * original, and these are the targets it resizes towards (CLAUDE.md §8).
+ *
+ * The portfolio picks one per surface: `thumb` for thumbnail strips and tech
+ * grids, `card` for carousel and index cards, `hero` for the main image.
+ */
+export const ASSET_VARIANT_WIDTHS = {
+  thumb: 400,
+  card: 800,
+  hero: 1600,
+} as const;
+
+export const ASSET_VARIANT_NAMES = ['thumb', 'card', 'hero'] as const;
+export type AssetVariantName = (typeof ASSET_VARIANT_NAMES)[number];
+
+/**
+ * Kinds that get variants. Video and document are skipped — there is nothing to
+ * resize, and `variants` stays null for them (docs/DATA_MODEL.md).
+ *
+ * `image/svg+xml` is an allowed upload but is not rasterised either: an SVG is
+ * already resolution-independent, and running one through an image pipeline
+ * would turn a 2KB vector into three raster copies of it.
+ */
+export const VARIANT_ASSET_KINDS = ['screenshot', 'logo', 'diagram'] as const;
+
 export const NOTE_KINDS = ['note', 'meeting', 'idea', 'issue'] as const;
 export type NoteKind = (typeof NOTE_KINDS)[number];
 

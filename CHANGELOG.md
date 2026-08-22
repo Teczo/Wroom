@@ -2,6 +2,28 @@
 
 ## 2026-08-22
 
+- Uploading a screenshot, logo or diagram now also produces three resized
+  copies — 400, 800 and 1600px wide, in WebP — so the portfolio can send a
+  thumbnail-sized file to a thumbnail slot instead of the full-size original.
+  Videos and PDFs are left alone, and so are SVGs, which need no resizing.
+- A small image is never blown up. A 500px logo gets a 400px copy and two at
+  500px, rather than three blurry enlargements.
+- An image's real width and height are now read off the file itself, including
+  photos and phone screenshots that are stored sideways with a rotation tag.
+  What the browser claimed on upload is no longer taken at face value, and
+  location data in the file is dropped rather than copied into the resized ones.
+- A file that is not really an image is refused with an explanation, instead of
+  being registered as a screenshot that never displays.
+- Published copies can be moved into the public container and taken out again.
+  The public copies get unguessable names, load with no expiring token on the
+  URL, and are cacheable. Taking one down deletes the files themselves, which is
+  what actually revokes access.
+- Deleting an asset now removes its resized copies and any published copies too,
+  rather than leaving them behind in storage.
+- A new job fills in the resized copies for images uploaded before any of this
+  existed: `npm run backfill-asset-variants --workspace @wroom/api`. Running it
+  twice does the work once.
+
 - The portal's navigation now sits in a sidebar down the left of the screen
   instead of across the top. On a phone nothing changes — the bottom bar is
   still there — and the name and sign out move into the sidebar on wider

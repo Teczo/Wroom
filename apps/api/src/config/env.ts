@@ -40,8 +40,18 @@ export const env = {
   azureStorage: {
     connectionString: optional('AZURE_STORAGE_CONNECTION_STRING'),
     container: optional('AZURE_STORAGE_CONTAINER'),
+    /**
+     * Public-read, and holds only copies made after the three publish gates
+     * passed. Nothing is ever uploaded here directly (CLAUDE.md §8). Separate
+     * from `configured` because uploads work without it — only publishing a
+     * copy does not.
+     */
+    publicContainer: optional('AZURE_STORAGE_PUBLIC_CONTAINER'),
     get configured(): boolean {
       return Boolean(this.connectionString && this.container);
+    },
+    get publicConfigured(): boolean {
+      return Boolean(this.connectionString && this.publicContainer);
     },
   },
 
