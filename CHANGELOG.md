@@ -2,6 +2,22 @@
 
 ## 2026-08-22
 
+- The media library exists in the API. Marks — tech logos, platform icons,
+  client and social marks — can be listed, added, edited and deleted at
+  `/api/media-library`, so the icons the public site uses are records you manage
+  rather than files in the code.
+- Any SVG saved to a mark is cleaned on the way in: scripts, `onclick` and every
+  other event handler, links pointing off the site, embedded stylesheets and
+  `<foreignObject>` are all removed before it is stored. This happens on edit as
+  well as on create, because the public site renders that markup as-is.
+- A mark that is still being used cannot be deleted. Trying it explains which
+  projects or products still reference it, and suggests marking it not-approved
+  instead, which drops it from published pages while keeping the record.
+- A mark's key cannot be renamed once it exists, because projects point at marks
+  by key and nothing rewrites those references.
+- The seed now creates the five platform marks and three social marks. They come
+  in with no artwork — paste that in from the portal — and running the seed
+  again leaves anything already there untouched.
 - The portal's navigation now sits in a sidebar down the left of the screen
   instead of across the top. On a phone nothing changes — the bottom bar is
   still there — and the name and sign out move into the sidebar on wider
