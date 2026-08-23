@@ -1,4 +1,11 @@
-import { Children, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import {
+  Children,
+  useCallback,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion';
 
@@ -15,6 +22,11 @@ import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion';
  * buttons that call `scrollBy`, dots that say where you are and jump you
  * somewhere else, and the disabled state at either end so an arrow that cannot
  * move never looks like it could.
+ *
+ * When every slide already fits — two case study cards in a column wide enough
+ * for both — there is nothing to scroll, and the controls are not rendered at
+ * all rather than rendered dead. Two greyed-out arrows under a row that is
+ * plainly complete are an invitation to press something that does nothing.
  *
  * Under reduced motion the arrows and dots still work — they simply jump
  * instead of gliding. `behavior: 'smooth'` passed in JavaScript overrides the
@@ -72,6 +84,7 @@ export function Carousel({
   const [active, setActive] = useState(0);
   const [atStart, setAtStart] = useState(true);
   const [atEnd, setAtEnd] = useState(count <= 1);
+  const [scrollable, setScrollable] = useState(false);
 
   /**
    * Reads where the track currently sits. The 1px of slack matters: fractional
@@ -86,12 +99,13 @@ export function Carousel({
     const elements = Array.from(track.children) as HTMLElement[];
 
     // Everything already fits: there is nowhere to go in either direction, so
-    // both arrows are dead and the first slide is still the one you are on.
-    const scrollable = scrollWidth - clientWidth > 1;
-    const end = scrollable && scrollLeft >= scrollWidth - clientWidth - 1;
+    // the controls do not appear and the first slide is still the one you are on.
+    const canScroll = scrollWidth - clientWidth > 1;
+    const end = canScroll && scrollLeft >= scrollWidth - clientWidth - 1;
 
-    setAtStart(!scrollable || scrollLeft <= 1);
-    setAtEnd(!scrollable || end);
+    setScrollable(canScroll);
+    setAtStart(!canScroll || scrollLeft <= 1);
+    setAtEnd(!canScroll || end);
 
     // At the far right the track has run out of room before the last slide can
     // reach the left edge — several fit at desktop width — so "nearest to the
@@ -114,7 +128,10 @@ export function Carousel({
     setActive(nearest);
   }, []);
 
-  useEffect(() => {
+  // Layout, not an effect: the first read decides whether the control row
+  // exists, and doing it after the paint would show the arrows for a frame on
+  // a row that turns out to need none.
+  useLayoutEffect(() => {
     const track = trackRef.current;
     if (!track) return;
 
@@ -189,7 +206,7 @@ export function Carousel({
         ))}
       </ul>
 
-      {count > 1 ? (
+      {count > 1 && scrollable ? (
         <div className="mt-5 flex items-center justify-center gap-4">
           <button
             type="button"

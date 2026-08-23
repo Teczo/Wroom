@@ -3,25 +3,28 @@ import { Link, useParams } from 'react-router-dom';
 
 import { EmptyState, ErrorState, LoadingState } from '../components/StateViews';
 import { usePublishedProject } from '../features/work/api';
+import {
+  CaseStudies,
+  ContactCta,
+  DemoAndModules,
+  MarkGrid,
+  MetricAndTestimonial,
+} from '../features/work/sections';
 import { ApiRequestError } from '../lib/api';
 
-function Section({ heading, body }: { heading: string; body: string }) {
-  if (!body) return null;
-
-  return (
-    <section className="mt-10">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">{heading}</h2>
-      <p className="mt-2 whitespace-pre-line text-base leading-relaxed text-fg">{body}</p>
-    </section>
-  );
-}
-
-function CaseStudy({ project }: { project: PublishedProject }) {
-  // The snapshot now carries many case studies. This page still renders the
-  // first — the per-case-study route is not built (docs/DATA_MODEL.md), and
-  // WRM-083 was the publish path only.
-  const caseStudy = project.caseStudies[0] ?? null;
-
+/**
+ * A project's public page.
+ *
+ * Everything below the hero is optional and hides when the snapshot has
+ * nothing for it (§7.4) — the sections themselves live in
+ * `features/work/sections.tsx`.
+ *
+ * The case studies are cards on a carousel rather than a narrative here. Each
+ * one's problem, role, approach and outcome belong to its own page at
+ * /work/:projectSlug/case/:caseSlug, and that route is deferred — which is why
+ * the card's button is present and disabled.
+ */
+function ProjectPage({ project }: { project: PublishedProject }) {
   return (
     <article className="mx-auto max-w-3xl px-5 py-14 sm:py-20">
       <Link to="/work" className="text-sm text-muted hover:text-fg">
@@ -51,41 +54,19 @@ function CaseStudy({ project }: { project: PublishedProject }) {
 
       {project.heroImage ? (
         <img
-          src={project.heroImage.url}
+          src={project.heroImage.variants?.hero ?? project.heroImage.url}
           alt={project.heroImage.alt}
           className="mt-10 w-full rounded-2xl border border-border object-cover"
         />
       ) : null}
 
-      <Section heading="The problem" body={caseStudy?.problem ?? ''} />
-      <Section heading="My role" body={caseStudy?.role ?? ''} />
-      <Section heading="Approach" body={caseStudy?.approach ?? ''} />
-      <Section heading="Outcome" body={caseStudy?.outcome ?? ''} />
-
-      {caseStudy && caseStudy.metrics.length > 0 ? (
-        <dl className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3">
-          {caseStudy.metrics.map((metric) => (
-            <div key={metric.label} className="rounded-xl border border-border p-4">
-              <dt className="text-xs uppercase tracking-wide text-muted">{metric.label}</dt>
-              <dd className="mt-1 text-xl font-semibold text-fg">{metric.value}</dd>
-            </div>
-          ))}
-        </dl>
-      ) : null}
-
-      {caseStudy?.testimonial ? (
-        <blockquote className="mt-10 border-l-2 border-accent pl-5">
-          <p className="text-lg italic text-fg">“{caseStudy.testimonial.quote}”</p>
-          <footer className="mt-2 text-sm text-muted">
-            — {caseStudy.testimonial.attribution}
-          </footer>
-        </blockquote>
-      ) : null}
+      <DemoAndModules project={project} />
+      <MetricAndTestimonial project={project} />
 
       {project.gallery.length > 0 ? (
-        <section className="mt-12">
+        <section className="mt-14 border-t border-border pt-10">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Gallery</h2>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <div className="mt-6 grid gap-4 sm:grid-cols-2">
             {project.gallery.map((item) => (
               <figure key={item.url}>
                 {/*
@@ -112,38 +93,12 @@ function CaseStudy({ project }: { project: PublishedProject }) {
         </section>
       ) : null}
 
-      {/*
-       * Carries the project, so an enquiry sent from here records which case
-       * study prompted it. The server keeps that only if the project is still
-       * published, and stores null otherwise.
-       */}
-      <section className="mt-12 border-t border-border pt-8">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
-          Something like this?
-        </h2>
-        <Link
-          to={`/contact?project=${project.projectId}`}
-          className="mt-3 inline-flex min-h-11 items-center rounded-lg bg-accent px-5 font-heading text-sm font-medium text-on-accent transition-colors hover:bg-accent-hover"
-        >
-          Talk about your project
-        </Link>
-      </section>
+      <CaseStudies studies={project.caseStudies} />
 
-      {project.techStack.length > 0 ? (
-        <section className="mt-12 border-t border-border pt-8">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Built with</h2>
-          <ul className="mt-3 flex flex-wrap gap-2">
-            {project.techStack.map((entry) => (
-              <li
-                key={entry.key}
-                className="rounded-full bg-surface px-3 py-1 text-xs font-medium text-fg"
-              >
-                {entry.label}
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
+      <MarkGrid heading="Built with" marks={project.techStack} />
+      <MarkGrid heading="Platforms" marks={project.platforms} />
+
+      <ContactCta projectId={project.projectId} />
     </article>
   );
 }
@@ -184,5 +139,5 @@ export function CaseStudyPage() {
     );
   }
 
-  return <CaseStudy project={project.data} />;
+  return <ProjectPage project={project.data} />;
 }
