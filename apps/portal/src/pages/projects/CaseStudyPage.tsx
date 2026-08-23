@@ -1,6 +1,7 @@
 import {
   PUBLISH_GATE_MESSAGES,
   VISIBILITIES,
+  type PortfolioCaseStudy,
   type PortfolioFeatureCard,
   type PortfolioKeyModule,
   type PublishGateResult,
@@ -24,6 +25,10 @@ import {
   demoVideoProblem,
   type DemoVideoDraft,
 } from '../../features/portfolio/sections';
+import {
+  CaseStudiesEditor,
+  caseStudyProblems,
+} from '../../features/portfolio/CaseStudiesEditor';
 import { AssetPicker, MarkMultiSelect } from '../../features/portfolio/pickers';
 import { projectKeys, useProject } from '../../features/projects/api';
 import { ApiRequestError, apiPatchWithMeta } from '../../lib/api';
@@ -40,15 +45,6 @@ import { humanise, shortDate } from '../../lib/format';
  * Nothing here publishes. Making a project public marks it eligible; the
  * portfolio only changes when someone runs the publish action.
  */
-
-type Metric = { label: string; value: string };
-
-const PROSE_FIELDS = [
-  { key: 'problem', label: 'The problem', hint: 'What was wrong, or what did not exist yet. Two or three sentences.' },
-  { key: 'role', label: 'Your role', hint: 'What you personally did. Be specific — "built the API" beats "involved in delivery".' },
-  { key: 'approach', label: 'The approach', hint: 'How you solved it, and the decision worth mentioning.' },
-  { key: 'outcome', label: 'The outcome', hint: 'What changed as a result. Numbers if you have them.' },
-] as const;
 
 export function CaseStudyPage() {
   const { id = '' } = useParams();
@@ -77,14 +73,7 @@ export function CaseStudyPage() {
 
   const portfolio = project.data?.portfolio;
 
-  const [problem, setProblem] = useState('');
-  const [role, setRole] = useState('');
-  const [approach, setApproach] = useState('');
-  const [outcome, setOutcome] = useState('');
-  const [metrics, setMetrics] = useState<Metric[]>([]);
-  const [quote, setQuote] = useState('');
-  const [attribution, setAttribution] = useState('');
-  const [hasTestimonial, setHasTestimonial] = useState(false);
+  const [caseStudies, setCaseStudies] = useState<PortfolioCaseStudy[]>([]);
   const [heroAssetId, setHeroAssetId] = useState<string | null>(null);
   const [ogAssetId, setOgAssetId] = useState<string | null>(null);
   const [visibility, setVisibility] = useState('private');
@@ -124,19 +113,7 @@ export function CaseStudyPage() {
 
   // Seed the form once the project arrives, then leave it to the user.
   if (portfolio && !loaded) {
-    // A project now holds many case studies. This editor still writes the
-    // first one — the multi-case-study UI is not built yet (WRM-082 covered
-    // the data model only), and reading [0] is what the single object used
-    // to be. A project with none yet edits into a new first entry.
-    const study = portfolio.caseStudies[0];
-    setProblem(study?.problem ?? '');
-    setRole(study?.role ?? '');
-    setApproach(study?.approach ?? '');
-    setOutcome(study?.outcome ?? '');
-    setMetrics(study?.metrics ?? []);
-    setQuote(study?.testimonial?.quote ?? '');
-    setAttribution(study?.testimonial?.attribution ?? '');
-    setHasTestimonial(Boolean(study?.testimonial));
+    setCaseStudies(portfolio.caseStudies);
     setHeroAssetId(portfolio.heroAssetId);
     setOgAssetId(portfolio.ogAssetId);
     setVisibility(portfolio.visibility);
@@ -201,20 +178,11 @@ export function CaseStudyPage() {
   const staleSincePublish =
     publishedAt !== null && new Date(project.data.updatedAt) > new Date(publishedAt);
 
-  /**
-   * The first case study, or the shell of one for a project that has none yet.
-   * Read out here, where the project is known to have loaded.
-   */
-  const existingCaseStudy = portfolio?.caseStudies[0] ?? {
-    slug: project.data.slug,
-    sector: '',
-    title: project.data.name,
-    summary: '',
-    heroAssetId: null,
-    sortOrder: 0,
-  };
-
   const videoProblem = hasDemoVideo ? demoVideoProblem(demo) : null;
+
+  // A duplicate or missing slug is caught here rather than by the API, so the
+  // offending case study can be pointed at directly.
+  const studyProblems = caseStudyProblems(caseStudies);
 
   function submit(nextVisibility = visibility): void {
     setSaved(null);
@@ -222,7 +190,7 @@ export function CaseStudyPage() {
     // Mirrors the shared schema rather than letting the server say no. The
     // poster rule is the one a person hits, and finding out after a round trip
     // means scrolling back up a long form to see why.
-    if (videoProblem) return;
+    if (videoProblem || studyProblems.size > 0) return;
 
     save.mutate(
       {
@@ -265,21 +233,14 @@ export function CaseStudyPage() {
 
         techStackKeys,
         platformKeys,
-        // Keeps whatever the first entry already had — its slug above all,
-        // which is what a case study is addressed by — and replaces only the
-        // fields this form owns.
-        caseStudies: [
-          {
-            ...existingCaseStudy,
-            problem,
-            role,
-            approach,
-            outcome,
-            metrics,
-            // Cleared means null, not an object of empty strings.
-            testimonial: hasTestimonial && quote.trim() ? { quote, attribution } : null,
-          },
-        ],
+        // `sortOrder` is renumbered from the list's own order on every save,
+        // so the two can never disagree — a consumer that sorts by the field
+        // and one that takes the array as it comes get the same answer.
+        caseStudies: caseStudies.map((study, index) => ({
+          ...study,
+          slug: study.slug.trim(),
+          sortOrder: index,
+        })),
       },
       {
         onSuccess: (_data, _vars, _ctx) => {
@@ -541,178 +502,16 @@ export function CaseStudyPage() {
         </Field>
 
         <SectionHeading
-          title="Case study"
-          hint="The narrative a client or an employer reads."
+          title="Case studies"
+          hint="Many per project, each with its own slug. Collapsed until you open one — three expanded at once is unreadable on a phone."
         />
 
-        {PROSE_FIELDS.map((field) => {
-          const value = { problem, role, approach, outcome }[field.key];
-          const setter = { problem: setProblem, role: setRole, approach: setApproach, outcome: setOutcome }[
-            field.key
-          ];
-
-          return (
-            <Field
-              key={field.key}
-              label={field.label}
-              htmlFor={`cs-${field.key}`}
-              hint={`${field.hint} ${value.length} characters.`}
-              error={errors[`caseStudies[0].${field.key}`]}
-            >
-              <textarea
-                id={`cs-${field.key}`}
-                rows={4}
-                className={inputClasses}
-                value={value}
-                onChange={(event) => setter(event.target.value)}
-              />
-            </Field>
-          );
-        })}
-
-        <fieldset className="space-y-3">
-          <legend className="text-sm font-semibold text-slate-900">Metrics</legend>
-          <p className="text-xs text-slate-500">
-            The numbers worth leading with — “Load time”, “1.2s”. Shown in order.
-          </p>
-
-          {metrics.map((metric, index) => (
-            <div key={index} className="flex flex-wrap items-end gap-2">
-              <div className="min-w-0 flex-1">
-                <Field label="Label" htmlFor={`metric-label-${index}`}>
-                  <input
-                    id={`metric-label-${index}`}
-                    className={inputClasses}
-                    value={metric.label}
-                    onChange={(event) =>
-                      setMetrics((current) =>
-                        current.map((entry, at) =>
-                          at === index ? { ...entry, label: event.target.value } : entry,
-                        ),
-                      )
-                    }
-                  />
-                </Field>
-              </div>
-              <div className="min-w-0 flex-1">
-                <Field label="Value" htmlFor={`metric-value-${index}`}>
-                  <input
-                    id={`metric-value-${index}`}
-                    className={inputClasses}
-                    value={metric.value}
-                    onChange={(event) =>
-                      setMetrics((current) =>
-                        current.map((entry, at) =>
-                          at === index ? { ...entry, value: event.target.value } : entry,
-                        ),
-                      )
-                    }
-                  />
-                </Field>
-              </div>
-              <div className="flex gap-1">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="min-h-9 px-2 text-xs"
-                  disabled={index === 0}
-                  onClick={() =>
-                    setMetrics((current) => {
-                      const next = [...current];
-                      [next[index - 1], next[index]] = [next[index]!, next[index - 1]!];
-                      return next;
-                    })
-                  }
-                >
-                  ↑
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="min-h-9 px-2 text-xs"
-                  disabled={index === metrics.length - 1}
-                  onClick={() =>
-                    setMetrics((current) => {
-                      const next = [...current];
-                      [next[index], next[index + 1]] = [next[index + 1]!, next[index]!];
-                      return next;
-                    })
-                  }
-                >
-                  ↓
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="min-h-9 px-2 text-xs text-red-600 hover:bg-red-50"
-                  onClick={() => setMetrics((current) => current.filter((_, at) => at !== index))}
-                >
-                  Remove
-                </Button>
-              </div>
-            </div>
-          ))}
-
-          <Button
-            type="button"
-            variant="secondary"
-            className="min-h-9 text-xs"
-            onClick={() => setMetrics((current) => [...current, { label: '', value: '' }])}
-          >
-            Add metric
-          </Button>
-        </fieldset>
-
-        <fieldset className="space-y-3">
-          <legend className="text-sm font-semibold text-slate-900">Testimonial</legend>
-
-          {hasTestimonial ? (
-            <>
-              <Field label="Quote" htmlFor="cs-quote" error={errors['caseStudies[0].testimonial.quote']}>
-                <textarea
-                  id="cs-quote"
-                  rows={3}
-                  className={inputClasses}
-                  value={quote}
-                  onChange={(event) => setQuote(event.target.value)}
-                />
-              </Field>
-              <Field
-                label="Who said it"
-                htmlFor="cs-attribution"
-                error={errors['caseStudies[0].testimonial.attribution']}
-              >
-                <input
-                  id="cs-attribution"
-                  className={inputClasses}
-                  value={attribution}
-                  onChange={(event) => setAttribution(event.target.value)}
-                />
-              </Field>
-              <Button
-                type="button"
-                variant="ghost"
-                className="min-h-9 text-xs text-red-600 hover:bg-red-50"
-                onClick={() => {
-                  setHasTestimonial(false);
-                  setQuote('');
-                  setAttribution('');
-                }}
-              >
-                Remove the testimonial
-              </Button>
-            </>
-          ) : (
-            <Button
-              type="button"
-              variant="secondary"
-              className="min-h-9 text-xs"
-              onClick={() => setHasTestimonial(true)}
-            >
-              Add a testimonial
-            </Button>
-          )}
-        </fieldset>
+        <CaseStudiesEditor
+          studies={caseStudies}
+          onChange={setCaseStudies}
+          heroCandidates={heroCandidates}
+          errors={errors}
+        />
 
         <fieldset className="space-y-3">
           <legend className="text-sm font-semibold text-slate-900">Hero image</legend>

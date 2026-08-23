@@ -2,6 +2,20 @@
 
 ## 2026-08-22
 
+- A project can now hold several case studies, added, removed and reordered
+  from the portfolio tab. They sit collapsed in a list showing the title, slug
+  and sector, and open one at a time — three expanded at once is unreadable on
+  a phone.
+- Each one carries its own slug, sector, title, summary, hero image, the four
+  narrative sections, a metrics list and an optional testimonial.
+- The slug fills itself in from the title as you type, and stops the moment you
+  type your own — it never overwrites something you chose.
+- Two case studies on the same project cannot share a slug. The clash is named
+  on the offending row before you press save, and shows even while that case
+  study is collapsed, so you do not have to open each one to find it. A case
+  study with no slug at all is caught the same way.
+- The order you arrange them in is the order that gets saved.
+
 - The project's portfolio tab now authors the whole public page, not just the
   case study. The chip, tagline, overview paragraph and the "Visit Platform"
   link sit at the top; feature cards, key modules, a headline metric, a
