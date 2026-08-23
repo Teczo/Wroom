@@ -19,6 +19,7 @@ import { decisionsRouter } from './decisions.js';
 import { enquiriesRouter } from './enquiriesAdmin.js';
 import { accountsRouter } from './infrastructure.js';
 import { integrationsRouter } from './integrations.js';
+import { mediaLibraryRouter } from './mediaLibrary.js';
 import { revenueRouter } from './revenue.js';
 import { notesRouter } from './notes.js';
 import { projectLinkAdminRouter } from './projectLinks.js';
@@ -57,6 +58,7 @@ apiRouter.use('/credentials', credentialsRouter);
 apiRouter.use('/project-links', projectLinkAdminRouter);
 apiRouter.use('/notes', notesRouter);
 apiRouter.use('/decisions', decisionsRouter);
+apiRouter.use('/media-library', mediaLibraryRouter);
 apiRouter.use('/content', contentRouter);
 apiRouter.use('/enquiries', enquiriesRouter);
 

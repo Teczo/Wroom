@@ -34,6 +34,7 @@ import { DecisionModel } from '../models/Decision.js';
 import { EnquiryModel } from '../models/Enquiry.js';
 import { EnvironmentModel } from '../models/Environment.js';
 import { FeatureModel } from '../models/Feature.js';
+import { MediaLibraryModel } from '../models/MediaLibrary.js';
 import { NoteModel } from '../models/Note.js';
 import { ProductModel } from '../models/Product.js';
 import { ProjectModel } from '../models/Project.js';
@@ -70,6 +71,7 @@ const models: IndexableModel[] = [
   EnquiryModel,
   EnvironmentModel,
   FeatureModel,
+  MediaLibraryModel,
   NoteModel,
   ProductModel,
   ProjectModel,

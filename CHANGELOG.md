@@ -20,6 +20,40 @@
 - The portal's "draft is ahead of live" badge now notices a change to the
   structured content, not just to the words.
 
+- The portal has a Marks screen. Every icon the public site can draw lives
+  there, grouped by kind, each one drawn at the size it actually is rather than
+  squashed into a uniform box.
+- Pasting an SVG shows it immediately on a white swatch and a dark one, side by
+  side, so you can see at a glance whether it takes the colour of what it sits
+  on or keeps its own. A mark that will not inherit says so.
+- The preview shows what will actually be saved, not what you pasted: if a paste
+  carries a script, an event handler or a link pointing off the site, it names
+  what is about to be stripped. A paste that is not an SVG at all is flagged
+  before you hit save rather than after.
+- A mark that projects are still using cannot be deleted. The refusal spells out
+  how many projects list it in their tech stack, how many list it as a platform,
+  and how many products use it as a client logo, and suggests unticking
+  "approved for use" instead — which drops it from published pages without
+  losing the record.
+- A mark's key cannot be renamed once it exists, and the field says why rather
+  than letting you try.
+
+- The media library exists in the API. Marks — tech logos, platform icons,
+  client and social marks — can be listed, added, edited and deleted at
+  `/api/media-library`, so the icons the public site uses are records you manage
+  rather than files in the code.
+- Any SVG saved to a mark is cleaned on the way in: scripts, `onclick` and every
+  other event handler, links pointing off the site, embedded stylesheets and
+  `<foreignObject>` are all removed before it is stored. This happens on edit as
+  well as on create, because the public site renders that markup as-is.
+- A mark that is still being used cannot be deleted. Trying it explains which
+  projects or products still reference it, and suggests marking it not-approved
+  instead, which drops it from published pages while keeping the record.
+- A mark's key cannot be renamed once it exists, because projects point at marks
+  by key and nothing rewrites those references.
+- The seed now creates the five platform marks and three social marks. They come
+  in with no artwork — paste that in from the portal — and running the seed
+  again leaves anything already there untouched.
 - The portal's navigation now sits in a sidebar down the left of the screen
   instead of across the top. On a phone nothing changes — the bottom bar is
   still there — and the name and sign out move into the sidebar on wider

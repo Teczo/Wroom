@@ -13,6 +13,7 @@ const navigation = [
   { to: '/credentials', label: 'Keys', end: false },
   { to: '/content', label: 'Content', end: false },
   { to: '/enquiries', label: 'Inbox', end: false },
+  { to: '/settings/media-library', label: 'Marks', end: false },
   { to: '/settings/project-types', label: 'Types', end: false },
   { to: '/settings/integrations', label: 'Sync', end: false },
 ];
