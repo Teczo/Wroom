@@ -194,6 +194,21 @@ export const VARIANT_ASSET_KINDS = ['screenshot', 'logo', 'diagram'] as const;
 export const NOTE_KINDS = ['note', 'meeting', 'idea', 'issue'] as const;
 export type NoteKind = (typeof NOTE_KINDS)[number];
 
+/**
+ * `mediaLibrary.kind`. Icons are data, not code — every mark on the public site
+ * is one of these records rather than a file in a components folder.
+ */
+export const MEDIA_KINDS = ['tech', 'platform', 'client', 'social'] as const;
+export type MediaKind = (typeof MEDIA_KINDS)[number];
+
+/**
+ * How much markup a single mark may carry. These render at 24–40px; anything
+ * near this cap is a traced illustration rather than an icon. The sanitiser
+ * scans the string, so an unbounded one is also an unbounded amount of work on
+ * a write.
+ */
+export const MEDIA_SVG_MAX_LENGTH = 20000;
+
 export const CREDENTIAL_KINDS = [
   'api-key',
   'certificate',
