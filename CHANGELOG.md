@@ -22,6 +22,19 @@
 - The case study editor in the portal keeps working exactly as before. It now
   writes the first of the project's case studies; editing the others needs a
   screen that does not exist yet.
+- The public site is dark. Background, panels, hairlines, text and a green
+  accent all come from one place, so changing the look is one file rather than a
+  hunt through components. There is no light mode and no toggle — the dark
+  values are the values.
+- The site's own fonts are served from our own domain rather than Google's, so
+  no visitor's browser has to tell a third party they were here. Space Grotesk
+  for headings and navigation, Inter for everything else.
+- The navigation collapses into a full-screen menu on a phone. It closes on
+  Escape, closes when you follow a link, and the page underneath cannot scroll
+  while it is open.
+- Every page now has a footer.
+- Anyone whose device asks for reduced motion gets no transitions and no
+  movement anywhere on the site, set once rather than remembered per component.
 
 - The portal's navigation now sits in a sidebar down the left of the screen
   instead of across the top. On a phone nothing changes — the bottom bar is
@@ -32,6 +45,10 @@
   it locally, which one-off commands a fresh environment needs, what the two API
   namespaces are and why the split matters, and the rules that govern changes —
   without opening the constitution first.
+- The API now has the `sharp` image library installed. Nothing calls it yet
+  — this only puts the library in place so image resizing can be built on top
+  of it. It has been listed as an approved API dependency all along but was
+  never actually added to the package.
 
 ## 2026-08-21
 

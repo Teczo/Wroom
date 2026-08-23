@@ -12,6 +12,7 @@
     "lint": "eslint src",
     "seed": "tsx src/jobs/seed.ts",
     "ensure-indexes": "tsx src/jobs/ensureIndexes.ts",
+    "backfill-asset-variants": "tsx src/jobs/backfillAssetVariants.ts",
     "migrate-case-studies": "tsx src/jobs/migrateCaseStudies.ts"
   },
   "dependencies": {
@@ -22,7 +23,8 @@
     "express": "^5.0.1",
     "express-oauth2-jwt-bearer": "^1.6.1",
     "mongoose": "^8.8.0",
-    "papaparse": "^5.6.0"
+    "papaparse": "^5.6.0",
+    "sharp": "^0.35.3"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
