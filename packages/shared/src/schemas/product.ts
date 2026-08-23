@@ -16,6 +16,8 @@ export const productCreateShape = {
   description: withDefault(string({ max: 2000, allowEmpty: true }), ''),
   isClientWork: withDefault(boolean(), false),
   clientName: withDefault(nullable(string({ max: 120 })), null),
+  /** A `mediaLibrary.key` of kind "client". Shown only when usageApproved. */
+  clientMediaKey: withDefault(nullable(slug()), null),
   ndaRestricted: withDefault(boolean(), false),
   status: withDefault(enumOf(PRODUCT_STATUSES), 'active' as const),
 };

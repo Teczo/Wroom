@@ -1,7 +1,6 @@
 import { PublishedProjectModel, type PublishedProject } from '../models/PublishedProject.js';
 import { NotFoundError } from '../utils/errors.js';
 import type { Pagination } from '../utils/http.js';
-import { signBlobUrlForRead } from './uploadService.js';
 
 /**
  * Everything the public API is allowed to read.
@@ -10,33 +9,14 @@ import { signBlobUrlForRead } from './uploadService.js';
  * that keeps a bug in the public API from leaking a client project or a cost.
  * If a change here needs another collection, it is the wrong change.
  *
- * The one thing it does beyond reading is sign the image URLs on the way out.
- * That reads no data: it is local crypto over a URL already in the snapshot.
+ * It now does nothing else at all. Until WRM-083 the snapshot held private blob
+ * paths and this module signed each one on the way out, because the container
+ * allowed no anonymous read. The bytes are copied into the public container at
+ * publish instead, so the URLs in the snapshot are already loadable, already
+ * cacheable, and carry no token that expires. Signing them here would put a
+ * query string back on a public URL and defeat every cache between the blob and
+ * the visitor — a SAS URL must never appear in a `/public` response (§8).
  */
-
-/**
- * Swaps each stored blob URL for a short-lived signed one.
- *
- * The snapshot stores the permanent path; the account it lives in allows no
- * anonymous access, so the URL only becomes loadable once signed. Signing here
- * rather than at publish time is deliberate — a signature baked into the
- * snapshot would expire and quietly break every image until someone thought to
- * republish.
- */
-function withSignedMedia<T extends PublishedProject>(project: T): T {
-  // Safe to write into: these are `.lean()` results, read fresh for this
-  // request and shared with nothing.
-  if (project.heroImage) {
-    project.heroImage.url = signBlobUrlForRead(project.heroImage.url);
-  }
-
-  for (const item of project.gallery) {
-    item.url = signBlobUrlForRead(item.url);
-    if (item.thumbnailUrl) item.thumbnailUrl = signBlobUrlForRead(item.thumbnailUrl);
-  }
-
-  return project;
-}
 
 export async function listPublishedProjects(
   filters: { featured?: boolean },
@@ -54,11 +34,11 @@ export async function listPublishedProjects(
     PublishedProjectModel.countDocuments(query),
   ]);
 
-  return { items: items.map(withSignedMedia), total };
+  return { items, total };
 }
 
 export async function getPublishedProjectBySlug(slug: string): Promise<PublishedProject> {
   const project = await PublishedProjectModel.findOne({ slug }).lean();
   if (!project) throw new NotFoundError('That project');
-  return withSignedMedia(project);
+  return project;
 }
