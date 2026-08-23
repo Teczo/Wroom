@@ -11,6 +11,7 @@ import type {
   CostSource,
   CredentialKind,
   DecisionStatus,
+  DemoVideoProvider,
   EnvironmentName,
   EnquirySource,
   EnquiryStatus,
@@ -139,6 +140,73 @@ export type MediaLibraryItem = Timestamps & {
   sortOrder: number;
 };
 
+/** One card under "Built for Complex Projects". `iconKey` is a mediaLibrary key. */
+export type PortfolioFeatureCard = { iconKey: string; title: string; body: string };
+
+/** One entry under "Key Modules". */
+export type PortfolioKeyModule = { title: string; body: string };
+
+/** The single big number on a project page. Null when there is not one. */
+export type HeadlineMetric = { value: string; label: string };
+
+export type PortfolioTestimonial = { quote: string; attribution: string };
+
+export type DemoVideo = {
+  provider: DemoVideoProvider;
+  /** Required when the provider is `blob`. */
+  assetId: Id | null;
+  /** Required when the provider is `youtube` or `vimeo`. */
+  externalId: string | null;
+  /** Required for every provider. */
+  posterAssetId: Id | null;
+};
+
+/**
+ * One case study on a project. `slug` is unique within the project, not
+ * globally — the eventual route is /work/:projectSlug/case/:caseSlug.
+ */
+export type PortfolioCaseStudy = {
+  slug: string;
+  sector: string;
+  title: string;
+  /** The card blurb on the carousel. */
+  summary: string;
+  heroAssetId: Id | null;
+  problem: string;
+  role: string;
+  approach: string;
+  outcome: string;
+  metrics: CaseStudyMetric[];
+  testimonial: PortfolioTestimonial | null;
+  sortOrder: number;
+};
+
+/** Everything the public site renders about a project. */
+export type ProjectPortfolio = {
+  visibility: Visibility;
+  featured: boolean;
+  sortOrder: number;
+
+  category: string;
+  tagline: string;
+  overview: string;
+  liveUrl: string | null;
+
+  featureCards: PortfolioFeatureCard[];
+  keyModules: PortfolioKeyModule[];
+  headlineMetric: HeadlineMetric | null;
+  testimonial: PortfolioTestimonial | null;
+  demoVideo: DemoVideo | null;
+  caseStudies: PortfolioCaseStudy[];
+
+  techStackKeys: string[];
+  platformKeys: string[];
+
+  heroAssetId: Id | null;
+  ogAssetId: Id | null;
+  publishedAt: IsoDate | null;
+};
+
 export type ProjectRollup = {
   featureCounts: {
     backlog: number;
@@ -188,13 +256,7 @@ export type Project = Timestamps & {
     exportVersion: number;
     offlineEditsDetected: boolean;
   };
-  portfolio: {
-    visibility: Visibility;
-    featured: boolean;
-    caseStudy: CaseStudy;
-    heroAssetId: Id | null;
-    publishedAt: IsoDate | null;
-  };
+  portfolio: ProjectPortfolio;
   rollup: ProjectRollup;
   archivedAt: IsoDate | null;
   /**
@@ -554,31 +616,105 @@ export type StripeSyncResult = {
 
 // --- portfolio snapshot -----------------------------------------------------
 
+/** The three resized copies, as public URLs. Null where one was not made. */
+export type PublishedVariants = {
+  thumb: string | null;
+  card: string | null;
+  hero: string | null;
+};
+
+export type PublishedImage = {
+  url: string;
+  alt: string;
+  variants: PublishedVariants | null;
+};
+
 export type PublishedGalleryItem = {
   url: string;
-  thumbnailUrl: string | null;
+  variants: PublishedVariants | null;
   caption: string;
   kind: AssetKind;
   device: string;
+  alt: string;
 };
 
+/** A mediaLibrary mark, resolved to markup at publish so the site looks nothing up. */
+export type PublishedMark = { key: string; label: string; svg: string };
+
+export type PublishedFeatureCard = {
+  icon: { svg: string; label: string } | null;
+  title: string;
+  body: string;
+};
+
+export type PublishedKeyModule = { title: string; body: string };
+
+export type PublishedDemoVideo = {
+  provider: DemoVideoProvider;
+  /** The public blob URL for a `blob` video; null for an embed. */
+  url: string | null;
+  externalId: string | null;
+  poster: PublishedImage | null;
+};
+
+export type PublishedCaseStudy = {
+  slug: string;
+  sector: string;
+  title: string;
+  summary: string;
+  hero: PublishedImage | null;
+  problem: string;
+  role: string;
+  approach: string;
+  outcome: string;
+  metrics: CaseStudyMetric[];
+  testimonial: PortfolioTestimonial | null;
+  sortOrder: number;
+};
+
+/**
+ * The flattened snapshot — the only project data the portfolio reads.
+ *
+ * Every `url` is a public-container URL with no SAS token. There is no account
+ * email, no cost figure, no environment URL and no operational reference in this
+ * shape, which is what makes a bug in the public API unable to leak one.
+ */
 export type PublishedProject = {
   _id: Id;
   projectId: Id;
   slug: string;
   name: string;
-  shortDescription: string;
   productName: string;
-  caseStudy: CaseStudy;
-  techStack: string[];
+
+  category: string;
+  tagline: string;
+  overview: string;
+  shortDescription: string;
+
+  /** Authored on the project — never an environment's publicUrl. */
   liveUrl: string | null;
-  platforms: string[];
-  heroImage: { url: string; alt: string } | null;
+
+  featureCards: PublishedFeatureCard[];
+  keyModules: PublishedKeyModule[];
+  headlineMetric: HeadlineMetric | null;
+  testimonial: PortfolioTestimonial | null;
+  demoVideo: PublishedDemoVideo | null;
+  caseStudies: PublishedCaseStudy[];
+
+  techStack: PublishedMark[];
+  platforms: PublishedMark[];
+  /** Only ever set when the mark was usageApproved. */
+  clientLogo: { label: string; svg: string } | null;
+
+  heroImage: PublishedImage | null;
+  ogImage: { url: string; width: number; height: number } | null;
   gallery: PublishedGalleryItem[];
+
   status: ProjectStatus;
   startedAt: IsoDate | null;
   launchedAt: IsoDate | null;
   featured: boolean;
+
   sortOrder: number;
   publishedAt: IsoDate;
   publishedByUserId: Id | null;

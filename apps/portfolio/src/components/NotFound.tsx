@@ -8,8 +8,8 @@ import { Link } from 'react-router-dom';
 export function NotFound() {
   return (
     <div className="mx-auto max-w-3xl px-5 py-24 text-center">
-      <p className="text-base font-medium text-slate-900">Page not found</p>
-      <Link to="/work" className="mt-4 inline-block text-sm font-medium text-slate-900 underline">
+      <p className="text-base font-medium text-fg">Page not found</p>
+      <Link to="/work" className="mt-4 inline-block text-sm font-medium text-fg underline">
         See the work
       </Link>
     </div>
