@@ -20,6 +20,7 @@ import { ProjectBoardPage } from './pages/projects/ProjectBoardPage';
 import { ProjectDetailPage } from './pages/projects/ProjectDetailPage';
 import { ProjectsPage } from './pages/projects/ProjectsPage';
 import { IntegrationsPage } from './pages/settings/IntegrationsPage';
+import { MediaLibraryPage } from './pages/settings/MediaLibraryPage';
 import { ProjectTypesPage } from './pages/settings/ProjectTypesPage';
 
 export function App() {
@@ -43,6 +44,7 @@ export function App() {
           <Route path="/content/:key" element={<ContentEditorPage />} />
           <Route path="/enquiries" element={<EnquiriesPage />} />
           <Route path="/enquiries/:id" element={<EnquiryDetailPage />} />
+          <Route path="/settings/media-library" element={<MediaLibraryPage />} />
           <Route path="/settings/project-types" element={<ProjectTypesPage />} />
           <Route path="/settings/integrations" element={<IntegrationsPage />} />
           <Route path="*" element={<NotFoundPage />} />

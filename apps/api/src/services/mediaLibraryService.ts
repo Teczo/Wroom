@@ -1,10 +1,9 @@
-import type { Infer, MediaKind, mediaLibraryCreateShape } from '@wroom/shared';
+import { sanitiseSvg, type Infer, type MediaKind, type mediaLibraryCreateShape } from '@wroom/shared';
 
 import { MediaLibraryModel, type MediaLibraryDocument } from '../models/MediaLibrary.js';
 import { ProductModel } from '../models/Product.js';
 import { ProjectModel } from '../models/Project.js';
 import { ConflictError, NotFoundError, ValidationError } from '../utils/errors.js';
-import { sanitiseSvg } from './svgSanitiser.js';
 
 type MediaLibraryInput = Infer<typeof mediaLibraryCreateShape>;
 
