@@ -3,6 +3,28 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#0a0e0d" />
+    <!--
+      The canvas colour, before any stylesheet has parsed. The one place a raw
+      hex belongs: this exists precisely to paint the frame the stylesheet has
+      not arrived to paint yet. It matches --color-canvas in src/index.css.
+    -->
+    <style>
+      html { background-color: #0a0e0d; color-scheme: dark; }
+    </style>
+    <!--
+      The heading weight only. Preloading all four would have the browser fetch
+      bytes it does not need before the ones it does; the other three arrive on
+      demand behind font-display: swap.
+    -->
+    <link
+      rel="preload"
+      href="/fonts/space-grotesk-700.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
     <meta name="description" content="Selected work built by Teczo." />
     <title>Teczo — Work</title>
   </head>

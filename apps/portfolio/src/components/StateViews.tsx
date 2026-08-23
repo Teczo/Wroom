@@ -2,10 +2,10 @@ import { ApiRequestError } from '../lib/api';
 
 export function LoadingState({ label = 'Loading…' }: { label?: string }) {
   return (
-    <div className="flex items-center gap-3 py-16 text-sm text-slate-500">
+    <div className="flex items-center gap-3 py-16 text-sm text-muted">
       <span
         aria-hidden
-        className="size-4 animate-spin rounded-full border-2 border-slate-300 border-t-slate-900"
+        className="size-4 animate-spin rounded-full border-2 border-border border-t-slate-900"
       />
       <span role="status">{label}</span>
     </div>
@@ -15,8 +15,8 @@ export function LoadingState({ label = 'Loading…' }: { label?: string }) {
 export function EmptyState({ title, whatToDoNext }: { title: string; whatToDoNext: string }) {
   return (
     <div className="py-16 text-center">
-      <p className="text-base font-medium text-slate-900">{title}</p>
-      <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">{whatToDoNext}</p>
+      <p className="text-base font-medium text-fg">{title}</p>
+      <p className="mx-auto mt-2 max-w-md text-sm text-muted">{whatToDoNext}</p>
     </div>
   );
 }
@@ -27,12 +27,12 @@ export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () =>
 
   return (
     <div className="py-16 text-center">
-      <p className="text-base font-medium text-slate-900">Something went wrong</p>
-      <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">{message}</p>
+      <p className="text-base font-medium text-fg">Something went wrong</p>
+      <p className="mx-auto mt-2 max-w-md text-sm text-muted">{message}</p>
       {onRetry ? (
         <button
           onClick={onRetry}
-          className="mt-6 min-h-11 rounded-lg bg-slate-900 px-5 text-sm font-medium text-white hover:bg-slate-700"
+          className="mt-6 min-h-11 rounded-lg bg-accent px-5 font-heading text-sm font-medium text-on-accent transition-colors hover:bg-accent-hover"
         >
           Try again
         </button>
