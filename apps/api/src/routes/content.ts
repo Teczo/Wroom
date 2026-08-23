@@ -1,9 +1,10 @@
-import { siteContentDraftUpdateSchema, siteContentPublishSchema } from '@wroom/shared';
+import { siteContentPublishSchema } from '@wroom/shared';
 import { Router } from 'express';
 
 import * as controller from '../controllers/siteContentController.js';
 import { refusePublishedFields } from '../middleware/refusePublishedFields.js';
 import { validateBody } from '../middleware/validate.js';
+import { validateSiteContentDraft } from '../middleware/validateSiteContentDraft.js';
 
 /**
  * Mounted at /api/content. Records are keyed by page, and `key` is not
@@ -14,11 +15,15 @@ export const contentRouter: Router = Router();
 contentRouter.get('/', controller.list);
 contentRouter.get('/:key', controller.get);
 
-/** Writes the draft. The published half is refused by name, before any write. */
+/**
+ * Writes the draft. The published half is refused by name, before any write,
+ * and `data` is checked against the schema for this particular page — another
+ * page's shape is a 400 rather than a record quietly saved as empty.
+ */
 contentRouter.patch(
   '/:key',
   refusePublishedFields,
-  validateBody(siteContentDraftUpdateSchema),
+  validateSiteContentDraft,
   controller.updateDraft,
 );
 

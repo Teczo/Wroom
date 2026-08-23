@@ -9,6 +9,11 @@ const productSchema = new Schema(
     /** No clients collection — a flag plus free-text name is enough. */
     isClientWork: { type: Boolean, default: false },
     clientName: { type: String, default: null },
+    /**
+     * A `mediaLibrary.key` of kind "client". Only ever populated when that mark
+     * is `usageApproved` — a client's logo is not ours to show without it.
+     */
+    clientMediaKey: { type: String, default: null },
     /** Blocks portfolio publishing for every project under this product. */
     ndaRestricted: { type: Boolean, default: false },
     status: { type: String, enum: PRODUCT_STATUSES as unknown as string[], default: 'active' },
