@@ -28,6 +28,25 @@
   records, now alongside the case studies editor, portfolio editor, marks
   screen and public site rewrite already on main.
 
+- A project page now shows the rest of what a project has to say: the demo
+  video, the key modules beside it, the headline number, the quote, the case
+  studies, the tech and platform marks, and the call to action at the foot.
+- The demo video no longer loads YouTube or Vimeo until it is played. Until
+  then it is the poster image and a play button, so opening a project page
+  fetches nothing from either of them. One of your own uploads plays in place
+  with its poster showing and only the first moment of the file fetched.
+- Case studies are cards you swipe through on a phone — sector, title, blurb
+  and picture. Each card has a Read case study button that is deliberately
+  greyed out: those pages are not built yet.
+- A project with only two case studies no longer shows arrows under the row.
+  Nothing to scroll, nothing to press.
+- Any of these sections with nothing behind it does not appear at all — no
+  empty heading, no placeholder card.
+- The call to action at the foot of a project page uses the wording from the
+  landing page's call to action, so it changes with an edit and a publish
+  rather than a deploy. It has no heading or sentence above it yet, because
+  there is no field to write those in.
+
 ## 2026-08-22
 
 - The content editor now has a tab per page — landing, about, skills, contact —
