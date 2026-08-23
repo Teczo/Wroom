@@ -2,6 +2,22 @@
 
 ## 2026-08-22
 
+- The project's portfolio tab now authors the whole public page, not just the
+  case study. The chip, tagline, overview paragraph and the "Visit Platform"
+  link sit at the top; feature cards, key modules, a headline metric, a
+  testimonial and a demo video follow.
+- Feature cards and key modules can be added, removed and reordered with up and
+  down buttons. Each card's icon is picked from the media library, shown as the
+  actual mark rather than a key you have to remember.
+- Tech and platforms are picked from the media library too, with the mark beside
+  each label and a note of the order they will appear in.
+- Switching a section off saves it as genuinely absent, so the public page drops
+  the whole section rather than showing an empty heading.
+- A demo video cannot be saved without a poster image, and the form says so
+  before you press save rather than after. Choosing YouTube or Vimeo swaps the
+  file picker for an id box.
+- The tab is now called Portfolio, because that is what it edits.
+
 - The portal has a Marks screen. Every icon the public site can draw lives
   there, grouped by kind, each one drawn at the size it actually is rather than
   squashed into a uniform box.

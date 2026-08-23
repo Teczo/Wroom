@@ -1,4 +1,10 @@
-import { PUBLISH_GATE_MESSAGES, VISIBILITIES, type PublishGateResult } from '@wroom/shared';
+import {
+  PUBLISH_GATE_MESSAGES,
+  VISIBILITIES,
+  type PortfolioFeatureCard,
+  type PortfolioKeyModule,
+  type PublishGateResult,
+} from '@wroom/shared';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
@@ -9,12 +15,27 @@ import { PageHeader } from '../../components/PageHeader';
 import { Pill } from '../../components/Pill';
 import { ErrorState, LoadingState } from '../../components/StateViews';
 import { useAssets } from '../../features/assets/api';
+import {
+  DemoVideoEditor,
+  FeatureCardsEditor,
+  KeyModulesEditor,
+  OptionalSection,
+  SectionHeading,
+  demoVideoProblem,
+  type DemoVideoDraft,
+} from '../../features/portfolio/sections';
+import { AssetPicker, MarkMultiSelect } from '../../features/portfolio/pickers';
 import { projectKeys, useProject } from '../../features/projects/api';
 import { ApiRequestError, apiPatchWithMeta } from '../../lib/api';
 import { humanise, shortDate } from '../../lib/format';
 
 /**
- * The case study — the part a client or an employer actually reads.
+ * The portfolio tab — everything the public project page renders, authored in
+ * one form: the header, the optional body sections, the marks it shows, and the
+ * case study narrative.
+ *
+ * A case study is still edited as the first of the list. WRM-082 brought the
+ * many-case-studies model in; the screen for the rest is not built.
  *
  * Nothing here publishes. Making a project public marks it eligible; the
  * portfolio only changes when someone runs the publish action.
@@ -65,8 +86,39 @@ export function CaseStudyPage() {
   const [attribution, setAttribution] = useState('');
   const [hasTestimonial, setHasTestimonial] = useState(false);
   const [heroAssetId, setHeroAssetId] = useState<string | null>(null);
+  const [ogAssetId, setOgAssetId] = useState<string | null>(null);
   const [visibility, setVisibility] = useState('private');
   const [featured, setFeatured] = useState(false);
+  const [sortOrder, setSortOrder] = useState('0');
+
+  // --- the header ---
+  const [category, setCategory] = useState('');
+  const [tagline, setTagline] = useState('');
+  const [overview, setOverview] = useState('');
+  const [liveUrl, setLiveUrl] = useState('');
+
+  // --- body sections, each of which hides entirely when empty ---
+  const [featureCards, setFeatureCards] = useState<PortfolioFeatureCard[]>([]);
+  const [keyModules, setKeyModules] = useState<PortfolioKeyModule[]>([]);
+  const [hasMetric, setHasMetric] = useState(false);
+  const [metricValue, setMetricValue] = useState('');
+  const [metricLabel, setMetricLabel] = useState('');
+  // Distinct from the case study's own testimonial below — a project may carry
+  // one and a case study another, and they are different fields.
+  const [hasProjectTestimonial, setHasProjectTestimonial] = useState(false);
+  const [projectQuote, setProjectQuote] = useState('');
+  const [projectAttribution, setProjectAttribution] = useState('');
+  const [hasDemoVideo, setHasDemoVideo] = useState(false);
+  const [demo, setDemo] = useState<DemoVideoDraft>({
+    provider: 'blob',
+    assetId: null,
+    externalId: '',
+    posterAssetId: null,
+  });
+
+  // --- reference data ---
+  const [techStackKeys, setTechStackKeys] = useState<string[]>([]);
+  const [platformKeys, setPlatformKeys] = useState<string[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [confirmingPublic, setConfirmingPublic] = useState<string | null>(null);
 
@@ -86,15 +138,44 @@ export function CaseStudyPage() {
     setAttribution(study?.testimonial?.attribution ?? '');
     setHasTestimonial(Boolean(study?.testimonial));
     setHeroAssetId(portfolio.heroAssetId);
+    setOgAssetId(portfolio.ogAssetId);
     setVisibility(portfolio.visibility);
     setFeatured(portfolio.featured);
+    setSortOrder(String(portfolio.sortOrder ?? 0));
+
+    setCategory(portfolio.category);
+    setTagline(portfolio.tagline);
+    setOverview(portfolio.overview);
+    setLiveUrl(portfolio.liveUrl ?? '');
+
+    setFeatureCards(portfolio.featureCards);
+    setKeyModules(portfolio.keyModules);
+    setHasMetric(Boolean(portfolio.headlineMetric));
+    setMetricValue(portfolio.headlineMetric?.value ?? '');
+    setMetricLabel(portfolio.headlineMetric?.label ?? '');
+    setHasProjectTestimonial(Boolean(portfolio.testimonial));
+    setProjectQuote(portfolio.testimonial?.quote ?? '');
+    setProjectAttribution(portfolio.testimonial?.attribution ?? '');
+    setHasDemoVideo(Boolean(portfolio.demoVideo));
+    if (portfolio.demoVideo) {
+      setDemo({
+        provider: portfolio.demoVideo.provider,
+        assetId: portfolio.demoVideo.assetId,
+        externalId: portfolio.demoVideo.externalId ?? '',
+        posterAssetId: portfolio.demoVideo.posterAssetId,
+      });
+    }
+
+    setTechStackKeys(portfolio.techStackKeys);
+    setPlatformKeys(portfolio.platformKeys);
+
     setLoaded(true);
   }
 
   if (project.isPending) {
     return (
       <>
-        <PageHeader title="Case study" />
+        <PageHeader title="Portfolio" />
         <LoadingState label="Loading the project…" />
       </>
     );
@@ -103,7 +184,7 @@ export function CaseStudyPage() {
   if (project.isError) {
     return (
       <>
-        <PageHeader title="Case study" />
+        <PageHeader title="Portfolio" />
         <ErrorState error={project.error} onRetry={() => void project.refetch()} />
       </>
     );
@@ -133,14 +214,57 @@ export function CaseStudyPage() {
     sortOrder: 0,
   };
 
+  const videoProblem = hasDemoVideo ? demoVideoProblem(demo) : null;
+
   function submit(nextVisibility = visibility): void {
     setSaved(null);
+
+    // Mirrors the shared schema rather than letting the server say no. The
+    // poster rule is the one a person hits, and finding out after a round trip
+    // means scrolling back up a long form to see why.
+    if (videoProblem) return;
 
     save.mutate(
       {
         visibility: nextVisibility,
         featured,
+        sortOrder: Number(sortOrder) || 0,
         heroAssetId,
+        ogAssetId,
+
+        category,
+        tagline,
+        overview,
+        // An empty box means "no link", which is null — not an empty string the
+        // public site would render as a dead button.
+        liveUrl: liveUrl.trim() === '' ? null : liveUrl.trim(),
+
+        featureCards,
+        keyModules,
+        // Every optional section clears to null, never to an object of empty
+        // strings: the public site drops a section that is null and would
+        // render an empty heading for one that is merely blank (§7.4).
+        headlineMetric:
+          hasMetric && metricValue.trim() !== ''
+            ? { value: metricValue, label: metricLabel }
+            : null,
+        testimonial:
+          hasProjectTestimonial && projectQuote.trim() !== ''
+            ? { quote: projectQuote, attribution: projectAttribution }
+            : null,
+        demoVideo: hasDemoVideo
+          ? {
+              provider: demo.provider,
+              // Only the half that matches the provider is sent; the other is
+              // null rather than a stale value from before the switch.
+              assetId: demo.provider === 'blob' ? demo.assetId : null,
+              externalId: demo.provider === 'blob' ? null : demo.externalId.trim() || null,
+              posterAssetId: demo.posterAssetId,
+            }
+          : null,
+
+        techStackKeys,
+        platformKeys,
         // Keeps whatever the first entry already had — its slug above all,
         // which is what a case study is addressed by — and replaces only the
         // fields this form owns.
@@ -169,8 +293,8 @@ export function CaseStudyPage() {
   return (
     <>
       <PageHeader
-        title={`${project.data.name} — case study`}
-        subtitle="What it was for, what you did, and what changed. This is what gets published."
+        title={`${project.data.name} — portfolio`}
+        subtitle="Everything the public project page shows. Nothing here publishes — that is a separate action."
         actions={
           <Link to={`/projects/${id}`} className="text-sm text-slate-500 hover:text-slate-900">
             Back to project
@@ -226,6 +350,201 @@ export function CaseStudyPage() {
           submit();
         }}
       >
+        <div>
+          <h2 className="text-sm font-semibold text-slate-900">Header</h2>
+          <p className="mt-0.5 text-xs text-slate-500">
+            The chip, title and paragraph at the top of the public project page.
+          </p>
+        </div>
+
+        <Field
+          label="Category"
+          htmlFor="pf-category"
+          error={errors.category}
+          hint="The small chip above the title, e.g. “XR / Web Platform”."
+        >
+          <input
+            id="pf-category"
+            className={inputClasses}
+            value={category}
+            onChange={(event) => setCategory(event.target.value)}
+          />
+        </Field>
+
+        <Field label="Tagline" htmlFor="pf-tagline" error={errors.tagline}>
+          <input
+            id="pf-tagline"
+            className={inputClasses}
+            value={tagline}
+            onChange={(event) => setTagline(event.target.value)}
+            placeholder="XR Digital Twin Platform for AECO & Energy"
+          />
+        </Field>
+
+        <Field
+          label="Overview"
+          htmlFor="pf-overview"
+          error={errors.overview}
+          hint={`One paragraph under the tagline. ${overview.length} characters.`}
+        >
+          <textarea
+            id="pf-overview"
+            className={`${inputClasses} min-h-24`}
+            value={overview}
+            onChange={(event) => setOverview(event.target.value)}
+          />
+        </Field>
+
+        <Field
+          label="Live URL"
+          htmlFor="pf-liveurl"
+          error={errors.liveUrl}
+          hint="Where “Visit Platform” goes. Typed here, not taken from an environment — the two are not always the same page. Leave empty for no button."
+        >
+          <input
+            id="pf-liveurl"
+            type="url"
+            inputMode="url"
+            className={inputClasses}
+            value={liveUrl}
+            // Trimmed as it is typed. `type="url"` means the browser's own
+            // validation runs on submit, and a value of nothing but spaces is
+            // invalid to it — which would block the whole form with no visible
+            // cause. Empty is valid, so clearing the box stays a clear.
+            onChange={(event) => setLiveUrl(event.target.value.trim())}
+            placeholder="https://…"
+          />
+        </Field>
+
+        <SectionHeading
+          title="Feature cards"
+          hint="“Built for Complex Projects”. Leave empty and the section does not appear at all."
+        />
+        <FeatureCardsEditor cards={featureCards} onChange={setFeatureCards} />
+
+        <SectionHeading
+          title="Key modules"
+          hint="“Key Modules”. Same again — no modules, no section."
+        />
+        <KeyModulesEditor modules={keyModules} onChange={setKeyModules} />
+
+        <SectionHeading title="Headline metric" hint="One big number, or nothing." />
+        <OptionalSection
+          enabled={hasMetric}
+          onToggle={setHasMetric}
+          label="Show a headline metric"
+          offHint="Off, so the public page shows no metric."
+        >
+          <Field label="Value" htmlFor="pf-metric-value" required error={errors['headlineMetric.value']}>
+            <input
+              id="pf-metric-value"
+              className={inputClasses}
+              value={metricValue}
+              onChange={(event) => setMetricValue(event.target.value)}
+              placeholder="40%"
+            />
+          </Field>
+          <Field label="Label" htmlFor="pf-metric-label" error={errors['headlineMetric.label']}>
+            <input
+              id="pf-metric-label"
+              className={inputClasses}
+              value={metricLabel}
+              onChange={(event) => setMetricLabel(event.target.value)}
+              placeholder="Faster Decision Making"
+            />
+          </Field>
+        </OptionalSection>
+
+        <SectionHeading
+          title="Testimonial"
+          hint="A quote about the project as a whole. The case study below can carry its own, separately."
+        />
+        <OptionalSection
+          enabled={hasProjectTestimonial}
+          onToggle={setHasProjectTestimonial}
+          label="Show a testimonial"
+          offHint="Off, so the public page shows no quote for the project."
+        >
+          <Field label="Quote" htmlFor="pf-quote" required error={errors['testimonial.quote']}>
+            <textarea
+              id="pf-quote"
+              className={`${inputClasses} min-h-20`}
+              value={projectQuote}
+              onChange={(event) => setProjectQuote(event.target.value)}
+            />
+          </Field>
+          <Field label="Attribution" htmlFor="pf-attr" error={errors['testimonial.attribution']}>
+            <input
+              id="pf-attr"
+              className={inputClasses}
+              value={projectAttribution}
+              onChange={(event) => setProjectAttribution(event.target.value)}
+              placeholder="Operations lead, Acme"
+            />
+          </Field>
+        </OptionalSection>
+
+        <SectionHeading title="Demo video" hint="One video, with a poster image." />
+        <OptionalSection
+          enabled={hasDemoVideo}
+          onToggle={setHasDemoVideo}
+          label="Show a demo video"
+          offHint="Off, so the public page shows no video."
+        >
+          <DemoVideoEditor
+            draft={demo}
+            onChange={setDemo}
+            videoAssets={allAssets.filter((asset) => asset.kind === 'video')}
+            posterAssets={allAssets.filter((asset) => asset.kind !== 'video' && asset.kind !== 'document')}
+          />
+        </OptionalSection>
+
+        <SectionHeading
+          title="Tech and platforms"
+          hint="Picked from the media library, so one edit to a mark updates every project that uses it."
+        />
+        <Field label="Tech stack" htmlFor="pf-tech" error={errors.techStackKeys}>
+          <MarkMultiSelect value={techStackKeys} onChange={setTechStackKeys} kinds={['tech']} />
+        </Field>
+        <Field label="Platforms" htmlFor="pf-platforms" error={errors.platformKeys}>
+          <MarkMultiSelect value={platformKeys} onChange={setPlatformKeys} kinds={['platform']} />
+        </Field>
+
+        <SectionHeading
+          title="Share image"
+          hint="Used when a link to this project is posted somewhere. Falls back to the hero if empty."
+        />
+        <Field label="Open Graph image" htmlFor="pf-og" error={errors.ogAssetId}>
+          <AssetPicker
+            id="pf-og"
+            value={ogAssetId}
+            onChange={setOgAssetId}
+            assets={heroCandidates}
+            emptyLabel="Use the hero image"
+          />
+        </Field>
+
+        <Field
+          label="Sort order"
+          htmlFor="pf-sort"
+          error={errors.sortOrder}
+          hint="Lower comes first in the public work index."
+        >
+          <input
+            id="pf-sort"
+            type="number"
+            inputMode="numeric"
+            className={inputClasses}
+            value={sortOrder}
+            onChange={(event) => setSortOrder(event.target.value)}
+          />
+        </Field>
+
+        <SectionHeading
+          title="Case study"
+          hint="The narrative a client or an employer reads."
+        />
+
         {PROSE_FIELDS.map((field) => {
           const value = { problem, role, approach, outcome }[field.key];
           const setter = { problem: setProblem, role: setRole, approach: setApproach, outcome: setOutcome }[
@@ -512,7 +831,7 @@ export function CaseStudyPage() {
         ) : null}
 
         <Button type="submit" disabled={save.isPending}>
-          {save.isPending ? 'Saving…' : 'Save case study'}
+          {save.isPending ? 'Saving…' : 'Save portfolio'}
         </Button>
       </form>
     </>
