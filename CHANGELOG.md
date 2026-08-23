@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-08-23
+
+- The publish rewrite now sits on top of the current main, so it can go in
+  without a hand-merge. Nothing it does changed — the case study page keeps the
+  dark colours from the public site rewrite while reading the new snapshot
+  shape, where a project can have several case studies and a tech mark is a
+  record rather than a word.
+- The log entries for the media library and the resized image copies are back.
+  Both shipped, but the lines describing them were lost in an earlier merge.
+
 ## 2026-08-22
 
 - Publishing a project now puts its images on the public site properly. The
