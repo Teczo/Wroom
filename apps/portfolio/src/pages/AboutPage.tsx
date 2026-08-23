@@ -22,7 +22,7 @@ function About({ content }: { content: SiteContentBody }) {
   return (
     <article className="mx-auto max-w-3xl px-5 py-14 sm:py-20">
       {content.title ? (
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
+        <h1 className="text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
           {content.title}
         </h1>
       ) : null}

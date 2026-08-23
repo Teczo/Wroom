@@ -14,4 +14,5 @@ export * from './featureImport.js';
 export * from './projectType.js';
 export * from './integration.js';
 export * from './siteContent/index.js';
+export * from './mediaLibrary.js';
 export * from './enquiry.js';

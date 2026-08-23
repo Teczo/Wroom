@@ -1,6 +1,7 @@
 /**
  * Seeds the reference data a fresh database needs to be usable: the project
- * types listed in docs/DATA_MODEL.md, and the four portfolio content records.
+ * types listed in docs/DATA_MODEL.md, the four portfolio content records, and
+ * the platform and social marks in the media library.
  *
  * The data model also suggests seeding accounts from the infrastructure sheet,
  * but those rows carry real login emails and CLAUDE.md §2 forbids committing
@@ -13,9 +14,10 @@
  * Run with: npm run seed --workspace @wroom/api
  */
 
-import { SEEDED_SITE_CONTENT_KEYS } from '@wroom/shared';
+import { SEEDED_SITE_CONTENT_KEYS, type MediaKind } from '@wroom/shared';
 
 import { connectDatabase, disconnectDatabase } from '../config/db.js';
+import { MediaLibraryModel } from '../models/MediaLibrary.js';
 import { ProjectTypeModel } from '../models/ProjectType.js';
 import { SiteContentModel } from '../models/SiteContent.js';
 
@@ -228,6 +230,60 @@ async function seedSiteContent(): Promise<void> {
   );
 }
 
+/**
+ * The platform and social marks named in docs/DATA_MODEL.md.
+ *
+ * Keys and labels only — no artwork. Seeding invented SVG would be inventing
+ * portfolio content (CLAUDE.md §2, rule 8), and a brand mark drawn from memory
+ * is a wrong logo shipped under someone's trademark. What this creates is the
+ * set of records, so the keys exist to be referenced; the marks themselves get
+ * pasted in from the portal, which is where icons are curated (§7.3).
+ *
+ * `usageApproved` is left at the model default. These are platform and social
+ * marks, not client logos.
+ */
+const mediaMarks: Array<{ kind: MediaKind; key: string; label: string; sortOrder: number }> = [
+  { kind: 'platform', key: 'web', label: 'Web', sortOrder: 10 },
+  { kind: 'platform', key: 'desktop', label: 'Desktop', sortOrder: 20 },
+  { kind: 'platform', key: 'vr', label: 'VR', sortOrder: 30 },
+  { kind: 'platform', key: 'mobile', label: 'Mobile', sortOrder: 40 },
+  { kind: 'platform', key: 'tablet', label: 'Tablet', sortOrder: 50 },
+  { kind: 'social', key: 'github', label: 'GitHub', sortOrder: 10 },
+  { kind: 'social', key: 'linkedin', label: 'LinkedIn', sortOrder: 20 },
+  { kind: 'social', key: 'email', label: 'Email', sortOrder: 30 },
+];
+
+/**
+ * Created once and never touched again. A mark that already exists has had its
+ * artwork and its label set by hand in the portal, and re-running the seed must
+ * not cost someone that work.
+ */
+async function seedMediaLibrary(): Promise<void> {
+  const created: string[] = [];
+  const existing: string[] = [];
+
+  for (const mark of mediaMarks) {
+    if (await MediaLibraryModel.exists({ key: mark.key })) {
+      existing.push(mark.key);
+      continue;
+    }
+
+    await MediaLibraryModel.create(mark);
+    created.push(mark.key);
+  }
+
+  console.log(
+    `[seed] media library — ${created.length} created${
+      created.length > 0 ? ` (${created.join(', ')})` : ''
+    }, ${existing.length} already present and left untouched${
+      existing.length > 0 ? ` (${existing.join(', ')})` : ''
+    }`,
+  );
+  if (created.length > 0) {
+    console.log('[seed] media library — the new marks have no artwork yet; add it in the portal');
+  }
+}
+
 async function seed(): Promise<void> {
   await connectDatabase();
 
@@ -258,6 +314,7 @@ async function seed(): Promise<void> {
   console.log(`[seed] project types — ${created} created, ${updated} left in place`);
 
   await seedSiteContent();
+  await seedMediaLibrary();
 
   await disconnectDatabase();
 }

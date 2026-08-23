@@ -9,10 +9,10 @@ export function WorkPage() {
   return (
     <div className="mx-auto max-w-4xl px-5 py-14 sm:py-20">
       <header className="max-w-2xl">
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
+        <h1 className="text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
           Selected work
         </h1>
-        <p className="mt-3 text-base text-slate-600">
+        <p className="mt-3 text-base text-muted">
           Products and platforms built end to end — XR, mobile, and the systems behind them.
         </p>
       </header>
@@ -36,7 +36,7 @@ export function WorkPage() {
             <li key={project._id}>
               <Link
                 to={`/work/${project.slug}`}
-                className="group block h-full overflow-hidden rounded-2xl border border-slate-200 transition-colors hover:border-slate-400"
+                className="group block h-full overflow-hidden rounded-2xl border border-border transition-colors hover:border-border"
               >
                 {project.heroImage ? (
                   <img
@@ -46,16 +46,16 @@ export function WorkPage() {
                     className="aspect-video w-full object-cover"
                   />
                 ) : (
-                  <div className="aspect-video w-full bg-slate-100" />
+                  <div className="aspect-video w-full bg-surface" />
                 )}
 
                 <div className="p-5">
-                  <p className="text-xs uppercase tracking-wide text-slate-500">
+                  <p className="text-xs uppercase tracking-wide text-muted">
                     {project.productName}
                   </p>
-                  <h2 className="mt-1 text-lg font-semibold text-slate-900">{project.name}</h2>
+                  <h2 className="mt-1 text-lg font-semibold text-fg">{project.name}</h2>
                   {project.shortDescription ? (
-                    <p className="mt-2 line-clamp-3 text-sm text-slate-600">
+                    <p className="mt-2 line-clamp-3 text-sm text-muted">
                       {project.shortDescription}
                     </p>
                   ) : null}
