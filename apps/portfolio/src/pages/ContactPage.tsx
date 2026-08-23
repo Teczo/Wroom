@@ -17,7 +17,7 @@ import { useDocumentMeta } from '../lib/useDocumentMeta';
  */
 
 const inputClasses =
-  'block w-full min-h-11 rounded-lg border border-slate-300 bg-white px-3 py-2 text-base text-slate-900 placeholder:text-slate-400 focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900';
+  'block w-full min-h-11 rounded-lg border border-border bg-surface px-3 py-2 text-base text-fg placeholder:text-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent';
 
 type Errors = Partial<Record<string, string>>;
 
@@ -60,14 +60,14 @@ function Field({
 }) {
   return (
     <div>
-      <label htmlFor={htmlFor} className="block text-sm font-medium text-slate-800">
+      <label htmlFor={htmlFor} className="block text-sm font-medium text-fg">
         {label}
-        {required ? <span className="ml-1 text-red-600">*</span> : null}
+        {required ? <span className="ml-1 text-danger">*</span> : null}
       </label>
-      {hint ? <p className="mt-0.5 text-xs text-slate-500">{hint}</p> : null}
+      {hint ? <p className="mt-0.5 text-xs text-muted">{hint}</p> : null}
       <div className="mt-1.5">{children}</div>
       {error ? (
-        <p className="mt-1 text-xs text-red-600" role="alert">
+        <p className="mt-1 text-xs text-danger" role="alert">
           {error}
         </p>
       ) : null}
@@ -97,9 +97,9 @@ function ContactForm({ relatedProjectId }: { relatedProjectId: string }) {
 
   if (submit.isSuccess) {
     return (
-      <div className="mt-10 rounded-2xl border border-slate-200 bg-slate-50 p-6" role="status">
-        <p className="text-base font-medium text-slate-900">Thank you — that has reached me.</p>
-        <p className="mt-2 text-sm text-slate-600">
+      <div className="mt-10 rounded-2xl border border-border bg-surface p-6" role="status">
+        <p className="text-base font-medium text-fg">Thank you — that has reached me.</p>
+        <p className="mt-2 text-sm text-muted">
           I read everything that comes through here and will reply to {email || 'your address'} as
           soon as I can. There is nothing else you need to do.
         </p>
@@ -194,8 +194,8 @@ function ContactForm({ relatedProjectId }: { relatedProjectId: string }) {
         />
       </Field>
 
-      <fieldset className="border-t border-slate-200 pt-5">
-        <legend className="text-xs font-medium uppercase tracking-wide text-slate-500">
+      <fieldset className="border-t border-border pt-5">
+        <legend className="text-xs font-medium uppercase tracking-wide text-muted">
           Helpful, not required
         </legend>
 
@@ -253,24 +253,24 @@ function ContactForm({ relatedProjectId }: { relatedProjectId: string }) {
       {submit.isError ? (
         <div
           className={`rounded-lg border p-4 ${
-            isRateLimited ? 'border-amber-200 bg-amber-50' : 'border-red-200 bg-red-50'
+            isRateLimited ? 'border-notice bg-notice-soft' : 'border-danger bg-danger-soft'
           }`}
           role="alert"
         >
           <p
             className={`text-sm font-medium ${
-              isRateLimited ? 'text-amber-900' : 'text-red-900'
+              isRateLimited ? 'text-notice' : 'text-danger'
             }`}
           >
             {isRateLimited ? 'Not you — the form is taking a breather' : 'That did not send'}
           </p>
-          <p className={`mt-1 text-sm ${isRateLimited ? 'text-amber-800' : 'text-red-700'}`}>
+          <p className={`mt-1 text-sm ${isRateLimited ? 'text-notice' : 'text-danger'}`}>
             {submit.error instanceof ApiRequestError
               ? submit.error.message
               : 'The message could not be sent. Check your connection and try again.'}
           </p>
           {isRateLimited ? (
-            <p className="mt-2 text-sm text-amber-800">
+            <p className="mt-2 text-sm text-notice">
               Nothing you did is wrong and nothing was lost — your message is still in the boxes
               above.
             </p>
@@ -281,7 +281,7 @@ function ContactForm({ relatedProjectId }: { relatedProjectId: string }) {
       <button
         type="submit"
         disabled={submit.isPending}
-        className="inline-flex min-h-11 items-center justify-center rounded-lg bg-slate-900 px-6 text-sm font-medium text-white transition-colors hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+        className="inline-flex min-h-11 items-center justify-center rounded-lg bg-accent px-6 font-heading text-sm font-medium text-on-accent transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-surface-hover disabled:text-muted"
       >
         {submit.isPending ? 'Sending…' : 'Send message'}
       </button>
@@ -295,7 +295,7 @@ function ContactCopy({ content }: { content: SiteContentBody }) {
   return (
     <header>
       {content.title ? (
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
+        <h1 className="text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
           {content.title}
         </h1>
       ) : null}
@@ -314,10 +314,10 @@ function DefaultCopy() {
 
   return (
     <header>
-      <h1 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
+      <h1 className="text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
         Get in touch
       </h1>
-      <p className="mt-3 text-base text-slate-600">
+      <p className="mt-3 text-base text-muted">
         Tell me what you are building and I will get back to you.
       </p>
     </header>

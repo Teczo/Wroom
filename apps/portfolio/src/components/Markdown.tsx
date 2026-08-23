@@ -23,30 +23,30 @@ import rehypeSanitize from 'rehype-sanitize';
  */
 const components: Components = {
   h1: ({ children }) => (
-    <h2 className="mt-10 text-xl font-semibold tracking-tight text-slate-900">{children}</h2>
+    <h2 className="mt-10 text-xl font-semibold tracking-tight text-fg">{children}</h2>
   ),
   h2: ({ children }) => (
-    <h3 className="mt-8 text-lg font-semibold tracking-tight text-slate-900">{children}</h3>
+    <h3 className="mt-8 text-lg font-semibold tracking-tight text-fg">{children}</h3>
   ),
   h3: ({ children }) => (
-    <h4 className="mt-6 text-base font-semibold text-slate-900">{children}</h4>
+    <h4 className="mt-6 text-base font-semibold text-fg">{children}</h4>
   ),
 
-  p: ({ children }) => <p className="mt-4 text-base leading-relaxed text-slate-700">{children}</p>,
+  p: ({ children }) => <p className="mt-4 text-base leading-relaxed text-fg">{children}</p>,
 
   ul: ({ children }) => (
-    <ul className="mt-4 list-disc space-y-1 pl-5 text-base leading-relaxed text-slate-700">
+    <ul className="mt-4 list-disc space-y-1 pl-5 text-base leading-relaxed text-fg">
       {children}
     </ul>
   ),
   ol: ({ children }) => (
-    <ol className="mt-4 list-decimal space-y-1 pl-5 text-base leading-relaxed text-slate-700">
+    <ol className="mt-4 list-decimal space-y-1 pl-5 text-base leading-relaxed text-fg">
       {children}
     </ol>
   ),
   li: ({ children }) => <li>{children}</li>,
 
-  strong: ({ children }) => <strong className="font-semibold text-slate-900">{children}</strong>,
+  strong: ({ children }) => <strong className="font-semibold text-fg">{children}</strong>,
   em: ({ children }) => <em className="italic">{children}</em>,
 
   a: ({ href, children }) => {
@@ -56,7 +56,7 @@ const components: Components = {
       <a
         href={href}
         {...(isExternal ? { target: '_blank', rel: 'noreferrer noopener' } : {})}
-        className="font-medium text-slate-900 underline underline-offset-2 hover:text-slate-600"
+        className="font-medium text-fg underline underline-offset-2 hover:text-muted"
       >
         {children}
       </a>
@@ -64,23 +64,23 @@ const components: Components = {
   },
 
   blockquote: ({ children }) => (
-    <blockquote className="mt-6 border-l-2 border-slate-900 pl-5 text-slate-700">
+    <blockquote className="mt-6 border-l-2 border-accent pl-5 text-fg">
       {children}
     </blockquote>
   ),
 
   code: ({ children }) => (
-    <code className="rounded bg-slate-100 px-1 py-0.5 font-mono text-sm text-slate-800">
+    <code className="rounded bg-surface px-1 py-0.5 font-mono text-sm text-accent">
       {children}
     </code>
   ),
   pre: ({ children }) => (
-    <pre className="mt-4 overflow-x-auto rounded-xl bg-slate-900 p-4 text-sm text-slate-100">
+    <pre className="mt-4 overflow-x-auto rounded-xl border border-border bg-surface p-4 text-sm text-fg">
       {children}
     </pre>
   ),
 
-  hr: () => <hr className="mt-8 border-slate-200" />,
+  hr: () => <hr className="mt-8 border-border" />,
 
   /** Width-capped so an image in the copy cannot push the page sideways on a phone. */
   img: ({ src, alt }) => (
@@ -88,7 +88,7 @@ const components: Components = {
       src={typeof src === 'string' ? src : undefined}
       alt={alt ?? ''}
       loading="lazy"
-      className="mt-6 w-full max-w-full rounded-xl border border-slate-200"
+      className="mt-6 w-full max-w-full rounded-xl border border-border"
     />
   ),
 };
