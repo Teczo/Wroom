@@ -22,9 +22,16 @@ function contentBody() {
   return new Schema(
     {
       title: { type: String, default: '' },
-      /** Markdown. Nothing renders it yet — WRM-047 does that. */
+      /** Markdown, rendered with react-markdown + rehype-sanitize. */
       body: { type: String, default: '' },
       meta: { type: metaSchema, required: true, default: () => ({}) },
+      /**
+       * Structured content, whose shape depends on `key`. Mixed here because
+       * one Mongoose schema cannot be four; the shape is enforced on write by
+       * the per-key schema in `packages/shared/src/schemas/siteContent/`, which
+       * is the gate that matters — nothing else validates it.
+       */
+      data: { type: Schema.Types.Mixed, default: () => ({}) },
     },
     { _id: false },
   );

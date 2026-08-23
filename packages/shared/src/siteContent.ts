@@ -21,6 +21,11 @@ export function siteContentDiffers(
     draft.title !== published.title ||
     draft.body !== published.body ||
     draft.meta.title !== published.meta.title ||
-    draft.meta.description !== published.meta.description
+    draft.meta.description !== published.meta.description ||
+    // `data` is a different shape per key and is edited as a whole, so it is
+    // compared as a whole. Without this a page whose only change was in `data`
+    // — a reordered social row, a new discipline — would show as up to date
+    // while the live site still served the old one.
+    JSON.stringify(draft.data ?? {}) !== JSON.stringify(published.data ?? {})
   );
 }

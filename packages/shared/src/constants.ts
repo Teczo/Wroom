@@ -275,14 +275,19 @@ export const ENQUIRY_MIN_SUBMIT_MS = 2500;
 
 /**
  * `siteContent.key`. A page's copy is a record rather than a schema change, so
- * this list is what a page may be keyed by — not what exists. Only `about` and
- * `contact` are seeded, and `key` is not creatable through the API.
+ * this list is what a page may be keyed by — not what exists. All four are
+ * seeded, and `key` is not creatable through the API.
  */
-export const SITE_CONTENT_KEYS = ['about', 'contact', 'home'] as const;
+export const SITE_CONTENT_KEYS = ['landing', 'about', 'skills', 'contact'] as const;
 export type SiteContentKey = (typeof SITE_CONTENT_KEYS)[number];
 
 /** The whole set of records, seeded on a fresh database. */
-export const SEEDED_SITE_CONTENT_KEYS: readonly SiteContentKey[] = ['about', 'contact'];
+export const SEEDED_SITE_CONTENT_KEYS: readonly SiteContentKey[] = [
+  'landing',
+  'about',
+  'skills',
+  'contact',
+];
 
 export const TIME_ACTIVITIES = [
   'build',
