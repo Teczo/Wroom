@@ -11,6 +11,7 @@ import type {
   CostSource,
   CredentialKind,
   DecisionStatus,
+  DemoVideoProvider,
   EnvironmentName,
   EnquirySource,
   EnquiryStatus,
@@ -139,6 +140,74 @@ export type MediaLibraryItem = Timestamps & {
   sortOrder: number;
 };
 
+
+/** One card under "Built for Complex Projects". `iconKey` is a mediaLibrary key. */
+export type PortfolioFeatureCard = { iconKey: string; title: string; body: string };
+
+/** One entry under "Key Modules". */
+export type PortfolioKeyModule = { title: string; body: string };
+
+/** The single big number on a project page. Null when there is not one. */
+export type HeadlineMetric = { value: string; label: string };
+
+export type PortfolioTestimonial = { quote: string; attribution: string };
+
+export type DemoVideo = {
+  provider: DemoVideoProvider;
+  /** Required when the provider is `blob`. */
+  assetId: Id | null;
+  /** Required when the provider is `youtube` or `vimeo`. */
+  externalId: string | null;
+  /** Required for every provider. */
+  posterAssetId: Id | null;
+};
+
+/**
+ * One case study on a project. `slug` is unique within the project, not
+ * globally — the eventual route is /work/:projectSlug/case/:caseSlug.
+ */
+export type PortfolioCaseStudy = {
+  slug: string;
+  sector: string;
+  title: string;
+  /** The card blurb on the carousel. */
+  summary: string;
+  heroAssetId: Id | null;
+  problem: string;
+  role: string;
+  approach: string;
+  outcome: string;
+  metrics: CaseStudyMetric[];
+  testimonial: PortfolioTestimonial | null;
+  sortOrder: number;
+};
+
+/** Everything the public site renders about a project. */
+export type ProjectPortfolio = {
+  visibility: Visibility;
+  featured: boolean;
+  sortOrder: number;
+
+  category: string;
+  tagline: string;
+  overview: string;
+  liveUrl: string | null;
+
+  featureCards: PortfolioFeatureCard[];
+  keyModules: PortfolioKeyModule[];
+  headlineMetric: HeadlineMetric | null;
+  testimonial: PortfolioTestimonial | null;
+  demoVideo: DemoVideo | null;
+  caseStudies: PortfolioCaseStudy[];
+
+  techStackKeys: string[];
+  platformKeys: string[];
+
+  heroAssetId: Id | null;
+  ogAssetId: Id | null;
+  publishedAt: IsoDate | null;
+};
+
 export type ProjectRollup = {
   featureCounts: {
     backlog: number;
@@ -188,13 +257,7 @@ export type Project = Timestamps & {
     exportVersion: number;
     offlineEditsDetected: boolean;
   };
-  portfolio: {
-    visibility: Visibility;
-    featured: boolean;
-    caseStudy: CaseStudy;
-    heroAssetId: Id | null;
-    publishedAt: IsoDate | null;
-  };
+  portfolio: ProjectPortfolio;
   rollup: ProjectRollup;
   archivedAt: IsoDate | null;
   /**
