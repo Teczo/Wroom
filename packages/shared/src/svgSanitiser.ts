@@ -23,6 +23,14 @@
  * Deliberately hand-rolled. The input is one element from a designer or a
  * vendor's brand kit, not arbitrary web HTML, and CLAUDE.md §3 does not name a
  * sanitising dependency.
+ *
+ * **It lives in `packages/shared` because two apps need it, not because the
+ * gate moved.** The gate is still the API calling this on create and update —
+ * that is the only run of it that decides what gets stored. The portal calls it
+ * too, so the paste preview shows what will actually be saved rather than what
+ * was pasted; a preview of the raw paste would show a mark that the sanitiser
+ * is about to gut. Nothing about the portal's call is load-bearing: a client
+ * that skipped it would still be sanitised on write.
  */
 
 /** Removed whole — opening tag, contents, closing tag. */

@@ -21,6 +21,7 @@ import type {
   FeatureStatus,
   FieldDefType,
   GlobalRole,
+  MediaKind,
   NoteKind,
   ProductStatus,
   ProjectLinkType,
@@ -117,6 +118,26 @@ export type CaseStudy = {
   outcome: string;
   metrics: CaseStudyMetric[];
   testimonial: { quote: string; attribution: string } | null;
+};
+
+/**
+ * A reusable mark — a tech logo, platform icon, client or social mark. Icons
+ * are data, so this is a record you edit rather than a file in a components
+ * folder (CLAUDE.md §7.3).
+ */
+export type MediaLibraryItem = Timestamps & {
+  _id: Id;
+  kind: MediaKind;
+  /** Stable and lowercase. What projects and siteContent point at. */
+  key: string;
+  label: string;
+  /** Inline markup, already sanitised server-side on write. */
+  svg: string;
+  /** The alternative to `svg`, for marks only available as raster. */
+  blobUrl: string | null;
+  /** The trademark gate. `false` drops it from every published surface. */
+  usageApproved: boolean;
+  sortOrder: number;
 };
 
 /** One card under "Built for Complex Projects". `iconKey` is a mediaLibrary key. */

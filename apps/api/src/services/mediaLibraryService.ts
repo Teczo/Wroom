@@ -1,10 +1,9 @@
-import type { Infer, MediaKind, mediaLibraryCreateShape } from '@wroom/shared';
+import { sanitiseSvg, type Infer, type MediaKind, type mediaLibraryCreateShape } from '@wroom/shared';
 
 import { MediaLibraryModel, type MediaLibraryDocument } from '../models/MediaLibrary.js';
 import { ProductModel } from '../models/Product.js';
 import { ProjectModel } from '../models/Project.js';
 import { ConflictError, NotFoundError, ValidationError } from '../utils/errors.js';
-import { sanitiseSvg } from './svgSanitiser.js';
 
 type MediaLibraryInput = Infer<typeof mediaLibraryCreateShape>;
 
@@ -71,11 +70,10 @@ export async function updateMediaItem(
  * These three paths are `docs/DATA_MODEL.md`'s, and they are read through the
  * raw driver rather than through Mongoose on purpose: `config/db.ts` sets
  * `strictQuery: true`, which silently *drops* a condition on a path the schema
- * does not declare. None of these three are declared yet — the `portfolio`
- * sub-document and `products` are still at the v0.1 shape in code — so a
- * Mongoose query here would quietly become "count every project", and every
- * delete would be refused. Going through the collection keeps the condition
- * intact, and keeps this correct without waiting on the portfolio redesign.
+ * does not declare — a delete would then be refused against a count of every
+ * project. All three are declared now that the portfolio rewrite has landed,
+ * but going through the collection keeps the condition intact whatever the
+ * schema does next, and costs nothing.
  */
 async function countReferences(key: string): Promise<{
   techStack: number;

@@ -13,9 +13,30 @@
   can go in without a hand-merge. Nothing it does changed — the landing,
   about, skills and contact records keep their per-page structured fields
   alongside the media library and publish work already on main.
+- The Marks screen now sits on top of the current main, so it can go in without
+  a hand-merge. Nothing it does changed — it still lists, adds, edits and
+  refuses to delete an in-use mark, now alongside the rewritten project
+  portfolio fields and the site content work already on main.
 
 ## 2026-08-22
 
+- The portal has a Marks screen. Every icon the public site can draw lives
+  there, grouped by kind, each one drawn at the size it actually is rather than
+  squashed into a uniform box.
+- Pasting an SVG shows it immediately on a white swatch and a dark one, side by
+  side, so you can see at a glance whether it takes the colour of what it sits
+  on or keeps its own. A mark that will not inherit says so.
+- The preview shows what will actually be saved, not what you pasted: if a paste
+  carries a script, an event handler or a link pointing off the site, it names
+  what is about to be stripped. A paste that is not an SVG at all is flagged
+  before you hit save rather than after.
+- A mark that projects are still using cannot be deleted. The refusal spells out
+  how many projects list it in their tech stack, how many list it as a platform,
+  and how many products use it as a client logo, and suggests unticking
+  "approved for use" instead — which drops it from published pages without
+  losing the record.
+- A mark's key cannot be renamed once it exists, and the field says why rather
+  than letting you try.
 - Publishing a project now puts its images on the public site properly. The
   three gates run first, every approved image and its resized copies are copied
   into the public container, and the snapshot is written pointing at those —
