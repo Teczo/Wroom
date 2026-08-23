@@ -2,6 +2,26 @@
 
 ## 2026-08-22
 
+- A project's portfolio entry now holds everything the public site needs:
+  a category chip, a tagline, an overview paragraph, an authored "Visit
+  Platform" link, feature cards, key modules, a headline metric, a testimonial,
+  a demo video, and the tech and platform marks it should show.
+- A project can now have several case studies rather than one. Each has its own
+  slug, sector, title, summary and hero image alongside the problem, role,
+  approach and outcome. Two case studies on the same project cannot share a
+  slug — saving that comes back naming the one to change.
+- A demo video is refused without a poster image, whichever provider it uses,
+  because a video with no poster is a black rectangle until it buffers. One of
+  your own uploads needs the file; a YouTube or Vimeo embed needs the id.
+- Existing case studies move across on their own: run
+  `npm run migrate-case-studies --workspace @wroom/api`. Whatever you wrote is
+  kept, the case study takes the project's slug and name, and a project whose
+  case study was never filled in ends up with none rather than a blank one.
+  Running it twice does the work once, and the old copy is left in the database
+  untouched as a backup.
+- The case study editor in the portal keeps working exactly as before. It now
+  writes the first of the project's case studies; editing the others needs a
+  screen that does not exist yet.
 - The public site is dark. Background, panels, hairlines, text and a green
   accent all come from one place, so changing the look is one file rather than a
   hunt through components. There is no light mode and no toggle — the dark

@@ -224,6 +224,34 @@ export function optional<T>(inner: Validator<T>): Validator<T | undefined> {
   };
 }
 
+/**
+ * Adds checks that need more than one field in view — "these slugs must not
+ * repeat", "this field is required only when that one is set".
+ *
+ * The rules run only when the inner validator found nothing wrong, so a rule is
+ * never handed a half-parsed value to reason about. `fail` takes a path so a
+ * message lands on the field a person has to go and fix, rather than on the
+ * object as a whole.
+ */
+export function withRules<T>(
+  inner: Validator<T>,
+  rules: (value: T, path: string, fail: (path: string, message: string) => void) => void,
+): Validator<T> {
+  return {
+    isOptional: inner.isOptional,
+    run(input, path, issues) {
+      const before = issues.length;
+      const value = inner.run(input, path, issues);
+
+      if (issues.length === before) {
+        rules(value, path, (childPath, message) => fail(issues, childPath, message));
+      }
+
+      return value;
+    },
+  };
+}
+
 export function withDefault<T>(inner: Validator<T>, fallback: T): Validator<T> {
   return {
     isOptional: true,
