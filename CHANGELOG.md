@@ -2,6 +2,19 @@
 
 ## 2026-08-22
 
+- The content editor now has a tab per page — landing, about, skills, contact —
+  so switching between them is one tap instead of going back to a list.
+- The markdown box has a preview under it, rendered the same way the public
+  page will render it, so what you see is what the site will show.
+- Each page now has its own form for the parts markdown cannot express: the
+  landing hero's greeting, name, statement, disciplines, badge, terminal lines,
+  social row, CTA and how many projects it lists; the about headline; the
+  contact details; and the skills groups. Each page shows only its own fields.
+- Skills are groups of icon and label, with the icon picked from the media
+  library and shown beside the name. Groups reorder, items add and remove.
+- Saving still only writes the draft. The public site changes when you publish,
+  and the page says plainly which of the two states you are in.
+
 - The portfolio's own copy is now four pages rather than three: landing, about,
   skills and contact. Each is a record you edit in the portal and publish when
   it is ready, with no deploy in between.
