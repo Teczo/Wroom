@@ -162,8 +162,61 @@ export const ASSET_KINDS = [
 ] as const;
 export type AssetKind = (typeof ASSET_KINDS)[number];
 
+/**
+ * The three image variants, and the only place their widths are written down.
+ *
+ * A width never comes from a request. The client says nothing about size that
+ * the server acts on — `sharp` reads the real dimensions off the validated
+ * original, and these are the targets it resizes towards (CLAUDE.md §8).
+ *
+ * The portfolio picks one per surface: `thumb` for thumbnail strips and tech
+ * grids, `card` for carousel and index cards, `hero` for the main image.
+ */
+export const ASSET_VARIANT_WIDTHS = {
+  thumb: 400,
+  card: 800,
+  hero: 1600,
+} as const;
+
+export const ASSET_VARIANT_NAMES = ['thumb', 'card', 'hero'] as const;
+export type AssetVariantName = (typeof ASSET_VARIANT_NAMES)[number];
+
+/**
+ * Kinds that get variants. Video and document are skipped — there is nothing to
+ * resize, and `variants` stays null for them (docs/DATA_MODEL.md).
+ *
+ * `image/svg+xml` is an allowed upload but is not rasterised either: an SVG is
+ * already resolution-independent, and running one through an image pipeline
+ * would turn a 2KB vector into three raster copies of it.
+ */
+export const VARIANT_ASSET_KINDS = ['screenshot', 'logo', 'diagram'] as const;
+
+/**
+ * `projects.portfolio.demoVideo.provider`. A blob is one of our own uploads;
+ * the other two are embeds. Which one is set decides whether `assetId` or
+ * `externalId` is the required half — `posterAssetId` is required either way,
+ * because a video with no poster is a black rectangle until it buffers.
+ */
+export const DEMO_VIDEO_PROVIDERS = ['blob', 'youtube', 'vimeo'] as const;
+export type DemoVideoProvider = (typeof DEMO_VIDEO_PROVIDERS)[number];
+
 export const NOTE_KINDS = ['note', 'meeting', 'idea', 'issue'] as const;
 export type NoteKind = (typeof NOTE_KINDS)[number];
+
+/**
+ * `mediaLibrary.kind`. Icons are data, not code — every mark on the public site
+ * is one of these records rather than a file in a components folder.
+ */
+export const MEDIA_KINDS = ['tech', 'platform', 'client', 'social'] as const;
+export type MediaKind = (typeof MEDIA_KINDS)[number];
+
+/**
+ * How much markup a single mark may carry. These render at 24–40px; anything
+ * near this cap is a traced illustration rather than an icon. The sanitiser
+ * scans the string, so an unbounded one is also an unbounded amount of work on
+ * a write.
+ */
+export const MEDIA_SVG_MAX_LENGTH = 20000;
 
 export const CREDENTIAL_KINDS = [
   'api-key',
@@ -222,14 +275,19 @@ export const ENQUIRY_MIN_SUBMIT_MS = 2500;
 
 /**
  * `siteContent.key`. A page's copy is a record rather than a schema change, so
- * this list is what a page may be keyed by — not what exists. Only `about` and
- * `contact` are seeded, and `key` is not creatable through the API.
+ * this list is what a page may be keyed by — not what exists. All four are
+ * seeded, and `key` is not creatable through the API.
  */
-export const SITE_CONTENT_KEYS = ['about', 'contact', 'home'] as const;
+export const SITE_CONTENT_KEYS = ['landing', 'about', 'skills', 'contact'] as const;
 export type SiteContentKey = (typeof SITE_CONTENT_KEYS)[number];
 
 /** The whole set of records, seeded on a fresh database. */
-export const SEEDED_SITE_CONTENT_KEYS: readonly SiteContentKey[] = ['about', 'contact'];
+export const SEEDED_SITE_CONTENT_KEYS: readonly SiteContentKey[] = [
+  'landing',
+  'about',
+  'skills',
+  'contact',
+];
 
 export const TIME_ACTIVITIES = [
   'build',

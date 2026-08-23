@@ -17,7 +17,10 @@ function Section({ heading, body }: { heading: string; body: string }) {
 }
 
 function CaseStudy({ project }: { project: PublishedProject }) {
-  const { caseStudy } = project;
+  // The snapshot now carries many case studies. This page still renders the
+  // first — the per-case-study route is not built (docs/DATA_MODEL.md), and
+  // WRM-083 was the publish path only.
+  const caseStudy = project.caseStudies[0] ?? null;
 
   return (
     <article className="mx-auto max-w-3xl px-5 py-14 sm:py-20">
@@ -54,12 +57,12 @@ function CaseStudy({ project }: { project: PublishedProject }) {
         />
       ) : null}
 
-      <Section heading="The problem" body={caseStudy.problem} />
-      <Section heading="My role" body={caseStudy.role} />
-      <Section heading="Approach" body={caseStudy.approach} />
-      <Section heading="Outcome" body={caseStudy.outcome} />
+      <Section heading="The problem" body={caseStudy?.problem ?? ''} />
+      <Section heading="My role" body={caseStudy?.role ?? ''} />
+      <Section heading="Approach" body={caseStudy?.approach ?? ''} />
+      <Section heading="Outcome" body={caseStudy?.outcome ?? ''} />
 
-      {caseStudy.metrics.length > 0 ? (
+      {caseStudy && caseStudy.metrics.length > 0 ? (
         <dl className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3">
           {caseStudy.metrics.map((metric) => (
             <div key={metric.label} className="rounded-xl border border-border p-4">
@@ -70,7 +73,7 @@ function CaseStudy({ project }: { project: PublishedProject }) {
         </dl>
       ) : null}
 
-      {caseStudy.testimonial ? (
+      {caseStudy?.testimonial ? (
         <blockquote className="mt-10 border-l-2 border-accent pl-5">
           <p className="text-lg italic text-fg">“{caseStudy.testimonial.quote}”</p>
           <footer className="mt-2 text-sm text-muted">
@@ -86,15 +89,14 @@ function CaseStudy({ project }: { project: PublishedProject }) {
             {project.gallery.map((item) => (
               <figure key={item.url}>
                 {/*
-                 * The snapshot carries no alt for gallery items, so none is
-                 * invented here. The caption sits next to the image as real
-                 * text; copying it into alt would have a screen reader read it
-                 * twice, and an alt made up from a filename would be worse than
-                 * nothing. Empty alt marks it decorative, which is honest.
+                 * The snapshot carries an alt per gallery item now. Where it is
+                 * empty, empty it stays: the caption sits next to the image as
+                 * real text, and copying it into alt would have a screen reader
+                 * read it twice. Empty alt marks it decorative, which is honest.
                  */}
                 <img
-                  src={item.thumbnailUrl ?? item.url}
-                  alt=""
+                  src={item.variants?.card ?? item.url}
+                  alt={item.alt}
                   loading="lazy"
                   className="w-full rounded-xl border border-border object-cover"
                 />
@@ -133,10 +135,10 @@ function CaseStudy({ project }: { project: PublishedProject }) {
           <ul className="mt-3 flex flex-wrap gap-2">
             {project.techStack.map((entry) => (
               <li
-                key={entry}
+                key={entry.key}
                 className="rounded-full bg-surface px-3 py-1 text-xs font-medium text-fg"
               >
-                {entry}
+                {entry.label}
               </li>
             ))}
           </ul>

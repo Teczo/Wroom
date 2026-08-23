@@ -4,7 +4,7 @@ import type { Types } from 'mongoose';
 import { SiteContentModel, type SiteContentDocument } from '../models/SiteContent.js';
 import { NotFoundError } from '../utils/errors.js';
 
-type DraftInput = Infer<typeof siteContentDraftShape>;
+type DraftInput = Infer<typeof siteContentDraftShape> & { data: Record<string, unknown> };
 
 /**
  * Portfolio page copy, with the same draft/published split as projects.
@@ -66,6 +66,10 @@ export async function updateDraft(
         title: record.draft.meta.title,
         description: record.draft.meta.description,
       },
+      // Replaced whole, never merged. `data` is one page's structured content
+      // and is edited as a unit, so a partial merge would leave a half-old
+      // half-new object that matches no version anyone reviewed.
+      data: input.data ?? record.draft.data ?? {},
     },
     updatedByUserId,
   });
@@ -92,6 +96,10 @@ export async function publishSiteContent(
       title: draft.title,
       body: draft.body,
       meta: { title: draft.meta.title, description: draft.meta.description },
+      // Deep-copied so the two halves stay independent documents. A shared
+      // reference would mean editing the draft afterwards silently changed what
+      // is published, which is the one thing the split exists to prevent.
+      data: structuredClone(draft.data ?? {}),
     },
     publishedAt: new Date(),
     publishedByUserId,
