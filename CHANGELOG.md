@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026-08-23
+
+- The publish rewrite now sits on top of the current main, so it can go in
+  without a hand-merge. Nothing it does changed — the case study page keeps the
+  dark colours from the public site rewrite while reading the new snapshot
+  shape, where a project can have several case studies and a tech mark is a
+  record rather than a word.
+- The log entries for the media library and the resized image copies are back.
+  Both shipped, but the lines describing them were lost in an earlier merge.
+- The four-page site content work now sits on top of the current main, so it
+  can go in without a hand-merge. Nothing it does changed — the landing,
+  about, skills and contact records keep their per-page structured fields
+  alongside the media library and publish work already on main.
+- The Marks screen now sits on top of the current main, so it can go in without
+  a hand-merge. Nothing it does changed — it still lists, adds, edits and
+  refuses to delete an in-use mark, now alongside the rewritten project
+  portfolio fields and the site content work already on main.
+
 ## 2026-08-22
 
 - The portal has a Marks screen. Every icon the public site can draw lives
@@ -19,6 +37,48 @@
   losing the record.
 - A mark's key cannot be renamed once it exists, and the field says why rather
   than letting you try.
+- Publishing a project now puts its images on the public site properly. The
+  three gates run first, every approved image and its resized copies are copied
+  into the public container, and the snapshot is written pointing at those —
+  so a portfolio image loads straight from the URL with nothing to sign, and
+  caches like any other picture on the internet.
+- The published snapshot now carries everything the new project page needs: the
+  category chip, tagline, overview, feature cards, key modules, headline metric,
+  testimonial, demo video and every case study.
+- Tech and platform icons are resolved at publish, so the public site looks
+  nothing up. A mark you have not approved for use is left out and the publish
+  still goes through — the row shows one fewer icon rather than failing.
+- The "Visit Platform" link now comes from what you typed on the project. It
+  used to be taken from the primary environment's URL, which is an internal
+  detail and should never have been on a public page.
+- A project with no OG image of its own gets one made at publish: a 1200x630
+  crop of the hero, so a link shared to LinkedIn or Slack unfurls with a proper
+  card instead of a cropped-at-random one.
+- Unpublishing now deletes the image files before it removes the page. Anyone
+  holding an old image URL — a cache, a scraper, a copied link — gets a 404
+  rather than the picture.
+
+- Uploading a screenshot, logo or diagram now also produces three resized
+  copies — 400, 800 and 1600px wide, in WebP — so the portfolio can send a
+  thumbnail-sized file to a thumbnail slot instead of the full-size original.
+  Videos and PDFs are left alone, and so are SVGs, which need no resizing.
+- A small image is never blown up. A 500px logo gets a 400px copy and two at
+  500px, rather than three blurry enlargements.
+- An image's real width and height are now read off the file itself, including
+  photos and phone screenshots that are stored sideways with a rotation tag.
+  What the browser claimed on upload is no longer taken at face value, and
+  location data in the file is dropped rather than copied into the resized ones.
+- A file that is not really an image is refused with an explanation, instead of
+  being registered as a screenshot that never displays.
+- Published copies can be moved into the public container and taken out again.
+  The public copies get unguessable names, load with no expiring token on the
+  URL, and are cacheable. Taking one down deletes the files themselves, which is
+  what actually revokes access.
+- Deleting an asset now removes its resized copies and any published copies too,
+  rather than leaving them behind in storage.
+- A new job fills in the resized copies for images uploaded before any of this
+  existed: `npm run backfill-asset-variants --workspace @wroom/api`. Running it
+  twice does the work once.
 
 - The media library exists in the API. Marks — tech logos, platform icons,
   client and social marks — can be listed, added, edited and deleted at
@@ -36,6 +96,59 @@
 - The seed now creates the five platform marks and three social marks. They come
   in with no artwork — paste that in from the portal — and running the seed
   again leaves anything already there untouched.
+
+- A project's portfolio entry now holds everything the public site needs:
+  a category chip, a tagline, an overview paragraph, an authored "Visit
+  Platform" link, feature cards, key modules, a headline metric, a testimonial,
+  a demo video, and the tech and platform marks it should show.
+- A project can now have several case studies rather than one. Each has its own
+  slug, sector, title, summary and hero image alongside the problem, role,
+  approach and outcome. Two case studies on the same project cannot share a
+  slug — saving that comes back naming the one to change.
+- A demo video is refused without a poster image, whichever provider it uses,
+  because a video with no poster is a black rectangle until it buffers. One of
+  your own uploads needs the file; a YouTube or Vimeo embed needs the id.
+- Existing case studies move across on their own: run
+  `npm run migrate-case-studies --workspace @wroom/api`. Whatever you wrote is
+  kept, the case study takes the project's slug and name, and a project whose
+  case study was never filled in ends up with none rather than a blank one.
+  Running it twice does the work once, and the old copy is left in the database
+  untouched as a backup.
+- The case study editor in the portal keeps working exactly as before. It now
+  writes the first of the project's case studies; editing the others needs a
+  screen that does not exist yet.
+- The public site is dark. Background, panels, hairlines, text and a green
+  accent all come from one place, so changing the look is one file rather than a
+  hunt through components. There is no light mode and no toggle — the dark
+  values are the values.
+- The site's own fonts are served from our own domain rather than Google's, so
+  no visitor's browser has to tell a third party they were here. Space Grotesk
+  for headings and navigation, Inter for everything else.
+- The navigation collapses into a full-screen menu on a phone. It closes on
+  Escape, closes when you follow a link, and the page underneath cannot scroll
+  while it is open.
+- Every page now has a footer.
+- Anyone whose device asks for reduced motion gets no transitions and no
+  movement anywhere on the site, set once rather than remembered per component.
+
+- The portfolio's own copy is now four pages rather than three: landing, about,
+  skills and contact. Each is a record you edit in the portal and publish when
+  it is ready, with no deploy in between.
+- Each page now carries structured content alongside its markdown — the landing
+  hero's greeting, name, disciplines, badge, social row and CTA label; the
+  skills groups; the contact details. Markdown alone could not express those as
+  separate things.
+- Each page's structured content is checked against that page's own field list.
+  Sending the skills shape to the landing page is refused, naming the fields
+  that do not belong, instead of quietly saving an empty landing page.
+- The public site still cannot see an unpublished page. The request asks the
+  database for the published half only — the draft is never loaded, not merely
+  left out of the reply — and a page that has never been published answers 404.
+- Saving with an empty body no longer blanks a page. It used to write empty
+  strings over whatever was there.
+- The portal's "draft is ahead of live" badge now notices a change to the
+  structured content, not just to the words.
+
 - The portal's navigation now sits in a sidebar down the left of the screen
   instead of across the top. On a phone nothing changes — the bottom bar is
   still there — and the name and sign out move into the sidebar on wider
@@ -45,6 +158,10 @@
   it locally, which one-off commands a fresh environment needs, what the two API
   namespaces are and why the split matters, and the rules that govern changes —
   without opening the constitution first.
+- The API now has the `sharp` image library installed. Nothing calls it yet
+  — this only puts the library in place so image resizing can be built on top
+  of it. It has been listed as an approved API dependency all along but was
+  never actually added to the package.
 
 ## 2026-08-21
 

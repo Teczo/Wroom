@@ -1,5 +1,6 @@
 import {
   DEFAULT_PAGE_SIZE,
+  DEMO_VIDEO_PROVIDERS,
   MAX_PAGE_SIZE,
   PROJECT_STATUSES,
   VISIBILITIES,
@@ -18,7 +19,9 @@ import {
   repeatable,
   slug,
   string,
+  url,
   withDefault,
+  withRules,
   type Infer,
 } from '../validate.js';
 
@@ -46,31 +49,132 @@ const testimonialSchema = object({
   attribution: string({ min: 1, max: 140 }),
 });
 
+const featureCardSchema = object({
+  /** A `mediaLibrary.key`, not a component name — icons are data (CLAUDE.md §7.3). */
+  iconKey: withDefault(string({ max: 80, allowEmpty: true }), ''),
+  title: string({ min: 1, max: 140 }),
+  body: withDefault(string({ max: 1000, allowEmpty: true }), ''),
+});
+
+const keyModuleSchema = object({
+  title: string({ min: 1, max: 140 }),
+  body: withDefault(string({ max: 1000, allowEmpty: true }), ''),
+});
+
+const headlineMetricSchema = object({
+  value: string({ min: 1, max: 40 }),
+  label: string({ min: 1, max: 140 }),
+});
+
+/**
+ * A demo video, and the rules about which half of it has to be filled in.
+ *
+ * `posterAssetId` is required whatever the provider: a video with no poster is
+ * a black rectangle until it buffers, and on the hero of a project page that is
+ * the first thing a visitor sees. Beyond that, one of our own uploads needs an
+ * `assetId` and an embed needs an `externalId` — the two are never both right.
+ */
+const demoVideoSchema = withRules(
+  object({
+    provider: withDefault(enumOf(DEMO_VIDEO_PROVIDERS), 'blob' as const),
+    assetId: withDefault(nullable(objectId()), null),
+    externalId: withDefault(nullable(string({ min: 1, max: 200 })), null),
+    posterAssetId: withDefault(nullable(objectId()), null),
+  }),
+  (video, path, fail) => {
+    const at = (field: string) => (path === '' ? field : `${path}.${field}`);
+
+    if (!video.posterAssetId) {
+      fail(at('posterAssetId'), 'a poster image is required for every demo video');
+    }
+
+    if (video.provider === 'blob' && !video.assetId) {
+      fail(at('assetId'), 'is required when the video is one of your own uploads');
+    }
+
+    if (video.provider !== 'blob' && !video.externalId) {
+      fail(at('externalId'), `is required when the video is hosted on ${video.provider}`);
+    }
+  },
+);
+
 const caseStudySchema = object({
+  /** Unique within the project — see the rule on `caseStudies` below. */
+  slug: slug(),
+  sector: withDefault(string({ max: 80, allowEmpty: true }), ''),
+  title: withDefault(string({ max: 200, allowEmpty: true }), ''),
+  summary: withDefault(string({ max: 1000, allowEmpty: true }), ''),
+  heroAssetId: withDefault(nullable(objectId()), null),
   problem: withDefault(string({ max: 4000, allowEmpty: true }), ''),
   role: withDefault(string({ max: 4000, allowEmpty: true }), ''),
   approach: withDefault(string({ max: 4000, allowEmpty: true }), ''),
   outcome: withDefault(string({ max: 4000, allowEmpty: true }), ''),
   metrics: withDefault(arrayOf(metricSchema, { max: 12 }), []),
   testimonial: withDefault(nullable(testimonialSchema), null),
+  sortOrder: withDefault(number({ integer: true }), 0),
 });
+
+/**
+ * Case study slugs have to be unique within the project.
+ *
+ * Not globally: two projects may each have an "offshore-platform" case study,
+ * and the route that will eventually read this is
+ * /work/:projectSlug/case/:caseSlug, so the project slug already disambiguates.
+ * Within one project a repeat would make one of the two unreachable.
+ */
+const caseStudiesSchema = withRules(
+  arrayOf(caseStudySchema, { max: 24 }),
+  (studies, path, fail) => {
+    const seen = new Map<string, number>();
+
+    studies.forEach((study, index) => {
+      const first = seen.get(study.slug);
+
+      if (first !== undefined) {
+        fail(
+          `${path}[${index}].slug`,
+          `'${study.slug}' is already used by case study ${first + 1} on this project. Slugs have to be unique within a project.`,
+        );
+        return;
+      }
+
+      seen.set(study.slug, index);
+    });
+  },
+);
 
 /**
  * `portfolio.visibility` is accepted here but defaults to private — nothing is
  * ever public by accident, and publishing is a separate explicit action.
+ *
+ * Every body section defaults to empty or null. That is what lets the public
+ * site drop a whole section, heading included, rather than render an empty one
+ * (CLAUDE.md §7.4).
  */
 const portfolioSchema = object({
   visibility: withDefault(enumOf(VISIBILITIES), 'private' as const),
   featured: withDefault(boolean(), false),
-  caseStudy: withDefault(caseStudySchema, {
-    problem: '',
-    role: '',
-    approach: '',
-    outcome: '',
-    metrics: [],
-    testimonial: null,
-  }),
+  sortOrder: withDefault(number({ integer: true }), 0),
+
+  category: withDefault(string({ max: 80, allowEmpty: true }), ''),
+  tagline: withDefault(string({ max: 200, allowEmpty: true }), ''),
+  overview: withDefault(string({ max: 4000, allowEmpty: true }), ''),
+  /** Authored, not derived from the primary environment's publicUrl. */
+  liveUrl: withDefault(nullable(url()), null),
+
+  featureCards: withDefault(arrayOf(featureCardSchema, { max: 24 }), []),
+  keyModules: withDefault(arrayOf(keyModuleSchema, { max: 24 }), []),
+  headlineMetric: withDefault(nullable(headlineMetricSchema), null),
+  testimonial: withDefault(nullable(testimonialSchema), null),
+  demoVideo: withDefault(nullable(demoVideoSchema), null),
+  caseStudies: withDefault(caseStudiesSchema, []),
+
+  /** Both reference `mediaLibrary.key`. Keys, not labels. */
+  techStackKeys: withDefault(arrayOf(slug(), { max: 40 }), []),
+  platformKeys: withDefault(arrayOf(slug(), { max: 40 }), []),
+
   heroAssetId: withDefault(nullable(objectId()), null),
+  ogAssetId: withDefault(nullable(objectId()), null),
 });
 
 export const projectCreateShape = {
@@ -102,15 +206,21 @@ export const projectCreateShape = {
   portfolio: withDefault(portfolioSchema, {
     visibility: 'private' as const,
     featured: false,
-    caseStudy: {
-      problem: '',
-      role: '',
-      approach: '',
-      outcome: '',
-      metrics: [],
-      testimonial: null,
-    },
+    sortOrder: 0,
+    category: '',
+    tagline: '',
+    overview: '',
+    liveUrl: null,
+    featureCards: [],
+    keyModules: [],
+    headlineMetric: null,
+    testimonial: null,
+    demoVideo: null,
+    caseStudies: [],
+    techStackKeys: [],
+    platformKeys: [],
     heroAssetId: null,
+    ogAssetId: null,
   }),
 };
 
@@ -130,8 +240,25 @@ export const projectUpdateSchema = partial(projectCreateShape);
 export const projectPortfolioUpdateShape = {
   visibility: enumOf(VISIBILITIES),
   featured: boolean(),
-  caseStudy: caseStudySchema,
+  sortOrder: number({ integer: true }),
+
+  category: string({ max: 80, allowEmpty: true }),
+  tagline: string({ max: 200, allowEmpty: true }),
+  overview: string({ max: 4000, allowEmpty: true }),
+  liveUrl: nullable(url()),
+
+  featureCards: arrayOf(featureCardSchema, { max: 24 }),
+  keyModules: arrayOf(keyModuleSchema, { max: 24 }),
+  headlineMetric: nullable(headlineMetricSchema),
+  testimonial: nullable(testimonialSchema),
+  demoVideo: nullable(demoVideoSchema),
+  caseStudies: caseStudiesSchema,
+
+  techStackKeys: arrayOf(slug(), { max: 40 }),
+  platformKeys: arrayOf(slug(), { max: 40 }),
+
   heroAssetId: nullable(objectId()),
+  ogAssetId: nullable(objectId()),
 };
 
 export const projectPortfolioUpdateSchema = partial(projectPortfolioUpdateShape);
