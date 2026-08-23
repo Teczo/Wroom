@@ -1,6 +1,11 @@
-import { siteContentDiffers, type SiteContent } from '@wroom/shared';
+import {
+  SITE_CONTENT_KEYS,
+  siteContentDiffers,
+  type SiteContent,
+  type SiteContentKey,
+} from '@wroom/shared';
 import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, NavLink, useParams } from 'react-router-dom';
 
 import { Button } from '../../components/Button';
 import { Field, inputClasses } from '../../components/Field';
@@ -13,6 +18,19 @@ import {
   useSiteContentRecord,
   useUnpublishContent,
 } from '../../features/content/api';
+import { MarkdownPreview } from '../../features/content/MarkdownPreview';
+import {
+  AboutDataForm,
+  ContactDataForm,
+  DATA_SCHEMAS,
+  LandingDataForm,
+  SkillsDataForm,
+  dataWithDefaults,
+  type AboutData,
+  type ContactData,
+  type LandingData,
+  type SkillsData,
+} from '../../features/content/dataForms';
 import { ApiRequestError } from '../../lib/api';
 import { humanise, shortDate } from '../../lib/format';
 
@@ -64,6 +82,63 @@ function LiveStatus({ record, pageName }: { record: SiteContent; pageName: strin
   );
 }
 
+/**
+ * The four pages as tabs.
+ *
+ * Each is its own route, so a tab is a link rather than local state — the URL
+ * stays the thing that says which page you are editing, and a reload or a
+ * shared link lands where you left off.
+ */
+function KeyTabs({ current }: { current: string }) {
+  return (
+    <nav aria-label="Content pages" className="-mx-1 mb-4 flex gap-1 overflow-x-auto pb-1">
+      {SITE_CONTENT_KEYS.map((key) => (
+        <NavLink
+          key={key}
+          to={`/content/${key}`}
+          className={`min-h-11 shrink-0 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+            key === current
+              ? 'bg-slate-900 text-white'
+              : 'bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50'
+          }`}
+        >
+          {humanise(key)}
+        </NavLink>
+      ))}
+    </nav>
+  );
+}
+
+/**
+ * The structured half, dispatched on the key.
+ *
+ * A switch and four components, not one form with every field on it: the four
+ * shapes have nothing in common but where they are stored, and a single
+ * field-driven form would put a skills group on the landing tab.
+ */
+function DataForm({
+  contentKey,
+  data,
+  onChange,
+  errors,
+}: {
+  contentKey: SiteContentKey;
+  data: unknown;
+  onChange: (next: unknown) => void;
+  errors: Record<string, string>;
+}) {
+  switch (contentKey) {
+    case 'landing':
+      return <LandingDataForm data={data as LandingData} onChange={onChange} errors={errors} />;
+    case 'about':
+      return <AboutDataForm data={data as AboutData} onChange={onChange} errors={errors} />;
+    case 'skills':
+      return <SkillsDataForm data={data as SkillsData} onChange={onChange} errors={errors} />;
+    case 'contact':
+      return <ContactDataForm data={data as ContactData} onChange={onChange} errors={errors} />;
+  }
+}
+
 function ContentEditor({ record }: { record: SiteContent }) {
   const pageName = humanise(record.key);
 
@@ -77,6 +152,15 @@ function ContentEditor({ record }: { record: SiteContent }) {
   const [metaDescription, setMetaDescription] = useState(record.draft.meta.description);
   const [confirming, setConfirming] = useState<'publish' | 'unpublish' | null>(null);
   const [saved, setSaved] = useState(false);
+  const [showPreview, setShowPreview] = useState(true);
+
+  const contentKey = record.key as SiteContentKey;
+  // Filled out to the key's full shape: a freshly seeded record holds `{}`, and
+  // the schema is where the defaults for the missing fields live.
+  const [data, setData] = useState<unknown>(() =>
+    dataWithDefaults(DATA_SCHEMAS[contentKey], record.draft.data),
+  );
+  const storedData = dataWithDefaults(DATA_SCHEMAS[contentKey], record.draft.data);
 
   const errors = save.error instanceof ApiRequestError ? save.error.fieldErrors : {};
 
@@ -84,7 +168,8 @@ function ContentEditor({ record }: { record: SiteContent }) {
     title !== record.draft.title ||
     body !== record.draft.body ||
     metaTitle !== record.draft.meta.title ||
-    metaDescription !== record.draft.meta.description;
+    metaDescription !== record.draft.meta.description ||
+    JSON.stringify(data) !== JSON.stringify(storedData);
 
   /** Every box clears the "saved" note, so it can only describe the current text. */
   function edit(apply: () => void): void {
@@ -94,6 +179,8 @@ function ContentEditor({ record }: { record: SiteContent }) {
 
   return (
     <div className="space-y-6">
+      <KeyTabs current={record.key} />
+
       <section className="rounded-xl border border-slate-200 bg-white p-4">
         <LiveStatus record={record} pageName={pageName} />
       </section>
@@ -104,7 +191,7 @@ function ContentEditor({ record }: { record: SiteContent }) {
           event.preventDefault();
           setSaved(false);
           save.mutate(
-            { title, body, meta: { title: metaTitle, description: metaDescription } },
+            { title, body, meta: { title: metaTitle, description: metaDescription }, data },
             { onSuccess: () => setSaved(true) },
           );
         }}
@@ -121,7 +208,7 @@ function ContentEditor({ record }: { record: SiteContent }) {
         <Field
           label="Body"
           htmlFor="content-body"
-          hint="Markdown. The portfolio does not render it yet, so this is copy written ahead of the page that will show it."
+          hint="Markdown. The preview below renders it the same way the public page will."
           error={errors.body}
         >
           <textarea
@@ -132,6 +219,36 @@ function ContentEditor({ record }: { record: SiteContent }) {
             onChange={(event) => edit(() => setBody(event.target.value))}
           />
         </Field>
+
+        <div>
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="text-sm font-medium text-slate-800">Preview</p>
+            <Button
+              type="button"
+              variant="ghost"
+              className="min-h-9 px-2 text-xs"
+              aria-expanded={showPreview}
+              onClick={() => setShowPreview((current) => !current)}
+            >
+              {showPreview ? 'Hide' : 'Show'}
+            </Button>
+          </div>
+          {showPreview ? <MarkdownPreview body={body} /> : null}
+        </div>
+
+        <div className="border-t border-slate-200 pt-4">
+          <h2 className="text-sm font-semibold text-slate-900">{pageName} details</h2>
+          <p className="mb-3 mt-0.5 text-xs text-slate-500">
+            The parts of this page markdown cannot express. Different on every page — these are
+            the {pageName.toLowerCase()} page&rsquo;s.
+          </p>
+          <DataForm
+            contentKey={contentKey}
+            data={data}
+            onChange={(next) => edit(() => setData(next))}
+            errors={errors}
+          />
+        </div>
 
         <div className="border-t border-slate-100 pt-4">
           <p className="text-xs font-medium uppercase tracking-wide text-slate-500">

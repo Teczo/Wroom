@@ -22,8 +22,26 @@
   authors the chip, tagline, overview, feature cards, key modules, metric,
   testimonial and demo video, now alongside the site content, marks screen and
   resized image work already on main.
+- The content editor now sits on top of the current main, so it can go in
+  without a hand-merge. Nothing it does changed — the tabs, markdown preview
+  and per-page forms still author the landing, about, skills and contact
+  records, now alongside the case studies editor, portfolio editor, marks
+  screen and public site rewrite already on main.
 
 ## 2026-08-22
+
+- The content editor now has a tab per page — landing, about, skills, contact —
+  so switching between them is one tap instead of going back to a list.
+- The markdown box has a preview under it, rendered the same way the public
+  page will render it, so what you see is what the site will show.
+- Each page now has its own form for the parts markdown cannot express: the
+  landing hero's greeting, name, statement, disciplines, badge, terminal lines,
+  social row, CTA and how many projects it lists; the about headline; the
+  contact details; and the skills groups. Each page shows only its own fields.
+- Skills are groups of icon and label, with the icon picked from the media
+  library and shown beside the name. Groups reorder, items add and remove.
+- Saving still only writes the draft. The public site changes when you publish,
+  and the page says plainly which of the two states you are in.
 
 - A project can now hold several case studies, added, removed and reordered
   from the portfolio tab. They sit collapsed in a list showing the title, slug

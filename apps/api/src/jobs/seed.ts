@@ -204,6 +204,7 @@ const projectTypes: SeedType[] = [
  * written in the portal, and a placeholder sentence is the kind of thing that
  * gets published by accident. `data` starts as `{}` and takes its shape from
  * the per-key schema on the first save.
+ *
  * An existing record is left exactly as it is and reported rather than
  * overwritten — re-running this must never cost someone a page they wrote.
  */
