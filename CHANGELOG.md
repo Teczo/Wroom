@@ -17,8 +17,84 @@
   a hand-merge. Nothing it does changed — it still lists, adds, edits and
   refuses to delete an in-use mark, now alongside the rewritten project
   portfolio fields and the site content work already on main.
+- The portfolio editor now sits on top of the current main, so it can go in
+  without a hand-merge. Nothing it does changed — the portfolio tab still
+  authors the chip, tagline, overview, feature cards, key modules, metric,
+  testimonial and demo video, now alongside the site content, marks screen and
+  resized image work already on main.
 
 ## 2026-08-22
+
+- The project's portfolio tab now authors the whole public page, not just the
+  case study. The chip, tagline, overview paragraph and the "Visit Platform"
+  link sit at the top; feature cards, key modules, a headline metric, a
+  testimonial and a demo video follow.
+- Feature cards and key modules can be added, removed and reordered with up and
+  down buttons. Each card's icon is picked from the media library, shown as the
+  actual mark rather than a key you have to remember.
+- Tech and platforms are picked from the media library too, with the mark beside
+  each label and a note of the order they will appear in.
+- Switching a section off saves it as genuinely absent, so the public page drops
+  the whole section rather than showing an empty heading.
+- A demo video cannot be saved without a poster image, and the form says so
+  before you press save rather than after. Choosing YouTube or Vimeo swaps the
+  file picker for an id box.
+- The tab is now called Portfolio, because that is what it edits.
+
+- The portal has a Marks screen. Every icon the public site can draw lives
+  there, grouped by kind, each one drawn at the size it actually is rather than
+  squashed into a uniform box.
+- Pasting an SVG shows it immediately on a white swatch and a dark one, side by
+  side, so you can see at a glance whether it takes the colour of what it sits
+  on or keeps its own. A mark that will not inherit says so.
+- The preview shows what will actually be saved, not what you pasted: if a paste
+  carries a script, an event handler or a link pointing off the site, it names
+  what is about to be stripped. A paste that is not an SVG at all is flagged
+  before you hit save rather than after.
+- A mark that projects are still using cannot be deleted. The refusal spells out
+  how many projects list it in their tech stack, how many list it as a platform,
+  and how many products use it as a client logo, and suggests unticking
+  "approved for use" instead — which drops it from published pages without
+  losing the record.
+- A mark's key cannot be renamed once it exists, and the field says why rather
+  than letting you try.
+
+- The media library exists in the API. Marks — tech logos, platform icons,
+  client and social marks — can be listed, added, edited and deleted at
+  `/api/media-library`, so the icons the public site uses are records you manage
+  rather than files in the code.
+- Any SVG saved to a mark is cleaned on the way in: scripts, `onclick` and every
+  other event handler, links pointing off the site, embedded stylesheets and
+  `<foreignObject>` are all removed before it is stored. This happens on edit as
+  well as on create, because the public site renders that markup as-is.
+- A mark that is still being used cannot be deleted. Trying it explains which
+  projects or products still reference it, and suggests marking it not-approved
+  instead, which drops it from published pages while keeping the record.
+- A mark's key cannot be renamed once it exists, because projects point at marks
+  by key and nothing rewrites those references.
+- The seed now creates the five platform marks and three social marks. They come
+  in with no artwork — paste that in from the portal — and running the seed
+  again leaves anything already there untouched.
+- A project's portfolio entry now holds everything the public site needs:
+  a category chip, a tagline, an overview paragraph, an authored "Visit
+  Platform" link, feature cards, key modules, a headline metric, a testimonial,
+  a demo video, and the tech and platform marks it should show.
+- A project can now have several case studies rather than one. Each has its own
+  slug, sector, title, summary and hero image alongside the problem, role,
+  approach and outcome. Two case studies on the same project cannot share a
+  slug — saving that comes back naming the one to change.
+- A demo video is refused without a poster image, whichever provider it uses,
+  because a video with no poster is a black rectangle until it buffers. One of
+  your own uploads needs the file; a YouTube or Vimeo embed needs the id.
+- Existing case studies move across on their own: run
+  `npm run migrate-case-studies --workspace @wroom/api`. Whatever you wrote is
+  kept, the case study takes the project's slug and name, and a project whose
+  case study was never filled in ends up with none rather than a blank one.
+  Running it twice does the work once, and the old copy is left in the database
+  untouched as a backup.
+- The case study editor in the portal keeps working exactly as before. It now
+  writes the first of the project's case studies; editing the others needs a
+  screen that does not exist yet.
 
 - The portal has a Marks screen. Every icon the public site can draw lives
   there, grouped by kind, each one drawn at the size it actually is rather than
