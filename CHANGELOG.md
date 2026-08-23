@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-08-23
+
+- The public site has the three moving parts it will be built from, ready for
+  the pages that need them. A row of cards that snaps as you swipe it on a
+  phone and steps with arrow buttons on a desktop, with dots showing where you
+  are. A block that fades up the first time you scroll to it. And a line of
+  text that types itself out for the terminal on the landing page.
+- All three stop moving for anyone whose device asks for reduced motion: the
+  cards jump instead of gliding, the blocks are simply there without scrolling,
+  and the terminal shows its finished line straight away with a caret that does
+  not blink.
+- None of this is on the site yet — nothing a visitor sees has changed. There
+  is a page at `/_motion` for checking the three of them on a phone, and it
+  exists only when running locally; it is not in anything deployed.
+
 ## 2026-08-22
 
 - The public site is dark. Background, panels, hairlines, text and a green

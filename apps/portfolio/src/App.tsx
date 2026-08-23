@@ -6,6 +6,7 @@ import { SiteHeader } from './components/SiteHeader';
 import { AboutPage } from './pages/AboutPage';
 import { CaseStudyPage } from './pages/CaseStudyPage';
 import { ContactPage } from './pages/ContactPage';
+import { MotionScratchPage } from './pages/MotionScratchPage';
 import { WorkPage } from './pages/WorkPage';
 
 export function App() {
@@ -19,6 +20,15 @@ export function App() {
           <Route path="/work/:slug" element={<CaseStudyPage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/contact" element={<ContactPage />} />
+          {/*
+           * A harness for the motion primitives, mounted in development only.
+           * `import.meta.env.DEV` is replaced with a literal at build time, so
+           * the route — and the page behind it — is absent from every deployed
+           * build rather than merely unlinked.
+           */}
+          {import.meta.env.DEV ? (
+            <Route path="/_motion" element={<MotionScratchPage />} />
+          ) : null}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
