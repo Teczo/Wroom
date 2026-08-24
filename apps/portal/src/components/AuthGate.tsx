@@ -1,5 +1,5 @@
 import { useAuth0 } from '@auth0/auth0-react';
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 
 import { setTokenGetter } from '../lib/api';
 import { config, isAuthConfigured } from '../lib/config';
@@ -43,9 +43,13 @@ function SignIn() {
  */
 export function AuthGate({ children }: { children: ReactNode }) {
   const { isAuthenticated, isLoading, getAccessTokenSilently } = useAuth0();
+  const [hasToken, setHasToken] = useState(false);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated) {
+      setHasToken(false);
+      return;
+    }
 
     setTokenGetter(async () => {
       try {
@@ -58,6 +62,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
         return null;
       }
     });
+    setHasToken(true);
   }, [isAuthenticated, getAccessTokenSilently]);
 
   if (!isAuthConfigured) return <SetupNeeded />;
@@ -69,6 +74,16 @@ export function AuthGate({ children }: { children: ReactNode }) {
     );
   }
   if (!isAuthenticated) return <SignIn />;
+  // Children stay unmounted until the token getter above is in place. React
+  // runs a child's effects before its parent's, so mounting them in the same
+  // commit lets their first queries go out unauthenticated and come back 401.
+  if (!hasToken) {
+    return (
+      <div className="p-6">
+        <LoadingState label="Checking your session…" />
+      </div>
+    );
+  }
 
   return <>{children}</>;
 }
