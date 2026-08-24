@@ -2,6 +2,20 @@
 
 ## 2026-08-24
 
+- A link to the site pasted into LinkedIn, Slack, WhatsApp, iMessage or an
+  email now unfurls as a real card. A project link shows that project's name,
+  its short description and its image; the front page shows the title and
+  description you wrote on the landing record. Before this, every link showed
+  the same "Teczo — Work" with no picture, because the people unfurling it do
+  not run the site's JavaScript.
+- The card follows what is published. Change a project's short description,
+  publish, and the next unfurl says the new words — within about five minutes,
+  which is how long the edge holds the old one.
+- A project with no image of its own falls back to its hero shot, and a project
+  with neither unfurls as a plain text card rather than an empty grey box.
+- If the API is slow or down, the page still loads exactly as before with the
+  default wording. Nothing about this can make the site fail to open.
+
 - Signing in to the portal lands you on a working dashboard. It used to show
   "That did not load — sign in to continue" the first time and only work
   after you pressed Try again.
