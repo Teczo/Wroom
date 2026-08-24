@@ -2,6 +2,9 @@
 
 ## 2026-08-24
 
+- Signing in to the portal lands you on a working dashboard. It used to show
+  "That did not load — sign in to continue" the first time and only work
+  after you pressed Try again.
 - About, Skills and Contact are live pages now, and every word on all three is
   something you write in the portal and publish. The about page shows its
   headline and its narrative; the skills page shows your groups, each with its
