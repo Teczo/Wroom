@@ -2,6 +2,25 @@
 
 ## 2026-08-24
 
+- About, Skills and Contact are live pages now, and every word on all three is
+  something you write in the portal and publish. The about page shows its
+  headline and its narrative; the skills page shows your groups, each with its
+  tiles; the contact page shows its headline, its intro line, your address as a
+  link that opens a mail app, and your social links.
+- The contact form sits under that copy. It tells you which box needs attention
+  before it sends anything, says "Sending…" while it works, and on success
+  replaces itself with a thank-you while the rest of the page stays exactly
+  where it was.
+- Sending several messages in a short time now says so in plain words, in its
+  own colour, and tells you nothing was lost — everything you typed is still in
+  the boxes. It no longer looks like a form that silently broke.
+- A page you have not published yet says "Page not found" rather than showing a
+  shell with nothing in it. That is true of all three pages.
+- The skills tiles sit three to a row on a phone. A group you left empty does
+  not render its heading.
+- The skill and social marks themselves are not drawn yet — the icons you picked
+  in the portal cannot reach the public site until publishing resolves them, and
+  the same is true of the about portrait. Both need a decision from you first.
 - The site opens on a landing page again, built entirely from the published
   landing record: the greeting, the name in the accent colour, the statement,
   the disciplines, the badge and the words on the button are all things you

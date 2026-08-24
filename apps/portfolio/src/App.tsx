@@ -8,6 +8,7 @@ import { CaseStudyPage } from './pages/CaseStudyPage';
 import { ContactPage } from './pages/ContactPage';
 import { LandingPage } from './pages/LandingPage';
 import { MotionScratchPage } from './pages/MotionScratchPage';
+import { SkillsPage } from './pages/SkillsPage';
 import { WorkPage } from './pages/WorkPage';
 
 export function App() {
@@ -20,6 +21,7 @@ export function App() {
           <Route path="/work" element={<WorkPage />} />
           <Route path="/work/:slug" element={<CaseStudyPage />} />
           <Route path="/about" element={<AboutPage />} />
+          <Route path="/skills" element={<SkillsPage />} />
           <Route path="/contact" element={<ContactPage />} />
           {/*
            * A harness for the motion primitives, mounted in development only.

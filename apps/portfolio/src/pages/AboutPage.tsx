@@ -1,30 +1,40 @@
 import type { SiteContentBody } from '@wroom/shared';
 
 import { Markdown } from '../components/Markdown';
-import { NotFound } from '../components/NotFound';
-import { ErrorState, LoadingState } from '../components/StateViews';
-import { usePublishedContent } from '../features/content/api';
-import { ApiRequestError } from '../lib/api';
+import { ContentPage } from '../features/content/ContentPage';
+import { readAboutData } from '../features/content/pageData';
 import { useDocumentMeta } from '../lib/useDocumentMeta';
 
 /**
  * The about page, written in the portal rather than in this repo.
  *
- * Everything on it comes from the published half of the `about` content
- * record, so changing a sentence is an edit and a publish, not a deploy. Until
- * something is published the API 404s and this renders the not-found page —
- * there is no half-page state where the shell appears with nothing in it.
+ * Everything on it comes from the published half of the `about` record, so
+ * changing a sentence is an edit and a publish, not a deploy. The headline is
+ * `data.headline` and the narrative is `body` — markdown, because that half of
+ * the page is genuinely just writing (docs/DATA_MODEL.md).
+ *
+ * The portrait is not here. `data.portraitAssetId` points at an `assets`
+ * record, which is an operational collection the portfolio may never read
+ * (§8, decision 8), and nothing resolves it into the published copy the way
+ * `publishService` resolves a project's hero image into the snapshot. Rendering
+ * it needs a resolved portrait in `siteContent.published.data` and a public
+ * blob copy made at publish — a data model change and a publish change, which
+ * are ticket triggers 1 and 4. Reported rather than invented.
  */
-
 function About({ content }: { content: SiteContentBody }) {
-  useDocumentMeta(content.meta.title || content.title, content.meta.description);
+  const data = readAboutData(content.data);
+
+  // `title` is the record's own name and is what the portal lists it under.
+  // It stands in when the page has no headline yet, so the page is never
+  // without an `h1` while still never inventing one.
+  const headline = data?.headline || content.title;
+
+  useDocumentMeta(content.meta.title || headline, content.meta.description);
 
   return (
     <article className="mx-auto max-w-3xl px-5 py-14 sm:py-20">
-      {content.title ? (
-        <h1 className="text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
-          {content.title}
-        </h1>
+      {headline ? (
+        <h1 className="text-3xl font-semibold tracking-tight text-fg sm:text-4xl">{headline}</h1>
       ) : null}
 
       {content.body ? (
@@ -37,29 +47,5 @@ function About({ content }: { content: SiteContentBody }) {
 }
 
 export function AboutPage() {
-  const content = usePublishedContent('about');
-
-  if (content.isPending) {
-    return (
-      <div className="mx-auto max-w-3xl px-5">
-        <LoadingState label="Loading…" />
-      </div>
-    );
-  }
-
-  if (content.isError) {
-    // Nothing published reads from outside exactly like a page that does not
-    // exist, because that is what it is.
-    if (content.error instanceof ApiRequestError && content.error.status === 404) {
-      return <NotFound />;
-    }
-
-    return (
-      <div className="mx-auto max-w-3xl px-5">
-        <ErrorState error={content.error} onRetry={() => void content.refetch()} />
-      </div>
-    );
-  }
-
-  return <About content={content.data} />;
+  return <ContentPage contentKey="about">{(content) => <About content={content} />}</ContentPage>;
 }
