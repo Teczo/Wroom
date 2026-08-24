@@ -2,18 +2,19 @@ import { ENQUIRY_HONEYPOT_FIELD, ENQUIRY_LIMITS, type SiteContentBody } from '@w
 import { useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
-import { Markdown } from '../components/Markdown';
+import { ContentPage } from '../features/content/ContentPage';
+import { readContactData, type ContactData } from '../features/content/pageData';
 import { useSubmitEnquiry } from '../features/content/enquiryApi';
-import { usePublishedContent } from '../features/content/api';
 import { ApiRequestError } from '../lib/api';
 import { useDocumentMeta } from '../lib/useDocumentMeta';
 
 /**
- * The contact form, and the only place the portfolio writes anything.
+ * The contact page, and the only place the portfolio writes anything.
  *
- * The page copy is a published content record when there is one, and the form
- * stands on its own when there is not — an unpublished about-style record must
- * not be able to take the form away, because the form is the point of the page.
+ * The copy — headline, intro, address and the social row — is the published
+ * `contact` record. The form below it is not content: it posts to
+ * `/public/enquiries`, which is a different path with its own middleware chain
+ * (§8), and it does not read `data.email` to do it.
  */
 
 const inputClasses =
@@ -22,11 +23,7 @@ const inputClasses =
 type Errors = Partial<Record<string, string>>;
 
 /** Mirrors the shared schema, so the server rarely has to be the one to say no. */
-function validate(values: {
-  name: string;
-  email: string;
-  message: string;
-}): Errors {
+function validate(values: { name: string; email: string; message: string }): Errors {
   const errors: Errors = {};
 
   if (values.name.trim() === '') errors.name = 'Please tell me your name.';
@@ -95,6 +92,19 @@ function ContactForm({ relatedProjectId }: { relatedProjectId: string }) {
 
   const isRateLimited = submit.error instanceof ApiRequestError && submit.error.status === 429;
 
+  /*
+   * Field messages the server sent back, shown against the fields they name.
+   * The client check above catches almost everything, so this is for the cases
+   * where the two disagree — without it a 422 naming a field would surface only
+   * as a general "that did not send" and the visitor would have no idea which
+   * box to fix. The bot refusals carry no details and fall through to the
+   * panel, which is the point of them saying nothing specific.
+   */
+  const serverErrors =
+    submit.error instanceof ApiRequestError ? submit.error.fieldErrors : ({} as Errors);
+
+  const errorFor = (field: string): string | undefined => errors[field] ?? serverErrors[field];
+
   if (submit.isSuccess) {
     return (
       <div className="mt-10 rounded-2xl border border-border bg-surface p-6" role="status">
@@ -135,7 +145,7 @@ function ContactForm({ relatedProjectId }: { relatedProjectId: string }) {
         });
       }}
     >
-      <Field label="Your name" htmlFor="contact-name" required error={errors.name}>
+      <Field label="Your name" htmlFor="contact-name" required error={errorFor('name')}>
         <input
           id="contact-name"
           className={inputClasses}
@@ -146,7 +156,7 @@ function ContactForm({ relatedProjectId }: { relatedProjectId: string }) {
         />
       </Field>
 
-      <Field label="Email" htmlFor="contact-email" required error={errors.email}>
+      <Field label="Email" htmlFor="contact-email" required error={errorFor('email')}>
         <input
           id="contact-email"
           type="email"
@@ -159,7 +169,7 @@ function ContactForm({ relatedProjectId }: { relatedProjectId: string }) {
       </Field>
 
       <div className="grid gap-5 sm:grid-cols-2">
-        <Field label="Phone" htmlFor="contact-phone" hint="Optional.">
+        <Field label="Phone" htmlFor="contact-phone" hint="Optional." error={errorFor('phone')}>
           <input
             id="contact-phone"
             type="tel"
@@ -171,7 +181,12 @@ function ContactForm({ relatedProjectId }: { relatedProjectId: string }) {
           />
         </Field>
 
-        <Field label="Company" htmlFor="contact-company" hint="Optional.">
+        <Field
+          label="Company"
+          htmlFor="contact-company"
+          hint="Optional."
+          error={errorFor('company')}
+        >
           <input
             id="contact-company"
             className={inputClasses}
@@ -183,7 +198,12 @@ function ContactForm({ relatedProjectId }: { relatedProjectId: string }) {
         </Field>
       </div>
 
-      <Field label="What do you need?" htmlFor="contact-message" required error={errors.message}>
+      <Field
+        label="What do you need?"
+        htmlFor="contact-message"
+        required
+        error={errorFor('message')}
+      >
         <textarea
           id="contact-message"
           rows={6}
@@ -250,6 +270,12 @@ function ContactForm({ relatedProjectId }: { relatedProjectId: string }) {
         />
       </div>
 
+      {/*
+       * Every refusal says something. The rate limit in particular gets its own
+       * colour and its own words: being told "that did not send" for what is
+       * actually "you have sent five already" reads as a broken form, and the
+       * one thing a visitor must know is that nothing they typed was lost.
+       */}
       {submit.isError ? (
         <div
           className={`rounded-lg border p-4 ${
@@ -257,11 +283,7 @@ function ContactForm({ relatedProjectId }: { relatedProjectId: string }) {
           }`}
           role="alert"
         >
-          <p
-            className={`text-sm font-medium ${
-              isRateLimited ? 'text-notice' : 'text-danger'
-            }`}
-          >
+          <p className={`text-sm font-medium ${isRateLimited ? 'text-notice' : 'text-danger'}`}>
             {isRateLimited ? 'Not you — the form is taking a breather' : 'That did not send'}
           </p>
           <p className={`mt-1 text-sm ${isRateLimited ? 'text-notice' : 'text-danger'}`}>
@@ -281,7 +303,7 @@ function ContactForm({ relatedProjectId }: { relatedProjectId: string }) {
       <button
         type="submit"
         disabled={submit.isPending}
-        className="inline-flex min-h-11 items-center justify-center rounded-lg bg-accent px-6 font-heading text-sm font-medium text-on-accent transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-surface-hover disabled:text-muted"
+        className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-accent px-6 font-heading text-sm font-medium text-on-accent transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-surface-hover disabled:text-muted sm:w-auto"
       >
         {submit.isPending ? 'Sending…' : 'Send message'}
       </button>
@@ -289,44 +311,59 @@ function ContactForm({ relatedProjectId }: { relatedProjectId: string }) {
   );
 }
 
-function ContactCopy({ content }: { content: SiteContentBody }) {
-  useDocumentMeta(content.meta.title || content.title, content.meta.description);
+/**
+ * The address and the social row.
+ *
+ * The marks are missing for the same reason they are missing on the skills
+ * page: `socials[].mediaKey` is a `mediaLibrary` key and nothing resolves it
+ * into the published copy, so each link is labelled by the key its author
+ * chose. That string is data from the record, not copy written here.
+ */
+function ContactChannels({ data }: { data: ContactData }) {
+  const socials = data.socials.filter((social) => social.url !== '');
+
+  if (data.email === '' && socials.length === 0) return null;
 
   return (
-    <header>
-      {content.title ? (
-        <h1 className="text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
-          {content.title}
-        </h1>
+    <div className="mt-6 flex flex-col gap-4">
+      {data.email ? (
+        <a
+          href={`mailto:${data.email}`}
+          className="font-heading text-base font-medium text-accent underline underline-offset-4 transition-colors hover:text-accent-hover"
+        >
+          {data.email}
+        </a>
       ) : null}
-      {content.body ? (
-        <div className="mt-4">
-          <Markdown>{content.body}</Markdown>
-        </div>
+
+      {socials.length > 0 ? (
+        <ul className="flex flex-wrap gap-x-5 gap-y-2">
+          {socials.map((social) => (
+            <li key={social.mediaKey}>
+              <a
+                href={social.url}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="font-heading text-sm font-medium capitalize text-muted transition-colors hover:text-accent"
+              >
+                {social.mediaKey}
+              </a>
+            </li>
+          ))}
+        </ul>
       ) : null}
-    </header>
+    </div>
   );
 }
 
-/** What the page says when no contact record has been published. */
-function DefaultCopy() {
-  useDocumentMeta('Contact — Teczo', 'Start a conversation about a project with Teczo.');
-
-  return (
-    <header>
-      <h1 className="text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
-        Get in touch
-      </h1>
-      <p className="mt-3 text-base text-muted">
-        Tell me what you are building and I will get back to you.
-      </p>
-    </header>
-  );
-}
-
-export function ContactPage() {
+function Contact({ content }: { content: SiteContentBody }) {
   const [params] = useSearchParams();
-  const content = usePublishedContent('contact');
+  const data = readContactData(content.data);
+
+  // `title` is the record's own name and stands in when the page has no
+  // headline yet, so the page is never without an `h1`.
+  const headline = data?.headline || content.title;
+
+  useDocumentMeta(content.meta.title || headline, content.meta.description);
 
   // A project id only ever arrives from a case study link. It is a hint about
   // where the enquiry came from — the server stores it only if it names a
@@ -335,14 +372,27 @@ export function ContactPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-5 py-14 sm:py-20">
-      {/*
-       * The copy is optional and the form is not, so a record that is missing,
-       * unpublished or slow never blocks the form from rendering.
-       */}
-      {content.isSuccess ? <ContactCopy content={content.data} /> : null}
-      {content.isPending || content.isError ? <DefaultCopy /> : null}
+      <header>
+        {headline ? (
+          <h1 className="text-3xl font-semibold tracking-tight text-fg sm:text-4xl">{headline}</h1>
+        ) : null}
+
+        {/*
+          * Plain text, not markdown. `intro` is a single authored line in the
+          * record's `data`, and the field the schema gives it is a string.
+          */}
+        {data?.intro ? <p className="mt-3 text-base text-muted">{data.intro}</p> : null}
+
+        {data ? <ContactChannels data={data} /> : null}
+      </header>
 
       <ContactForm relatedProjectId={relatedProjectId} />
     </div>
+  );
+}
+
+export function ContactPage() {
+  return (
+    <ContentPage contentKey="contact">{(content) => <Contact content={content} />}</ContentPage>
   );
 }
