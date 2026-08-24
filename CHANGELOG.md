@@ -1,5 +1,26 @@
 # Changelog
 
+## 2026-08-24
+
+- The site opens on a landing page again, built entirely from the published
+  landing record: the greeting, the name in the accent colour, the statement,
+  the disciplines, the badge and the words on the button are all things you
+  write in the portal. Changing the greeting and publishing changes the live
+  page — there is no deploy in that loop.
+- Beside the hero at desktop width there is a terminal that types out the lines
+  you wrote on the same page. It is decoration: a phone never sees it, and with
+  reduced motion on, every line is simply there.
+- Under that, the projects you have published, as many of them as the landing
+  record asks for. One card per screen on a phone that you swipe, with dots
+  showing where you are; a snapping row at desktop width.
+- Nothing in the hero fades or slides in when the page opens, so the headline is
+  on screen as soon as the words arrive rather than a moment after.
+- A landing record that has not been published yet takes the hero away and
+  leaves the work — no empty headings, no placeholder text. With nothing
+  published at all, the row says so.
+- The Teczo wordmark in the header now goes to the landing page rather than
+  straight to the work list.
+
 ## 2026-08-23
 
 - The publish rewrite now sits on top of the current main, so it can go in
