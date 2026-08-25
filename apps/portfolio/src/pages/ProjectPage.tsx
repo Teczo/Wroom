@@ -52,6 +52,7 @@ function AccentedName({ name }: { name: string }) {
 
 function ProjectHeader({ project }: { project: PublishedProject }) {
   const hasCaseStudies = project.caseStudies.length > 0;
+  const blurb = project.overview.trim() || project.shortDescription.trim();
 
   return (
     <section className="pt-8 sm:pt-12">
@@ -78,10 +79,16 @@ function ProjectHeader({ project }: { project: PublishedProject }) {
             </p>
           ) : null}
 
-          {project.overview ? (
-            <p className="mt-5 max-w-prose text-base leading-relaxed text-muted">
-              {project.overview}
-            </p>
+          {/*
+           * The overview is the portfolio paragraph, written on the Portfolio
+           * tab. `shortDescription` is the project's own one-liner, written on
+           * the project itself and already snapshotted — so a project whose
+           * portfolio copy has not been filled in yet still says what it is,
+           * rather than showing a bare title. Both are authored; neither is
+           * invented here.
+           */}
+          {blurb ? (
+            <p className="mt-5 max-w-prose text-base leading-relaxed text-muted">{blurb}</p>
           ) : null}
 
           {project.liveUrl || hasCaseStudies ? (
