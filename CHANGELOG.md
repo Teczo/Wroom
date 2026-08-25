@@ -21,6 +21,8 @@
 - The whole public site has been rethemed to the darker, lime-green look: a
   near-black page with a faint grid behind it, panels lit from one corner, and
   a header that now stays at the top of the screen as you scroll.
+- A project that has a short description but no portfolio paragraph yet now
+  shows the short description under its title, instead of a bare heading.
 - Every card on a project's feature board has a "Copy ticket" button. Pressing
   it puts a full, written-out ticket on the clipboard — the ref and title, the
   project, its repo and stack, the branch name to work on, the card's priority,
