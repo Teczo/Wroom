@@ -2,6 +2,25 @@
 
 ## 2026-08-25
 
+- A project's public page has been rebuilt to the new design. The hero is now a
+  two-column split: the category chip, the name with its last word in green, the
+  tagline, the overview and the buttons on the left, and a large screen shot on
+  the right with a strip of thumbnails under it. Tapping a thumbnail changes the
+  big picture. On a phone the picture goes edge to edge and the thumbnails
+  become a row you swipe.
+- The capabilities cards you write in the portal now actually appear on the
+  page, each with its icon from the library. The grid narrows to fit however
+  many cards there are, down to one column on a phone.
+- The demo video, the key modules, the headline number and the quote now sit in
+  one row together, with the number and the quote in a single card the way the
+  design shows. Any of them missing and that part simply is not there.
+- Case study cards now lead somewhere. Each one opens its own page with the
+  problem, your role, the approach, the outcome, whatever numbers you recorded
+  and the quote — at /work/<project>/case/<case-study>. A card whose study has
+  been taken down says so and points back at the project.
+- The whole public site has been rethemed to the darker, lime-green look: a
+  near-black page with a faint grid behind it, panels lit from one corner, and
+  a header that now stays at the top of the screen as you scroll.
 - Every card on a project's feature board has a "Copy ticket" button. Pressing
   it puts a full, written-out ticket on the clipboard — the ref and title, the
   project, its repo and stack, the branch name to work on, the card's priority,

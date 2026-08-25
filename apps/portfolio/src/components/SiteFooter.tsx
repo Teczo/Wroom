@@ -17,7 +17,9 @@ const links = [
 export function SiteFooter() {
   return (
     <footer className="mt-16 border-t border-border bg-canvas">
-      <div className="mx-auto flex max-w-5xl flex-col gap-6 px-5 py-10 sm:flex-row sm:items-center sm:justify-between">
+      {/* Same container width as the header, so the brand at the top of the
+          page and the brand at the foot of it sit on the same line. */}
+      <div className="mx-auto flex max-w-6xl flex-col gap-6 px-5 py-10 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="font-heading text-base font-bold tracking-tight text-fg">Teczo</p>
           <p className="mt-1 text-sm text-muted">

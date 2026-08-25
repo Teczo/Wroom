@@ -18,8 +18,17 @@ const links = [
 const linkBase =
   'font-heading text-sm font-medium transition-colors';
 
+/**
+ * The active link is the accent plus a lit rule beneath it. Colour alone is
+ * carrying less here than it looks: `aria-current="page"` is what a screen
+ * reader announces, and `NavLink` sets it without being asked.
+ */
 function navLinkClass({ isActive }: { isActive: boolean }): string {
-  return `${linkBase} ${isActive ? 'text-accent' : 'text-muted hover:text-fg'}`;
+  return `relative py-1 ${linkBase} ${
+    isActive
+      ? 'text-accent after:absolute after:inset-x-0 after:-bottom-1 after:h-0.5 after:bg-accent after:shadow-[0_0_12px_var(--color-accent)]'
+      : 'text-muted hover:text-fg'
+  }`;
 }
 
 /** Three bars, or a cross. Drawn inline because it is chrome, not a mark (§7.3). */
@@ -71,8 +80,13 @@ export function SiteHeader() {
   }, [open]);
 
   return (
-    <header className="border-b border-border bg-canvas">
-      <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-5 py-4">
+    /*
+     * Sticky and translucent, so the grid and the glow behind it stay visible
+     * as the page moves under it. `z-30` clears the page content but stays
+     * under the mobile overlay's `z-50`.
+     */
+    <header className="sticky top-0 z-30 border-b border-border bg-canvas/70 backdrop-blur-xl">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-4">
         <Link
           to="/"
           className="font-heading text-base font-bold tracking-tight text-fg transition-colors hover:text-accent"

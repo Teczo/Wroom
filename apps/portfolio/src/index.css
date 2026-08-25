@@ -69,47 +69,70 @@
 @theme {
   /* --- surfaces, darkest first ---
    *
-   * Three steps and no more. A dark palette with six greys reads as noise; the
-   * separation that matters is page / card / hairline.
+   * The canvas is near-black with the green pulled through it rather than a
+   * neutral grey, so the accent reads as the same light source as the page
+   * instead of a sticker on top of it.
+   *
+   * `surface` and `surface-deep` are the two ends of the panel gradient — a
+   * card is lit from its top-left corner, which is what separates it from the
+   * canvas without needing a heavier border.
    */
-  --color-canvas: #0a0e0d;
-  --color-surface: #111817;
-  --color-surface-hover: #182220;
-  --color-border: #223029;
+  --color-canvas: #020807;
+  --color-surface: #071a14;
+  --color-surface-deep: #020c0a;
+  --color-surface-hover: #0c2419;
+
+  /* Two border weights. The hairline for everything, the brighter one for the
+   * few elements that are meant to look lit — the hero viewer, an icon tile. */
+  --color-border: #1b3e28;
+  --color-border-strong: #397f50;
 
   /* --- text ---
-   * `fg` on canvas is roughly 16:1, `muted` roughly 6:1 — both clear of AA,
-   * with muted still comfortable at body size rather than merely passing.
+   * `fg` on canvas is roughly 18:1, `muted` roughly 9:1 — both well clear of
+   * AA, with muted still comfortable at body size rather than merely passing.
    */
-  --color-fg: #e8f0ec;
-  --color-muted: #93a29b;
+  --color-fg: #edf8f0;
+  --color-muted: #a4b5aa;
 
   /* --- accent ---
-   * One green, used for links, focus rings, active nav and the single CTA.
-   * `on-accent` is near-black rather than white: this green is bright enough
-   * that white text on it fails contrast outright.
+   * One lime, used for links, focus rings, active nav, the single CTA and the
+   * numerals in a metric callout. `on-accent` is near-black rather than white:
+   * this green is bright enough that white text on it fails contrast outright.
    */
-  --color-accent: #22c55e;
-  --color-accent-hover: #4ade80;
-  --color-accent-soft: #10241a;
-  --color-on-accent: #06120c;
+  --color-accent: #b7ff75;
+  --color-accent-hover: #d2ffa6;
+  --color-accent-soft: #0e2113;
+  --color-on-accent: #071108;
 
   /* --- status ---
-   * Not in the brief, but the pages already have error and rate-limit states
-   * and §7.1 says every colour lives here — leaving them on Tailwind's light
-   * reds would be the light patches this retheme exists to remove. Two hues,
-   * each with a tinted fill for the panel behind the message.
+   * Two hues, each with a tinted fill for the panel behind the message.
    */
   --color-danger: #f87171;
   --color-danger-soft: #2a1416;
   --color-notice: #fbbf24;
   --color-notice-soft: #2a2110;
 
+  /* --- atmosphere ---
+   * The four translucent values behind the background, the panel shadow and
+   * the lift under a hovered button. They are tokens rather than literals
+   * because §7.1 admits no hex written outside this file, and `grid` in
+   * particular has to stay in step with the canvas it is drawn over — it is
+   * that colour lifted by about 3%.
+   */
+  --color-accent-glow: #6dff9a1a;
+  --color-grid: #05110c;
+  --color-glow: #081912;
+  --color-shadow: #00000038;
+
   /* --- type ---
    * Space Grotesk for headings, hero titles, project and product names,
-   * navigation, and numerals in metric callouts. Inter for everything else.
-   * Both fall back to the system stack, so a missing file degrades rather than
-   * breaks (§7.2).
+   * navigation, eyebrow labels, and numerals in metric callouts. Inter for
+   * everything else. Both fall back to the system stack, so a missing file
+   * degrades rather than breaks (§7.2).
+   *
+   * The design reference sets its eyebrows and mono labels in JetBrains Mono.
+   * They are Space Grotesk here, uppercased and letterspaced: §7.2 allows two
+   * families and a third self-hosted face is a decision above a session.
    */
   --font-heading: 'Space Grotesk', ui-sans-serif, system-ui, -apple-system,
     'Segoe UI', Roboto, sans-serif;
@@ -130,8 +153,42 @@
     background-color: var(--color-canvas);
   }
 
+  /*
+   * Two soft glows behind everything: one under the header, one at the left
+   * edge. Fixed, so they stay where they are while the page scrolls past —
+   * this is meant to read as the light in the room, not as a graphic that
+   * scrolls away.
+   */
   body {
     @apply bg-canvas font-sans text-fg antialiased;
+    background-image:
+      radial-gradient(circle at 50% 0%, var(--color-glow), transparent 38%),
+      radial-gradient(circle at 0% 45%, var(--color-glow), transparent 32%);
+    background-attachment: fixed;
+  }
+
+  /*
+   * The grid. One-pixel rules every 54px, masked out over the lower quarter so
+   * it fades rather than stopping at a line.
+   *
+   * It lives here rather than in a component because it belongs to the page,
+   * not to anything on it — and because a single fixed pseudo-element is
+   * cheaper than an element the app has to remember to render. It is behind
+   * everything and takes no pointer events; `App.tsx` lifts the app above it
+   * and leaves its own background off, or this would be painted over.
+   */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(var(--color-grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--color-grid) 1px, transparent 1px);
+    background-size: 54px 54px;
+    -webkit-mask-image: linear-gradient(to bottom, black, transparent 75%);
+    mask-image: linear-gradient(to bottom, black, transparent 75%);
   }
 
   h1,

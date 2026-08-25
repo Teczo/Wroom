@@ -1,115 +1,146 @@
-import type { PublishedProject } from '@wroom/shared';
+import type { PublishedCaseStudy, PublishedProject } from '@wroom/shared';
 import { Link, useParams } from 'react-router-dom';
 
+import { Panel, panelClass } from '../components/Panel';
+import { Eyebrow } from '../components/SectionHeading';
 import { EmptyState, ErrorState, LoadingState } from '../components/StateViews';
 import { usePublishedProject } from '../features/work/api';
-import {
-  CaseStudies,
-  ContactCta,
-  DemoAndModules,
-  MarkGrid,
-  MetricAndTestimonial,
-} from '../features/work/sections';
+import { ContactCta } from '../features/work/sections';
 import { ApiRequestError } from '../lib/api';
+import { useDocumentMeta } from '../lib/useDocumentMeta';
 
 /**
- * A project's public page.
+ * One case study — `/work/:slug/case/:caseSlug`.
  *
- * Everything below the hero is optional and hides when the snapshot has
- * nothing for it (§7.4) — the sections themselves live in
- * `features/work/sections.tsx`.
+ * A case study belongs to a project and its slug is unique within that project
+ * rather than globally, which is why the project's slug is the first half of
+ * the address (docs/DATA_MODEL.md, resolved decision 7).
  *
- * The case studies are cards on a carousel rather than a narrative here. Each
- * one's problem, role, approach and outcome belong to its own page at
- * /work/:projectSlug/case/:caseSlug, and that route is deferred — which is why
- * the card's button is present and disabled.
+ * There is no separate request for this page and there is no route for one:
+ * `GET /public/projects/:slug` already carries every case study whole, so the
+ * study is found in the project's own payload. TanStack Query has usually
+ * cached it from the project page the visitor arrived from, which makes the
+ * common path free — and adding a fifth `/public` route to avoid re-reading a
+ * document we already have would be a ticket for no gain (§6).
+ *
+ * The narrative fields are plain strings, not markdown — `whitespace-pre-line`
+ * keeps the paragraph breaks that were typed in the portal without treating
+ * anything else in them as markup.
  */
-function ProjectPage({ project }: { project: PublishedProject }) {
-  return (
-    <article className="mx-auto max-w-3xl px-5 py-14 sm:py-20">
-      <Link to="/work" className="text-sm text-muted hover:text-fg">
-        ← All work
-      </Link>
 
-      <header className="mt-8">
-        <p className="text-xs uppercase tracking-wide text-muted">{project.productName}</p>
-        <h1 className="mt-1 text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
-          {project.name}
-        </h1>
-        {project.shortDescription ? (
-          <p className="mt-3 text-lg text-muted">{project.shortDescription}</p>
+const containerClass = 'mx-auto w-full max-w-3xl px-5';
+
+/** One narrative block. Absent when nothing was written for it (§7.4). */
+function Narrative({ heading, body }: { heading: string; body: string }) {
+  if (!body.trim()) return null;
+
+  return (
+    <section className="border-t border-border pt-8">
+      <h2 className="font-heading text-xs font-medium uppercase tracking-[0.12em] text-accent">
+        {heading}
+      </h2>
+      <p className="mt-3 whitespace-pre-line text-base leading-relaxed text-muted">{body}</p>
+    </section>
+  );
+}
+
+function CaseStudyView({
+  study,
+  project,
+}: {
+  study: PublishedCaseStudy;
+  project: PublishedProject;
+}) {
+  useDocumentMeta(`${study.title} — ${project.name}`, study.summary);
+
+  const hero = study.hero ? (study.hero.variants?.hero ?? study.hero.url) : null;
+  const metrics = study.metrics.filter((metric) => metric.value.trim() || metric.label.trim());
+
+  return (
+    <article className={containerClass}>
+      <header className="pt-8 sm:pt-12">
+        <Link
+          to={`/work/${project.slug}`}
+          className="text-sm text-muted transition-colors hover:text-accent"
+        >
+          ← Back to {project.name}
+        </Link>
+
+        {study.sector ? (
+          <div className="mt-8">
+            <Eyebrow>{study.sector}</Eyebrow>
+          </div>
         ) : null}
 
-        {project.liveUrl ? (
-          <a
-            href={project.liveUrl}
-            target="_blank"
-            rel="noreferrer noopener"
-            className="mt-5 inline-flex min-h-11 items-center rounded-lg bg-accent px-5 font-heading text-sm font-medium text-on-accent transition-colors hover:bg-accent-hover"
-          >
-            Visit the live site
-          </a>
+        <h1 className="mt-5 text-3xl font-bold tracking-tight text-fg sm:text-5xl">
+          {study.title}
+        </h1>
+
+        {study.summary ? (
+          <p className="mt-5 text-lg leading-relaxed text-muted">{study.summary}</p>
         ) : null}
       </header>
 
-      {project.heroImage ? (
+      {hero ? (
+        /* Full-bleed on a phone, framed from `sm` up — the same treatment the
+           project page gives its hero (§7.7). */
         <img
-          src={project.heroImage.variants?.hero ?? project.heroImage.url}
-          alt={project.heroImage.alt}
-          className="mt-10 w-full rounded-2xl border border-border object-cover"
+          src={hero}
+          alt={study.hero?.alt ?? ''}
+          className="-mx-5 mt-10 w-full border-y border-border object-cover sm:mx-0 sm:rounded-2xl sm:border"
         />
       ) : null}
 
-      <DemoAndModules project={project} />
-      <MetricAndTestimonial project={project} />
-
-      {project.gallery.length > 0 ? (
-        <section className="mt-14 border-t border-border pt-10">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Gallery</h2>
-          <div className="mt-6 grid gap-4 sm:grid-cols-2">
-            {project.gallery.map((item) => (
-              <figure key={item.url}>
-                {/*
-                 * The snapshot carries an alt per gallery item now. Where it is
-                 * empty, empty it stays: the caption sits next to the image as
-                 * real text, and copying it into alt would have a screen reader
-                 * read it twice. Empty alt marks it decorative, which is honest.
-                 */}
-                <img
-                  src={item.variants?.card ?? item.url}
-                  alt={item.alt}
-                  loading="lazy"
-                  className="w-full rounded-xl border border-border object-cover"
-                />
-                {item.caption ? (
-                  <figcaption className="mt-2 text-xs text-muted">
-                    {item.caption}
-                    {item.device ? ` · ${item.device}` : ''}
-                  </figcaption>
-                ) : null}
-              </figure>
-            ))}
-          </div>
-        </section>
+      {metrics.length > 0 ? (
+        <ul className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {metrics.map((metric) => (
+            <li key={`${metric.label}-${metric.value}`} className={`${panelClass} p-5 text-center`}>
+              {/* Space Grotesk for numerals in a metric callout (§7.2). */}
+              <p className="font-heading text-2xl font-semibold tracking-tight text-accent">
+                {metric.value}
+              </p>
+              {metric.label ? <p className="mt-1 text-xs text-muted">{metric.label}</p> : null}
+            </li>
+          ))}
+        </ul>
       ) : null}
 
-      <CaseStudies studies={project.caseStudies} />
+      <div className="mt-12 space-y-8">
+        <Narrative heading="The problem" body={study.problem} />
+        <Narrative heading="My role" body={study.role} />
+        <Narrative heading="Approach" body={study.approach} />
+        <Narrative heading="Outcome" body={study.outcome} />
+      </div>
 
-      <MarkGrid heading="Built with" marks={project.techStack} />
-      <MarkGrid heading="Platforms" marks={project.platforms} />
+      {study.testimonial ? (
+        <Panel className="mt-12 p-7">
+          <figure>
+            <blockquote className="text-base leading-relaxed text-fg">
+              “{study.testimonial.quote}”
+            </blockquote>
+            {study.testimonial.attribution ? (
+              <figcaption className="mt-4 text-sm text-muted">
+                — {study.testimonial.attribution}
+              </figcaption>
+            ) : null}
+          </figure>
+        </Panel>
+      ) : null}
 
-      <ContactCta projectId={project.projectId} />
+      <div className="mt-12">
+        <ContactCta projectId={project.projectId} />
+      </div>
     </article>
   );
 }
 
 export function CaseStudyPage() {
-  const { slug = '' } = useParams();
+  const { slug = '', caseSlug = '' } = useParams();
   const project = usePublishedProject(slug);
 
   if (project.isPending) {
     return (
-      <div className="mx-auto max-w-3xl px-5">
+      <div className={containerClass}>
         <LoadingState />
       </div>
     );
@@ -119,7 +150,7 @@ export function CaseStudyPage() {
     const isMissing = project.error instanceof ApiRequestError && project.error.status === 404;
 
     return (
-      <div className="mx-auto max-w-3xl px-5">
+      <div className={containerClass}>
         {isMissing ? (
           <>
             <EmptyState
@@ -139,5 +170,26 @@ export function CaseStudyPage() {
     );
   }
 
-  return <ProjectPage project={project.data} />;
+  const study = project.data.caseStudies.find((entry) => entry.slug === caseSlug);
+
+  // The project published, this study did not — an unpublished study, a
+  // renamed slug, or a stale link. The project itself is right there, so say so
+  // and point at it rather than at the work index.
+  if (!study) {
+    return (
+      <div className={containerClass}>
+        <EmptyState
+          title="That case study is not here"
+          whatToDoNext={`It may have been renamed or taken down. The rest of ${project.data.name} is still published.`}
+        />
+        <div className="pb-16 text-center">
+          <Link to={`/work/${slug}`} className="text-sm font-medium text-fg underline">
+            Back to {project.data.name}
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return <CaseStudyView study={study} project={project.data} />;
 }
