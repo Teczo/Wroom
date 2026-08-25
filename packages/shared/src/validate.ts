@@ -388,11 +388,25 @@ export function strictPartial<S extends Shape>(shape: S): Validator<Partial<Infe
  * Turns a create schema into its PATCH counterpart: every key optional, but at
  * least one must be present so an empty body is rejected rather than silently
  * doing nothing.
+ *
+ * **Every field is wrapped, including one that is already optional.** A create
+ * shape marks its optional fields with `withDefault`, which answers `undefined`
+ * with the default value — exactly right when creating a record, and destructive
+ * when patching one. Passing such a validator through untouched meant a PATCH
+ * naming one field came back carrying every *other* field at its default, and
+ * the service then wrote those defaults over real data: changing a project's
+ * portfolio visibility erased its short description, tech stack, tags, phase and
+ * repo, because none of them were in the body.
+ *
+ * `optional` short-circuits on `undefined` before the inner validator ever runs,
+ * so a key that was not sent is absent from the result and the service leaves
+ * that field alone. It also restores the "at least one field" guard below, which
+ * a shape full of defaults could never fail.
  */
 export function partial<S extends Shape>(shape: S): Validator<Partial<Infer<S>>> {
   const optionalShape: Shape = {};
   for (const [key, validator] of Object.entries(shape)) {
-    optionalShape[key] = validator.isOptional ? validator : optional(validator);
+    optionalShape[key] = optional(validator);
   }
   const inner = object(optionalShape);
   return {

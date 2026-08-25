@@ -23,6 +23,14 @@
   a header that now stays at the top of the screen as you scroll.
 - A project that has a short description but no portfolio paragraph yet now
   shows the short description under its title, instead of a bare heading.
+- Fixed a bug that was quietly erasing project data. Changing a project's
+  portfolio visibility — the dropdown you use right before publishing — was
+  wiping its short description, tech stack, tags, phase, repo and every
+  portfolio field, because the save sent one field and the API filled in all
+  the others at their blank defaults. Any edit you made before flipping that
+  dropdown was lost, which is why published pages kept coming out empty.
+- The same fault affected every "save one field" action in the portal, not just
+  that one. Saving a single field now changes that field and nothing else.
 - Every card on a project's feature board has a "Copy ticket" button. Pressing
   it puts a full, written-out ticket on the clipboard — the ref and title, the
   project, its repo and stack, the branch name to work on, the card's priority,
