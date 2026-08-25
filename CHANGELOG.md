@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-08-25
+
+- Every card on a project's feature board has a "Copy ticket" button. Pressing
+  it puts a full, written-out ticket on the clipboard — the ref and title, the
+  project, its repo and stack, the branch name to work on, the card's priority,
+  size and labels, the scope and exit criteria as you wrote them, what the
+  feature waits on, and every other feature on the project marked as not to be
+  built. That is the text you were retyping by hand before starting a feature.
+- If a dependency is not finished, the ticket says so by name and tells whoever
+  picks it up to stop rather than build around it.
+- A card with no description or acceptance criteria still copies, with
+  "(none written)" where the words should be — the gap is meant to be visible.
+- The button says "Copied" for a couple of seconds so you know it worked, and
+  says so plainly if the browser refuses to copy instead of doing nothing.
+
 ## 2026-08-24
 
 - A link to the site pasted into LinkedIn, Slack, WhatsApp, iMessage or an

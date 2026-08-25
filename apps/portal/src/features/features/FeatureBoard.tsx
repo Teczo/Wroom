@@ -1,5 +1,12 @@
-import { FEATURE_BOARD_COLUMNS, FEATURE_ORDER_GAP, type Feature, type FeatureStatus } from '@wroom/shared';
-import { useState } from 'react';
+import {
+  FEATURE_BOARD_COLUMNS,
+  FEATURE_ORDER_GAP,
+  renderFeatureTicket,
+  type Feature,
+  type FeatureStatus,
+  type Project,
+} from '@wroom/shared';
+import { useEffect, useState } from 'react';
 
 import { Button } from '../../components/Button';
 import { Field, inputClasses } from '../../components/Field';
@@ -7,6 +14,7 @@ import { PriorityPill } from '../../components/Pill';
 import { EmptyState, ErrorState, LoadingState } from '../../components/StateViews';
 import { ApiRequestError } from '../../lib/api';
 import { humanise } from '../../lib/format';
+import { useProject } from '../projects/api';
 import { useCreateFeature, useFeatures, useMoveFeature } from './api';
 
 /**
@@ -16,12 +24,89 @@ import { useCreateFeature, useFeatures, useMoveFeature } from './api';
  * at 390px, and a drag target that small is a worse control than a menu.
  */
 
+/** Long enough to read, short enough that the button is ready for the next card. */
+const COPIED_FOR_MS = 2000;
+
+/**
+ * Puts the card's ticket on the clipboard.
+ *
+ * Dependencies and siblings come from the board's own list — the ticket is
+ * assembled from what is already on screen, so pressing this costs no request.
+ */
+function CopyTicketButton({
+  feature,
+  project,
+  featuresById,
+}: {
+  feature: Feature;
+  project: Project | undefined;
+  featuresById: Map<string, Feature>;
+}) {
+  const [state, setState] = useState<'idle' | 'copied' | 'failed'>('idle');
+
+  // Only the success state expires. A failure stays until the next attempt —
+  // it is the one message worth reading twice.
+  useEffect(() => {
+    if (state !== 'copied') return;
+    const timer = window.setTimeout(() => setState('idle'), COPIED_FOR_MS);
+    return () => window.clearTimeout(timer);
+  }, [state]);
+
+  async function copy(target: Project): Promise<void> {
+    const deps = feature.dependsOnFeatureIds
+      .map((id) => featuresById.get(id))
+      .filter((dependency): dependency is Feature => dependency !== undefined);
+
+    const siblings = [...featuresById.values()].filter((other) => other._id !== feature._id);
+
+    try {
+      // Throws rather than resolving when the page is not on a secure origin,
+      // so the whole call sits inside the try.
+      await navigator.clipboard.writeText(
+        renderFeatureTicket({ feature, project: target, siblings, deps }),
+      );
+      setState('copied');
+    } catch {
+      setState('failed');
+    }
+  }
+
+  return (
+    <>
+      <Button
+        variant="secondary"
+        className="min-h-9 shrink-0 text-xs"
+        disabled={project === undefined}
+        title={project === undefined ? 'Waiting for the project details' : undefined}
+        onClick={() => {
+          if (project === undefined) return;
+          setState('idle');
+          void copy(project);
+        }}
+      >
+        {state === 'copied' ? 'Copied' : 'Copy ticket'}
+      </Button>
+
+      {state === 'failed' ? (
+        <p className="basis-full text-xs text-red-600">
+          The browser would not let the page copy. Select the ticket by hand, or open the portal
+          over https.
+        </p>
+      ) : null}
+    </>
+  );
+}
+
 function FeatureCard({
   feature,
+  project,
+  featuresById,
   onMove,
   isMoving,
 }: {
   feature: Feature;
+  project: Project | undefined;
+  featuresById: Map<string, Feature>;
   onMove: (status: FeatureStatus) => void;
   isMoving: boolean;
 }) {
@@ -41,19 +126,25 @@ function FeatureCard({
       <label className="sr-only" htmlFor={`move-${feature._id}`}>
         Move {feature.ref}
       </label>
-      <select
-        id={`move-${feature._id}`}
-        className="mt-2 w-full rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs text-slate-600"
-        value={feature.status}
-        disabled={isMoving}
-        onChange={(event) => onMove(event.target.value as FeatureStatus)}
-      >
-        {FEATURE_BOARD_COLUMNS.map((column) => (
-          <option key={column} value={column}>
-            Move to {humanise(column)}
-          </option>
-        ))}
-      </select>
+
+      {/* The two actions sit side by side and wrap when the column is too narrow. */}
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <select
+          id={`move-${feature._id}`}
+          className="min-h-9 min-w-32 flex-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs text-slate-600"
+          value={feature.status}
+          disabled={isMoving}
+          onChange={(event) => onMove(event.target.value as FeatureStatus)}
+        >
+          {FEATURE_BOARD_COLUMNS.map((column) => (
+            <option key={column} value={column}>
+              Move to {humanise(column)}
+            </option>
+          ))}
+        </select>
+
+        <CopyTicketButton feature={feature} project={project} featuresById={featuresById} />
+      </div>
     </article>
   );
 }
@@ -137,6 +228,9 @@ function NewFeatureForm({ projectId, onDone }: { projectId: string; onDone: () =
 export function FeatureBoard({ projectId }: { projectId: string }) {
   const features = useFeatures(projectId);
   const move = useMoveFeature(projectId);
+  // The same query the page around this board already holds, so this reads the
+  // cache rather than making a second request for it.
+  const project = useProject(projectId);
   const [isAdding, setIsAdding] = useState(false);
 
   if (features.isPending) return <LoadingState label="Loading the board…" />;
@@ -155,6 +249,10 @@ export function FeatureBoard({ projectId }: { projectId: string }) {
       />
     );
   }
+
+  // One lookup for the whole board — a card's dependencies are ids, and this is
+  // what turns them into refs and titles without another request.
+  const featuresById = new Map(items.map((feature) => [feature._id, feature]));
 
   const lastOrderIn = (status: FeatureStatus) =>
     items
@@ -204,6 +302,8 @@ export function FeatureBoard({ projectId }: { projectId: string }) {
                       <FeatureCard
                         key={feature._id}
                         feature={feature}
+                        project={project.data}
+                        featuresById={featuresById}
                         isMoving={move.isPending}
                         onMove={(status) => {
                           if (status === feature.status) return;
