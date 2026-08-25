@@ -4,6 +4,7 @@ export * from './publish.js';
 export * from './svgSanitiser.js';
 export * from './siteContent.js';
 export * from './featureCsvTemplate.js';
+export * from './featureTicket.js';
 export * from './runRate.js';
 export * from './validate.js';
 export * from './schemas/index.js';
