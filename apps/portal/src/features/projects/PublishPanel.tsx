@@ -4,7 +4,7 @@ import { Button } from '../../components/Button';
 import { Field, inputClasses } from '../../components/Field';
 import { ApiRequestError } from '../../lib/api';
 import { humanise, shortDate } from '../../lib/format';
-import { usePublishProject, useUnpublishProject, useUpdateProject } from './api';
+import { usePublishProject, useUnpublishProject, useUpdateProjectPortfolio } from './api';
 
 /**
  * Publishing is an explicit action that writes the portfolio snapshot. Saving a
@@ -12,7 +12,9 @@ import { usePublishProject, useUnpublishProject, useUpdateProject } from './api'
  * of the three gates — the API still decides.
  */
 export function PublishPanel({ project }: { project: Project }) {
-  const update = useUpdateProject(project._id);
+  // The portfolio endpoint, not the project one — this writes a single key
+  // under `portfolio` and must not disturb the rest of it. See the hook.
+  const update = useUpdateProjectPortfolio(project._id);
   const publish = usePublishProject(project._id);
   const unpublish = useUnpublishProject(project._id);
 
@@ -37,9 +39,7 @@ export function PublishPanel({ project }: { project: Project }) {
             className={inputClasses}
             value={project.portfolio.visibility}
             disabled={update.isPending}
-            onChange={(event) =>
-              update.mutate({ portfolio: { visibility: event.target.value } })
-            }
+            onChange={(event) => update.mutate({ visibility: event.target.value })}
           >
             {VISIBILITIES.map((value) => (
               <option key={value} value={value}>

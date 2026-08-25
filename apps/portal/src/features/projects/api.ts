@@ -94,6 +94,26 @@ export function useUpdateProject(id: string) {
 }
 
 /**
+ * The portfolio subtree, on the endpoint built for it.
+ *
+ * Never send `portfolio` through `useUpdateProject`. That endpoint takes the
+ * whole project, and Mongoose replaces a nested object rather than merging
+ * into it — so a body naming one portfolio key resets every other key in the
+ * subtree to its schema default. This route writes only the keys it is given,
+ * as dotted paths under `portfolio`, which is what makes saving one section at
+ * a time safe.
+ */
+export function useUpdateProjectPortfolio(id: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: Record<string, unknown>) =>
+      apiPatch<Project>(`/api/projects/${id}/portfolio`, input),
+    onSuccess: () => client.invalidateQueries({ queryKey: projectKeys.all }),
+  });
+}
+
+/**
  * Hard delete. The API refuses with 409 while anything still points at the
  * project, so the caller shows what blocks it rather than forcing it through.
  */
