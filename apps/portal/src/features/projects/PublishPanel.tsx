@@ -1,4 +1,5 @@
 import { VISIBILITIES, type Project } from '@wroom/shared';
+import { Link } from 'react-router-dom';
 
 import { Button } from '../../components/Button';
 import { Field, inputClasses } from '../../components/Field';
@@ -31,6 +32,21 @@ export function PublishPanel({ project }: { project: Project }) {
           ? `Published ${shortDate(project.portfolio.publishedAt)}. Republish to push your latest changes.`
           : 'Not published. Nothing reaches the public site until you publish it here.'}
       </p>
+
+      {/*
+       * The way in to the portfolio editor. Everything the public page shows
+       * beyond the name and the hero — the category, the tagline, the overview,
+       * the capability cards, the modules, the video, the case studies, the
+       * tech and platform marks — is written on that screen and nowhere else.
+       * Its route existed with nothing linking to it, so the fields behind it
+       * could only be reached by typing the URL.
+       */}
+      <Link
+        to={`/projects/${project._id}/case-study`}
+        className="mt-3 inline-block text-xs font-medium text-slate-900 underline"
+      >
+        Edit the portfolio page →
+      </Link>
 
       <div className="mt-4 max-w-xs">
         <Field label="Visibility" htmlFor="portfolio-visibility">

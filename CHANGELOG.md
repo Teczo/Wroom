@@ -31,6 +31,11 @@
   dropdown was lost, which is why published pages kept coming out empty.
 - The same fault affected every "save one field" action in the portal, not just
   that one. Saving a single field now changes that field and nothing else.
+- The portfolio editor is reachable again. The screen where you write a
+  project's category, tagline, overview, capability cards, key modules, demo
+  video, case studies and tech marks had no link anywhere in the portal — the
+  page existed but you could only get to it by typing the address. There is now
+  an "Edit the portfolio page" link in the Portfolio box on the project page.
 - Every card on a project's feature board has a "Copy ticket" button. Pressing
   it puts a full, written-out ticket on the clipboard — the ref and title, the
   project, its repo and stack, the branch name to work on, the card's priority,
