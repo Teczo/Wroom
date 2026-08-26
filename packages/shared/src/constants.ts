@@ -207,7 +207,7 @@ export type NoteKind = (typeof NOTE_KINDS)[number];
  * `mediaLibrary.kind`. Icons are data, not code — every mark on the public site
  * is one of these records rather than a file in a components folder.
  */
-export const MEDIA_KINDS = ['tech', 'platform', 'client', 'social'] as const;
+export const MEDIA_KINDS = ['tech', 'platform', 'client', 'social', 'app'] as const;
 export type MediaKind = (typeof MEDIA_KINDS)[number];
 
 /**

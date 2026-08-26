@@ -2,6 +2,15 @@
 
 ## 2026-08-26
 
+- A project can now have its own app icon, picked from the media library on its
+  portfolio screen. Publish the project and it appears on the phone in the
+  landing page hero, tappable through to that project's page.
+- The media library has a new kind for those icons — "app icons" — so they do
+  not clutter the tech and platform grids.
+- A project without an icon is simply not on the phone, and if none of your
+  published projects has one there is no phone. Deleting a mark that a project
+  uses as its app icon is refused, the same way it already is for a tech or
+  platform mark, and the refusal says which.
 - The landing page has the rail from the design back: a pane of code with file
   tabs along the top, and a small readout of labels and values under it. Both
   are yours to write on the landing page in the portal, both are decoration for

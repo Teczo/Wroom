@@ -210,6 +210,7 @@ portfolio: {
   // --- reference data ---
   techStackKeys: ["react", "threejs", "webxr", "nodejs", "mongodb", "azure"],
   platformKeys: ["web", "desktop", "vr", "mobile"],
+  appIconMediaKey: null,           // → mediaLibrary.key, kind "app"; the project's own icon
 
   // --- media ---
   heroAssetId: null,
@@ -239,7 +240,7 @@ Reusable marks, managed once in the portal instead of re-uploaded per project.
 ```js
 {
   _id,
-  kind,                         // "tech" | "platform" | "client" | "social"
+  kind,                         // "tech" | "platform" | "client" | "social" | "app"
   key: "react",                 // stable, lowercase, referenced from projects and siteContent
   label: "React",
   svg: "<svg viewBox=…>…</svg>",// inline markup, sanitised server-side on write
@@ -257,6 +258,8 @@ Reusable marks, managed once in the portal instead of re-uploaded per project.
 **`usageApproved`** is the trademark gate. Brand marks used for "built with" attribution are fine; a client's mark is not, without permission. `false` means the mark never reaches a published surface — the publish action drops it silently rather than failing, and the portal shows why.
 
 Seed `kind: "platform"` with `web`, `desktop`, `vr`, `mobile`, `tablet`. Seed `kind: "social"` with `github`, `linkedin`, `email`.
+
+`kind: "app"` is a project's own icon, as it appears on a phone's home screen. A project points at one through `portfolio.appIconMediaKey`, and it is what the landing page's app shelf draws.
 
 ---
 
@@ -631,6 +634,7 @@ The flattened snapshot. This is the **only** project data the portfolio reads.
 
   techStack: [{ key, label, svg }],     // resolved from mediaLibrary at publish
   platforms: [{ key, label, svg }],
+  appIcon: { key, label, svg } | null,  // the landing page's app shelf
   clientLogo: { label, svg } | null,    // only when usageApproved
 
   heroImage: { url, alt, variants: { thumb, card, hero } },

@@ -1,4 +1,6 @@
+import { AppShelf } from './AppShelf';
 import { Terminal } from './Terminal';
+import { useFeaturedProjects } from './api';
 import type { LandingData } from './landingData';
 
 /**
@@ -13,9 +15,12 @@ import type { LandingData } from './landingData';
  * in the portal like everything else. They are decoration for a wide screen and
  * are gone below `lg` — a phone gets the words (§7.7).
  *
- * The portrait and the phone of app icons the design also shows are still
- * absent: an asset the portfolio may not resolve, and a mark no project
- * carries. They stay out rather than being invented (§11).
+ * The phone under the terminal is the published projects that have an app icon.
+ * It shares the row's query rather than making one of its own, and it is gone
+ * below `lg` like the rest of the composition.
+ *
+ * The portrait the design also shows is still absent: it is an asset the
+ * portfolio may not resolve, so it stays out rather than being invented (§11).
  *
  * Nothing in here animates on first paint. There is no `Reveal` above the fold
  * and no entrance transition: the headline is the largest thing on the page and
@@ -79,9 +84,22 @@ function StatusPanel({ rows }: { rows: { label: string; value: string }[] }) {
   );
 }
 
-export function Hero({ data }: { data: LandingData }) {
+export function Hero({
+  data,
+  featuredLimit,
+  featuredEnabled,
+}: {
+  data: LandingData;
+  featuredLimit: number;
+  featuredEnabled: boolean;
+}) {
   const { greeting, name, statement, disciplines, badge, terminalLines, codePanel, statusRows } =
     data;
+
+  // The same query the row below runs, deduplicated by TanStack Query: one
+  // request, and the phone and the cards fill at the same moment.
+  const projects = useFeaturedProjects(featuredLimit, featuredEnabled);
+  const apps = (projects.data?.items ?? []).filter((project) => project.appIcon?.svg);
 
   const hasHeading = greeting !== '' || name !== '';
   const hasBadge = badge.title !== '' || badge.body !== '';
@@ -89,8 +107,9 @@ export function Hero({ data }: { data: LandingData }) {
   const hasTerminal = terminalLines.length > 0;
   const hasCode = codePanel.tabs.length > 0 || codePanel.code !== '';
   const hasRail = hasCode || statusRows.length > 0;
+  const hasStage = hasTerminal || apps.length > 0;
 
-  if (!hasCopy && !hasTerminal && !hasRail) return null;
+  if (!hasCopy && !hasStage && !hasRail) return null;
 
   /*
    * Three columns when everything is there, two when one of them is not, and
@@ -98,7 +117,7 @@ export function Hero({ data }: { data: LandingData }) {
    * go: it is hidden below `lg`, so at tablet width this is the copy and the
    * terminal, which is the same page with one fewer ornament.
    */
-  const columns = hasTerminal
+  const columns = hasStage
     ? hasRail
       ? 'md:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,0.72fr)]'
       : 'md:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]'
@@ -156,7 +175,15 @@ export function Hero({ data }: { data: LandingData }) {
           ) : null}
         </div>
 
-        {hasTerminal ? <Terminal lines={terminalLines} className="hidden md:block" /> : null}
+        {hasStage ? (
+          <div className="hidden flex-col gap-6 md:flex">
+            {hasTerminal ? <Terminal lines={terminalLines} /> : null}
+            {/* Tucked under the screen at the right, and only on a wide one. */}
+            <div className="hidden self-end lg:block">
+              <AppShelf apps={apps} />
+            </div>
+          </div>
+        ) : null}
 
         {hasRail ? (
           <div className="hidden flex-col gap-5 lg:flex">

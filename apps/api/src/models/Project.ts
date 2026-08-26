@@ -140,6 +140,8 @@ const portfolioSchema = new Schema(
     // --- reference data; both are mediaLibrary keys, not labels ---
     techStackKeys: { type: [String], default: [] },
     platformKeys: { type: [String], default: [] },
+    /** → mediaLibrary.key, kind "app". The project's own icon. */
+    appIconMediaKey: { type: String, default: null },
 
     // --- media ---
     heroAssetId: { type: Schema.Types.ObjectId, ref: 'Asset', default: null },
