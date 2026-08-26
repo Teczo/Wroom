@@ -25,10 +25,27 @@ declare global {
 }
 
 /**
+ * A machine subject — a service calling the API rather than a person.
+ *
+ * Auth0 stamps `<client-id>@clients` on a client-credentials token. The MCP
+ * server holds one of these, and the Claude Code integration will later.
+ */
+function isMachineSubject(subject: string): boolean {
+  return subject.endsWith('@clients');
+}
+
+/**
  * Resolves the Auth0 subject to a `users` record, creating one on first sign-in.
  *
  * The first person to sign in becomes the owner — that is the bootstrap for a
  * fresh database. Everyone after that starts as a viewer and is promoted by hand.
+ *
+ * A machine caller is let through without any of that. It is not a person, so
+ * it gets no `users` row: one would show up in the team list as a member nobody
+ * hired, and against an empty database the bootstrap rule above would hand a
+ * service the owner role. `req.currentUser` stays undefined for machines, and
+ * `currentUser()` below throws if a route actually needs a person — which is
+ * the right answer, because a machine cannot author a note or a decision.
  */
 export const loadCurrentUser: RequestHandler = async (req, _res, next) => {
   const payload = req.auth?.payload;
@@ -36,6 +53,11 @@ export const loadCurrentUser: RequestHandler = async (req, _res, next) => {
 
   if (!authProviderId) {
     next(new UnauthenticatedError());
+    return;
+  }
+
+  if (isMachineSubject(authProviderId)) {
+    next();
     return;
   }
 
@@ -60,8 +82,17 @@ export const loadCurrentUser: RequestHandler = async (req, _res, next) => {
   next();
 };
 
-/** Throws rather than returning undefined, so controllers can rely on it. */
+/**
+ * Throws rather than returning undefined, so controllers can rely on it.
+ *
+ * `requireAuth` has already run by the time any controller calls this, so an
+ * unauthenticated request never gets here. The one caller left without a user
+ * is a machine, which is why the message says so rather than offering to let
+ * someone sign in.
+ */
 export function currentUser(req: Express.Request): UserDocument {
-  if (!req.currentUser) throw new UnauthenticatedError();
+  if (!req.currentUser) {
+    throw new UnauthenticatedError('This endpoint records who did it, so it needs a person.');
+  }
   return req.currentUser;
 }
