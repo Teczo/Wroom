@@ -1,5 +1,6 @@
 import { FeaturedProjects } from '../features/landing/FeaturedProjects';
 import { Hero } from '../features/landing/Hero';
+import { LandingBottom } from '../features/landing/LandingBottom';
 import { FALLBACK_FEATURED_LIMIT, readLandingData } from '../features/landing/landingData';
 import { usePublishedContent } from '../features/content/api';
 import { useDocumentMeta } from '../lib/useDocumentMeta';
@@ -18,6 +19,10 @@ import { useDocumentMeta } from '../lib/useDocumentMeta';
  *
  * The projects wait for the content record because it says how many of them to
  * ask for. That wait is the row's loading state, not a blank page.
+ *
+ * The bar at the foot of the page is the site's one CTA, and the social row
+ * beside it is from the same record — the design puts both under the work
+ * rather than in the hero.
  */
 export function LandingPage() {
   const content = usePublishedContent('landing');
@@ -35,6 +40,7 @@ export function LandingPage() {
         limit={data?.featuredLimit ?? FALLBACK_FEATURED_LIMIT}
         enabled={!content.isPending}
       />
+      {data ? <LandingBottom data={data} /> : null}
     </>
   );
 }

@@ -81,12 +81,17 @@ export function SiteHeader() {
 
   return (
     /*
-     * Sticky and translucent, so the grid and the glow behind it stay visible
-     * as the page moves under it. `z-30` clears the page content but stays
-     * under the mobile overlay's `z-50`.
+     * A floating pill rather than a full-width bar: sticky, translucent and
+     * inset from the top, so the grid and the glow behind it stay visible as
+     * the page moves under it. `z-30` clears the page content but stays under
+     * the mobile overlay's `z-50`.
+     *
+     * The gap above it is padding on the sticky element, not a transform —
+     * `index.css` strips every transform under reduced motion, so a transform
+     * may never be what holds something in position (§7.5).
      */
-    <header className="sticky top-0 z-30 border-b border-border bg-canvas/70 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-4">
+    <header className="sticky top-0 z-30 px-5 pt-4">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 rounded-xl border border-border bg-canvas/80 px-5 py-3 backdrop-blur-xl">
         <Link
           to="/"
           className="font-heading text-base font-bold tracking-tight text-fg transition-colors hover:text-accent"

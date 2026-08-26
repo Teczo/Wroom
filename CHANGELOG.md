@@ -1,5 +1,30 @@
 # Changelog
 
+## 2026-08-26
+
+- The landing page has been rebuilt to the new design. The greeting and your
+  name sit large on the left with the statement under them, the disciplines on
+  one green line, and the purpose panel beneath — all of it still written in the
+  portal. The terminal beside it is now a wide, softly lit screen with no window
+  bar, and it still types itself out.
+- The featured work row now looks like the design: smaller cards with a picture
+  band across the top, the name, the blurb, and the project's category as a
+  green chip underneath. The category was already being published and was not
+  being shown anywhere.
+- On a wide screen the arrows for that row now sit on the ends of the row itself
+  rather than under it. On a phone nothing changes — one card at a time, swipe,
+  dots underneath.
+- The site header is now a floating rounded bar with a border, instead of a
+  full-width strip across the top.
+- Your social links and the "let's build something great" bar now appear at the
+  foot of the landing page, side by side, both from the landing record. The
+  button that used to sit in the hero has moved into that bar, which is where
+  the design puts it.
+- Four things in the design are not on the page yet because nothing in the
+  portal can fill them: the portrait, the phone with your app icons, the code
+  panel and the system-status readout. Each needs a new field before it can be
+  written and published, rather than being typed into the site's code.
+
 ## 2026-08-25
 
 - A project's public page has been rebuilt to the new design. The hero is now a

@@ -10,10 +10,15 @@ import { useFeaturedProjects } from './api';
  *
  * A carousel at every width: one card per viewport on a phone, swiped, with the
  * arrows hidden and the dots doing the telling (§7.7). At desktop width several
- * cards fit and the row snaps.
+ * cards fit, the row snaps, and the arrows sit on the ends of the track as the
+ * design draws them.
  *
  * How many it holds is `featuredLimit` from the published `landing` record, so
  * the length of this row is an edit and a publish rather than a deploy.
+ *
+ * The design puts a line of copy under the heading. There is no field for it on
+ * the `landing` record, so it is not there — a sentence written into this file
+ * would be portfolio copy that no one can change from the portal (§2 rule 8).
  */
 function ProjectCard({ project }: { project: PublishedProject }) {
   // The card variant for a card slot — never the original upload (§10).
@@ -24,25 +29,39 @@ function ProjectCard({ project }: { project: PublishedProject }) {
   return (
     <Link
       to={`/work/${project.slug}`}
-      className="flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-surface transition-colors hover:border-accent"
+      className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-gradient-to-br from-surface to-surface-deep transition-[border-color,transform] hover:-translate-y-1 hover:border-border-strong"
     >
-      {image ? (
-        <img
-          src={image}
-          alt={project.heroImage?.alt ?? ''}
-          loading="lazy"
-          className="aspect-video w-full object-cover"
-        />
-      ) : null}
+      {/*
+       * The image band is a fixed slice of the card rather than the picture's
+       * own aspect, so a row of cards lines up whatever shape the screenshots
+       * are. A project with no hero keeps the band as a lit panel — a card that
+       * suddenly starts at its title breaks the row.
+       */}
+      <div className="h-40 w-full border-b border-border bg-surface-deep">
+        {image ? (
+          <img
+            src={image}
+            alt={project.heroImage?.alt ?? ''}
+            loading="lazy"
+            className="size-full object-cover"
+          />
+        ) : null}
+      </div>
 
-      <div className="flex flex-1 flex-col p-5">
-        {project.productName ? (
-          <p className="text-xs uppercase tracking-wide text-muted">{project.productName}</p>
-      ) : null}
-        <h3 className="mt-1 font-heading text-lg font-semibold text-fg">{project.name}</h3>
+      <div className="flex flex-1 flex-col p-4">
+        <h3 className="font-heading text-base font-semibold text-fg">{project.name}</h3>
+
         {project.shortDescription ? (
-          <p className="mt-2 line-clamp-3 text-sm text-muted">{project.shortDescription}</p>
-      ) : null}
+          <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-muted">
+            {project.shortDescription}
+          </p>
+        ) : null}
+
+        {project.category ? (
+          <span className="mt-4 inline-flex w-fit rounded border border-border px-2 py-1 font-heading text-[0.625rem] font-medium uppercase tracking-[0.14em] text-accent">
+            {project.category}
+          </span>
+        ) : null}
       </div>
     </Link>
   );
@@ -52,8 +71,8 @@ export function FeaturedProjects({ limit, enabled }: { limit: number; enabled: b
   const projects = useFeaturedProjects(limit, enabled);
 
   return (
-    <section className="mx-auto max-w-5xl px-5 pb-20">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Featured work</h2>
+    <section className="mx-auto max-w-6xl px-5 pb-20">
+      <h2 className="font-heading text-xl font-semibold text-accent">Featured Projects</h2>
 
       {projects.isPending ? <LoadingState label="Loading work…" /> : null}
 
@@ -70,11 +89,12 @@ export function FeaturedProjects({ limit, enabled }: { limit: number; enabled: b
 
       {projects.isSuccess && projects.data.items.length > 0 ? (
         <Carousel
-          label="Featured work"
+          label="Featured projects"
           className="mt-6"
-          // Two of these fit the column at desktop and three do not, which is
-          // what decides whether the row has anywhere to scroll.
-          slideClassName="w-full md:w-[21rem]"
+          controls="side"
+          // One card per viewport on a phone; the design's 270px card from md
+          // up, where three or four of them fill the row.
+          slideClassName="w-full md:w-[17rem]"
         >
           {projects.data.items.map((project) => (
             <ProjectCard key={project._id} project={project} />
