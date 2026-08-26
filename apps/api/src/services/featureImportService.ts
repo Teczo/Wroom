@@ -8,9 +8,13 @@ import {
   type FeatureImportResult,
   type FeaturePriority,
   type FeatureSize,
+  type FeatureSource,
   type FeatureStatus,
   type ImportFieldChange,
+  type ImportInsertRow,
   type ImportInvalidRow,
+  type ImportUnaffectedRow,
+  type ImportUpdateRow,
 } from '@wroom/shared';
 import mongoose from 'mongoose';
 import Papa from 'papaparse';
@@ -35,8 +39,28 @@ import { recomputeProjectRollup } from './rollupService.js';
 /** Both separators are accepted inside a `labels` or `dependsOn` cell. */
 const CELL_SEPARATOR = /[;,]/;
 
-type ParsedRow = {
-  /** 1-based line number in the file as a person reading it would count. */
+/**
+ * One feature as the planner sees it, whatever produced it.
+ *
+ * The CSV parser below builds these from a file; the bootstrap importer builds
+ * them from a JSON body. Both then go through the same planner, so ref matching
+ * and dependency resolution have one implementation rather than two.
+ */
+export type FeatureRow = {
+  /**
+   * Where this row came from, so a message can point at it. **What the number
+   * counts depends on the format it arrived in, and the two do not agree:**
+   *
+   * - **CSV** — the 1-based line number in the file, header row included, as a
+   *   person reading it in a spreadsheet would count. The first feature is
+   *   therefore row 2.
+   * - **JSON** — the zero-based index in the payload's `features` array, so the
+   *   first feature is row 0 and the number is what you put in the brackets to
+   *   go and find it.
+   *
+   * Neither is convertible into the other without knowing which importer
+   * produced it, which is why nothing downstream does arithmetic on this.
+   */
   row: number;
   ref: string;
   title: string;
@@ -49,7 +73,7 @@ type ParsedRow = {
   dependsOn: string[];
 };
 
-type ValidRow = Omit<ParsedRow, 'status' | 'priority' | 'size'> & {
+type ValidRow = Omit<FeatureRow, 'status' | 'priority' | 'size'> & {
   status: FeatureStatus;
   priority: FeaturePriority;
   size: FeatureSize;
@@ -70,7 +94,7 @@ function cell(record: Record<string, string>, column: string): string {
  * Parses the file. A malformed file throws with the line that broke, rather
  * than importing whatever happened to survive.
  */
-function parseCsv(csv: string): { rows: ParsedRow[]; unknownColumns: string[] } {
+function parseCsv(csv: string): { rows: FeatureRow[]; unknownColumns: string[] } {
   const result = Papa.parse<Record<string, string>>(csv.trim(), {
     header: true,
     skipEmptyLines: 'greedy',
@@ -119,7 +143,7 @@ function oneOf<T extends string>(allowed: readonly T[], value: string, fallback:
 
 /** Everything wrong with a row, judged before anything is written. */
 function validateRow(
-  parsed: ParsedRow,
+  parsed: FeatureRow,
   refCounts: Map<string, number>,
   knownRefs: Set<string>,
 ): ImportInvalidRow | null {
@@ -180,26 +204,43 @@ function changesFor(existing: FeatureDocument, row: ValidRow): ImportFieldChange
     .map(([field, from, to]) => ({ field, from, to }));
 }
 
-type Plan = {
-  diff: FeatureImportDiff;
+/**
+ * A planned import: what would change, and enough state to go and write it.
+ *
+ * `unknownColumns` is absent because it is a fact about a file, not about a set
+ * of rows — `buildPlan` adds it on the way out.
+ */
+export type FeaturePlan = {
+  inserts: ImportInsertRow[];
+  updates: ImportUpdateRow[];
+  invalid: ImportInvalidRow[];
+  unaffected: ImportUnaffectedRow[];
   valid: ValidRow[];
   existingByRef: Map<string, FeatureDocument>;
 };
 
-async function buildPlan(projectId: string, csv: string): Promise<Plan> {
-  const project = await ProjectModel.exists({ _id: projectId });
-  if (!project) throw new NotFoundError('That project');
-
-  const { rows, unknownColumns } = parseCsv(csv);
-
-  const existing = await FeatureModel.find({ projectId });
+/**
+ * The planner: rows in, diff out, nothing read and nothing written.
+ *
+ * Both importers come through here. Matching is on `ref` within the project — a
+ * match updates, no match inserts, and a feature the payload says nothing about
+ * is left alone and reported as unaffected.
+ *
+ * `existing` is the project's current features, or an empty array when the
+ * project does not exist yet. That case is the bootstrap importer's: everything
+ * is an insert, and a `dependsOn` can only resolve against the payload itself.
+ */
+export function planFeatureRows(
+  rows: FeatureRow[],
+  existing: FeatureDocument[],
+): FeaturePlan {
   const existingByRef = new Map(existing.map((feature) => [feature.ref, feature]));
 
   const refCounts = new Map<string, number>();
   for (const row of rows) refCounts.set(row.ref, (refCounts.get(row.ref) ?? 0) + 1);
 
-  // A dependsOn ref may point at a row in this file or a feature already on the
-  // project — both are resolvable, anything else is not.
+  // A dependsOn ref may point at a row in this payload or a feature already on
+  // the project — both are resolvable, anything else is not.
   const knownRefs = new Set<string>([...existingByRef.keys(), ...rows.map((row) => row.ref)]);
 
   const invalid: ImportInvalidRow[] = [];
@@ -226,32 +267,138 @@ async function buildPlan(projectId: string, csv: string): Promise<Plan> {
   return {
     valid,
     existingByRef,
-    diff: {
-      inserts: valid
-        .filter((row) => !existingByRef.has(row.ref))
-        .map((row) => ({ row: row.row, ref: row.ref, title: row.title, status: row.status })),
 
-      updates: valid
-        .filter((row) => existingByRef.has(row.ref))
-        .map((row) => {
-          const feature = existingByRef.get(row.ref)!;
+    inserts: valid
+      .filter((row) => !existingByRef.has(row.ref))
+      .map((row) => ({ row: row.row, ref: row.ref, title: row.title, status: row.status })),
 
-          return {
-            row: row.row,
-            ref: row.ref,
-            featureId: String(feature._id),
-            title: row.title,
-            changes: changesFor(feature, row),
-          };
-        }),
+    updates: valid
+      .filter((row) => existingByRef.has(row.ref))
+      .map((row) => {
+        const feature = existingByRef.get(row.ref)!;
 
-      invalid,
-      unaffected: existing
-        .filter((feature) => !touchedRefs.has(feature.ref))
-        .map((feature) => ({ ref: feature.ref, title: feature.title })),
-      unknownColumns,
-    },
+        return {
+          row: row.row,
+          ref: row.ref,
+          featureId: String(feature._id),
+          title: row.title,
+          changes: changesFor(feature, row),
+        };
+      }),
+
+    invalid,
+    unaffected: existing
+      .filter((feature) => !touchedRefs.has(feature.ref))
+      .map((feature) => ({ ref: feature.ref, title: feature.title })),
   };
+}
+
+type Plan = {
+  diff: FeatureImportDiff;
+  valid: ValidRow[];
+  existingByRef: Map<string, FeatureDocument>;
+};
+
+async function buildPlan(projectId: string, csv: string): Promise<Plan> {
+  const project = await ProjectModel.exists({ _id: projectId });
+  if (!project) throw new NotFoundError('That project');
+
+  const { rows, unknownColumns } = parseCsv(csv);
+  const existing = await FeatureModel.find({ projectId });
+
+  const { valid, existingByRef, inserts, updates, invalid, unaffected } = planFeatureRows(
+    rows,
+    existing,
+  );
+
+  return {
+    valid,
+    existingByRef,
+    diff: { inserts, updates, invalid, unaffected, unknownColumns },
+  };
+}
+
+/**
+ * Writes a plan. Both importers call this inside their own transaction, so a
+ * feature's dependencies are resolved the same way whichever produced it.
+ *
+ * Two passes, and the order matters: every row is written first, because a row
+ * may depend on another row in the same payload and a ref only becomes an id
+ * once that row exists.
+ *
+ * `source` is what the features are stamped with — a CSV import says so, and a
+ * bootstrap says `manual`, because a brainstorm is someone writing them down.
+ */
+export async function writeFeaturePlan(
+  projectId: mongoose.Types.ObjectId | string,
+  valid: ValidRow[],
+  existingByRef: Map<string, FeatureDocument>,
+  session: mongoose.ClientSession,
+  source: FeatureSource,
+): Promise<{ inserted: number; updated: number }> {
+  let inserted = 0;
+  let updated = 0;
+
+  // Where each status column's ordering carries on from. Rebuilt per call, so a
+  // transaction that retries starts from the same place rather than carrying
+  // the previous attempt's numbers forward.
+  const nextOrder = new Map<string, number>();
+  for (const feature of existingByRef.values()) {
+    nextOrder.set(feature.status, Math.max(nextOrder.get(feature.status) ?? 0, feature.order));
+  }
+
+  const idByRef = new Map<string, mongoose.Types.ObjectId>(
+    [...existingByRef.entries()].map(([ref, feature]) => [
+      ref,
+      feature._id as mongoose.Types.ObjectId,
+    ]),
+  );
+
+  for (const row of valid) {
+    const fields = {
+      title: row.title,
+      description: row.description,
+      acceptanceCriteria: row.acceptanceCriteria,
+      status: row.status,
+      priority: row.priority,
+      size: row.size,
+      labels: row.labels,
+      source,
+      externalKey: row.ref,
+    };
+
+    const existing = existingByRef.get(row.ref);
+
+    if (existing) {
+      await FeatureModel.updateOne({ _id: existing._id }, { $set: fields }, { session });
+      updated += 1;
+      continue;
+    }
+
+    const order = (nextOrder.get(row.status) ?? 0) + FEATURE_ORDER_GAP;
+    nextOrder.set(row.status, order);
+
+    const [created] = await FeatureModel.create(
+      [{ ...fields, projectId, ref: row.ref, order, completedAt: row.status === 'done' ? new Date() : null }],
+      { session },
+    );
+
+    idByRef.set(row.ref, created!._id as mongoose.Types.ObjectId);
+    inserted += 1;
+  }
+
+  // Second pass: refs become ids now that every row has one.
+  for (const row of valid) {
+    if (row.dependsOn.length === 0) continue;
+
+    await FeatureModel.updateOne(
+      { _id: idByRef.get(row.ref) },
+      { $set: { dependsOnFeatureIds: row.dependsOn.map((ref) => idByRef.get(ref)!) } },
+      { session },
+    );
+  }
+
+  return { inserted, updated };
 }
 
 /** Reads nothing into the database — the preview is a pure calculation. */
@@ -280,73 +427,13 @@ export async function commitImport(
     );
   }
 
-  // Where each status column's ordering carries on from.
-  const nextOrder = new Map<string, number>();
-  for (const feature of existingByRef.values()) {
-    nextOrder.set(feature.status, Math.max(nextOrder.get(feature.status) ?? 0, feature.order));
-  }
-
   const session = await mongoose.startSession();
   let inserted = 0;
   let updated = 0;
 
   try {
     await session.withTransaction(async () => {
-      inserted = 0;
-      updated = 0;
-
-      const idByRef = new Map<string, mongoose.Types.ObjectId>(
-        [...existingByRef.entries()].map(([ref, feature]) => [
-          ref,
-          feature._id as mongoose.Types.ObjectId,
-        ]),
-      );
-
-      // First pass writes the rows. Dependencies are resolved afterwards,
-      // because a row may depend on another row in the same file.
-      for (const row of valid) {
-        const fields = {
-          title: row.title,
-          description: row.description,
-          acceptanceCriteria: row.acceptanceCriteria,
-          status: row.status,
-          priority: row.priority,
-          size: row.size,
-          labels: row.labels,
-          source: 'csv' as const,
-          externalKey: row.ref,
-        };
-
-        const existing = existingByRef.get(row.ref);
-
-        if (existing) {
-          await FeatureModel.updateOne({ _id: existing._id }, { $set: fields }, { session });
-          updated += 1;
-          continue;
-        }
-
-        const order = (nextOrder.get(row.status) ?? 0) + FEATURE_ORDER_GAP;
-        nextOrder.set(row.status, order);
-
-        const [created] = await FeatureModel.create(
-          [{ ...fields, projectId, ref: row.ref, order, completedAt: row.status === 'done' ? new Date() : null }],
-          { session },
-        );
-
-        idByRef.set(row.ref, created!._id as mongoose.Types.ObjectId);
-        inserted += 1;
-      }
-
-      // Second pass: refs become ids now that every row has one.
-      for (const row of valid) {
-        if (row.dependsOn.length === 0) continue;
-
-        await FeatureModel.updateOne(
-          { _id: idByRef.get(row.ref) },
-          { $set: { dependsOnFeatureIds: row.dependsOn.map((ref) => idByRef.get(ref)!) } },
-          { session },
-        );
-      }
+      ({ inserted, updated } = await writeFeaturePlan(projectId, valid, existingByRef, session, 'csv'));
     });
   } finally {
     await session.endSession();

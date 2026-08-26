@@ -466,6 +466,65 @@ export type FeatureImportResult = {
   skipped: number;
 };
 
+/** Which of the three collections a bootstrap plan entry is about. */
+export type BootstrapEntityKind = 'product' | 'project' | 'feature';
+
+/**
+ * One entry in a bootstrap plan.
+ *
+ * `ref` is the slug for a product or a project and the feature ref for a
+ * feature — in every case the value the importer matched on, so a reader can
+ * see why an entry landed where it did.
+ *
+ * `row` is the zero-based index in the payload's `features` array, and null for
+ * the product and the project. It is the JSON counterpart of the CSV importer's
+ * line number, but it does not count the same way: a file has a header line to
+ * skip and an array does not, so the first feature is row 0 here and row 2
+ * there. Read it as the subscript that finds the entry again, nothing more.
+ */
+export type BootstrapPlanEntry = {
+  kind: BootstrapEntityKind;
+  ref: string;
+  label: string;
+  row: number | null;
+};
+
+export type BootstrapInsertEntry = BootstrapPlanEntry;
+
+export type BootstrapUpdateEntry = BootstrapPlanEntry & {
+  /** The existing document this would update. */
+  id: Id;
+  changes: ImportFieldChange[];
+};
+
+/** Already there, and this payload changes nothing about it. */
+export type BootstrapUnaffectedEntry = BootstrapPlanEntry;
+
+/**
+ * The same four buckets the feature importer reports, widened to cover all
+ * three collections at once.
+ *
+ * `invalid` stays feature-only: a product or a project that cannot be written
+ * fails the whole request rather than being listed, because there is nothing
+ * left to import once the thing the features hang off is wrong.
+ */
+export type BootstrapImportDiff = {
+  inserts: BootstrapInsertEntry[];
+  updates: BootstrapUpdateEntry[];
+  invalid: ImportInvalidRow[];
+  unaffected: BootstrapUnaffectedEntry[];
+};
+
+export type BootstrapWriteAction = 'inserted' | 'updated' | 'unaffected';
+
+export type BootstrapImportResult = {
+  productId: Id;
+  projectId: Id;
+  product: BootstrapWriteAction;
+  project: BootstrapWriteAction;
+  features: FeatureImportResult;
+};
+
 export type Cost = Timestamps & {
   _id: Id;
   projectId: Id;
