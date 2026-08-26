@@ -2,6 +2,15 @@
 
 ## 2026-08-26
 
+- The landing page has the rail from the design back: a pane of code with file
+  tabs along the top, and a small readout of labels and values under it. Both
+  are yours to write on the landing page in the portal, both are decoration for
+  a wide screen, and both are gone on a phone. Leave either empty and it is not
+  drawn at all.
+- The readout is written, not measured. Nothing in Wroom watches a build or a
+  machine, so those rows say whatever you type until you type something else.
+- There is now a line of copy under the Featured Projects heading, also written
+  in the portal.
 - Your icons now show up on the public site. Publishing a page — landing,
   contact or skills — looks up every mark you referenced in the media library
   and copies it into what the live site serves, so the social row at the foot of

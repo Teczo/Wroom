@@ -9,11 +9,13 @@ import type { LandingData } from './landingData';
  * portal is a piece of the hero that does not render, rather than an empty
  * heading or a placeholder (§7.4).
  *
- * The design puts a portrait, a phone and two instrument panels around the
- * screen in the middle. None of them has a field behind it — a portrait is an
- * asset the portfolio may not resolve and the panels are copy nobody can
- * write — so they are absent rather than invented, and the stage is the screen
- * alone until the ticket that adds them (§11).
+ * The rail on the right is the code pane and the status readout, both written
+ * in the portal like everything else. They are decoration for a wide screen and
+ * are gone below `lg` — a phone gets the words (§7.7).
+ *
+ * The portrait and the phone of app icons the design also shows are still
+ * absent: an asset the portfolio may not resolve, and a mark no project
+ * carries. They stay out rather than being invented (§11).
  *
  * Nothing in here animates on first paint. There is no `Reveal` above the fold
  * and no entrance transition: the headline is the largest thing on the page and
@@ -26,23 +28,87 @@ import type { LandingData } from './landingData';
  * the old hero carried is now the bar at the foot of the page, which is where
  * the design puts the site's one CTA.
  */
+/**
+ * The pane of source beside the terminal.
+ *
+ * `code` is rendered as text and nothing else — no highlighter, and never
+ * `dangerouslySetInnerHTML`, which in this app is reserved for library SVG that
+ * a write-time sanitiser has already been through (§7.3). It wraps rather than
+ * scrolling sideways, because it is a texture at this size, not something
+ * anybody reads a line of.
+ */
+function CodePane({ tabs, code }: { tabs: string[]; code: string }) {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-border bg-surface-deep/70">
+      {tabs.length > 0 ? (
+        <div className="flex flex-wrap gap-4 border-b border-border px-5 py-3 font-heading text-[0.625rem] uppercase tracking-[0.14em] text-muted">
+          {tabs.map((tab) => (
+            <span key={tab}>{tab}</span>
+          ))}
+        </div>
+      ) : null}
+
+      {code ? (
+        <pre className="whitespace-pre-wrap break-words p-5 font-mono text-[0.6875rem] leading-[1.7] text-accent/60">
+          {code}
+        </pre>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * The readout under it: a label and a value, as many times as were written.
+ *
+ * It carries no heading of its own — there is no field for one, and a title
+ * typed into this file would be portfolio copy that no one can change from the
+ * portal (§2 rule 8).
+ */
+function StatusPanel({ rows }: { rows: { label: string; value: string }[] }) {
+  return (
+    <dl className="rounded-2xl border border-border bg-surface-deep/70 px-5 py-4">
+      {rows.map((row) => (
+        <div key={row.label} className="flex items-baseline justify-between gap-4 py-1.5">
+          <dt className="font-heading text-[0.625rem] uppercase tracking-[0.14em] text-muted">
+            {row.label}
+          </dt>
+          <dd className="font-heading text-xs text-accent">{row.value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
 export function Hero({ data }: { data: LandingData }) {
-  const { greeting, name, statement, disciplines, badge, terminalLines } = data;
+  const { greeting, name, statement, disciplines, badge, terminalLines, codePanel, statusRows } =
+    data;
 
   const hasHeading = greeting !== '' || name !== '';
   const hasBadge = badge.title !== '' || badge.body !== '';
   const hasCopy = hasHeading || statement !== '' || disciplines.length > 0 || hasBadge;
   const hasTerminal = terminalLines.length > 0;
+  const hasCode = codePanel.tabs.length > 0 || codePanel.code !== '';
+  const hasRail = hasCode || statusRows.length > 0;
 
-  if (!hasCopy && !hasTerminal) return null;
+  if (!hasCopy && !hasTerminal && !hasRail) return null;
+
+  /*
+   * Three columns when everything is there, two when one of them is not, and
+   * one when neither is. The rail is the narrowest of them and is the first to
+   * go: it is hidden below `lg`, so at tablet width this is the copy and the
+   * terminal, which is the same page with one fewer ornament.
+   */
+  const columns = hasTerminal
+    ? hasRail
+      ? 'md:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,0.72fr)]'
+      : 'md:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]'
+    : hasRail
+      ? 'lg:grid-cols-[minmax(0,1fr)_minmax(0,0.72fr)]'
+      : '';
 
   return (
     <section className="mx-auto max-w-6xl px-5 py-14 sm:py-20 lg:py-24">
-      <div
-        className={`grid items-center gap-12 lg:gap-16 ${
-          hasTerminal ? 'lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]' : ''
-        }`}
-      >
+      <div className={`grid items-center gap-12 lg:gap-16 ${columns}`}>
         <div>
           {hasHeading ? (
             <h1 className="text-5xl font-bold leading-[0.98] tracking-[-0.05em] text-fg sm:text-6xl lg:text-7xl">
@@ -91,6 +157,13 @@ export function Hero({ data }: { data: LandingData }) {
         </div>
 
         {hasTerminal ? <Terminal lines={terminalLines} className="hidden md:block" /> : null}
+
+        {hasRail ? (
+          <div className="hidden flex-col gap-5 lg:flex">
+            {hasCode ? <CodePane tabs={codePanel.tabs} code={codePanel.code} /> : null}
+            {statusRows.length > 0 ? <StatusPanel rows={statusRows} /> : null}
+          </div>
+        ) : null}
       </div>
     </section>
   );

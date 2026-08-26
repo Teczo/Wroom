@@ -519,8 +519,11 @@ The portfolio's own copy. Draft/published split so changing a sentence never req
   disciplines: ["Mobile", "Web", "XR", "AI"],
   badge: { title: "CODE. BUILD. SOLVE.", body: "Shipping digital solutions that matter." },
   terminalLines: ["developer@teczo:~$ whoami", "jayagaren"],
+  codePanel: { tabs: ["App.jsx", "Scene.tsx"], code: "" },
+  statusRows: [{ label: "BUILD", value: "READY" }],
   socials: [{ mediaKey: "github", url: "" }],
   ctaLabel: "Let's build something great",
+  featuredIntro: "Selected products and platforms I've built.",
   featuredLimit: 6
 }
 
@@ -540,7 +543,12 @@ The portfolio's own copy. Draft/published split so changing a sentence never req
 
 Skills carries no proficiency level, years, or per-item prose. It is icon and label, grouped. `mediaKey` references `mediaLibrary.key` — the same library the tech grids use.
 
-`terminalLines` is decorative and hidden below `md`.
+`terminalLines` is decorative and hidden below `md`. `codePanel` and `statusRows`
+are the rail beside it — also decorative, and hidden below `lg`.
+
+`statusRows` is written, not measured. Nothing in Wroom watches a build or a
+machine, and the public site is the wrong place for it to start: the rows say
+whatever was typed until somebody types something else.
 
 **`published.data` carries one field the draft does not: `marks`.**
 

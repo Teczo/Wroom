@@ -262,6 +262,73 @@ function SocialsEditor({
   );
 }
 
+type StatusRow = { label: string; value: string };
+
+/**
+ * The landing page's status readout: a label and a value, repeated.
+ *
+ * Both halves are typed. Nothing in Wroom measures a build, a machine or a
+ * queue, and a public page is the wrong place to grow that — these rows say
+ * what you write until you write something else.
+ */
+function StatusRowsEditor({
+  rows,
+  onChange,
+}: {
+  rows: StatusRow[];
+  onChange: (next: StatusRow[]) => void;
+}) {
+  const update = (index: number, patch: Partial<StatusRow>) =>
+    onChange(rows.map((row, at) => (at === index ? { ...row, ...patch } : row)));
+
+  return (
+    <fieldset className="space-y-2">
+      <legend className="text-sm font-medium text-slate-800">Status readout</legend>
+      <p className="text-xs text-slate-500">
+        The small panel under the code pane. Decorative, hidden on a phone, and
+        nothing here is measured — you write both halves.
+      </p>
+
+      {rows.map((row, index) => (
+        <div key={index} className="flex items-center gap-2">
+          <input
+            aria-label={`Status row ${index + 1} label`}
+            className={inputClasses}
+            value={row.label}
+            placeholder="BUILD"
+            onChange={(event) => update(index, { label: event.target.value })}
+          />
+          <input
+            aria-label={`Status row ${index + 1} value`}
+            className={inputClasses}
+            value={row.value}
+            placeholder="READY"
+            onChange={(event) => update(index, { value: event.target.value })}
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            className="min-h-9 shrink-0 px-2 text-xs text-red-600 hover:bg-red-50"
+            aria-label={`Remove status row ${index + 1}`}
+            onClick={() => onChange(rows.filter((_, at) => at !== index))}
+          >
+            ✕
+          </Button>
+        </div>
+      ))}
+
+      <Button
+        type="button"
+        variant="secondary"
+        className="min-h-9 text-xs"
+        onClick={() => onChange([...rows, { label: '', value: '' }])}
+      >
+        Add a row
+      </Button>
+    </fieldset>
+  );
+}
+
 // --- the four forms --------------------------------------------------------
 
 export function LandingDataForm({
@@ -352,6 +419,36 @@ export function LandingDataForm({
         placeholder="developer@teczo:~$ whoami"
       />
 
+      <StringListEditor
+        label="Code pane tabs"
+        hint="The file names along the top of the pane beside the terminal."
+        idPrefix="ld-code-tab"
+        values={data.codePanel.tabs}
+        onChange={(tabs) => onChange({ ...data, codePanel: { ...data.codePanel, tabs } })}
+        placeholder="App.jsx"
+      />
+
+      <Field
+        label="Code pane"
+        htmlFor="ld-code"
+        error={errors['data.codePanel.code']}
+        hint="Shown as plain text, exactly as typed. Decorative, and hidden on a phone."
+      >
+        <textarea
+          id="ld-code"
+          className={`${inputClasses} min-h-40 font-mono text-xs`}
+          value={data.codePanel.code}
+          onChange={(event) =>
+            onChange({ ...data, codePanel: { ...data.codePanel, code: event.target.value } })
+          }
+        />
+      </Field>
+
+      <StatusRowsEditor
+        rows={data.statusRows}
+        onChange={(statusRows) => onChange({ ...data, statusRows })}
+      />
+
       <SocialsEditor
         socials={data.socials}
         onChange={(socials) => onChange({ ...data, socials })}
@@ -365,6 +462,21 @@ export function LandingDataForm({
           value={data.ctaLabel}
           onChange={(event) => onChange({ ...data, ctaLabel: event.target.value })}
           placeholder="Let's build something great"
+        />
+      </Field>
+
+      <Field
+        label="Featured work intro"
+        htmlFor="ld-featured-intro"
+        error={errors['data.featuredIntro']}
+        hint="One line under the Featured Projects heading."
+      >
+        <input
+          id="ld-featured-intro"
+          className={inputClasses}
+          value={data.featuredIntro}
+          onChange={(event) => onChange({ ...data, featuredIntro: event.target.value })}
+          placeholder="Selected products and platforms I've built."
         />
       </Field>
 

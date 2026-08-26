@@ -16,9 +16,9 @@ import { useFeaturedProjects } from './api';
  * How many it holds is `featuredLimit` from the published `landing` record, so
  * the length of this row is an edit and a publish rather than a deploy.
  *
- * The design puts a line of copy under the heading. There is no field for it on
- * the `landing` record, so it is not there — a sentence written into this file
- * would be portfolio copy that no one can change from the portal (§2 rule 8).
+ * The line under the heading is `featuredIntro` from the same record. Empty and
+ * it is not drawn, rather than leaving a gap where a sentence used to be
+ * (§7.4).
  */
 function ProjectCard({ project }: { project: PublishedProject }) {
   // The card variant for a card slot — never the original upload (§10).
@@ -67,12 +67,21 @@ function ProjectCard({ project }: { project: PublishedProject }) {
   );
 }
 
-export function FeaturedProjects({ limit, enabled }: { limit: number; enabled: boolean }) {
+export function FeaturedProjects({
+  limit,
+  intro,
+  enabled,
+}: {
+  limit: number;
+  intro: string;
+  enabled: boolean;
+}) {
   const projects = useFeaturedProjects(limit, enabled);
 
   return (
     <section className="mx-auto max-w-6xl px-5 pb-20">
       <h2 className="font-heading text-xl font-semibold text-accent">Featured Projects</h2>
+      {intro ? <p className="mt-1 text-sm text-muted">{intro}</p> : null}
 
       {projects.isPending ? <LoadingState label="Loading work…" /> : null}
 

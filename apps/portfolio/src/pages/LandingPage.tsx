@@ -38,6 +38,7 @@ export function LandingPage() {
       {data ? <Hero data={data} /> : null}
       <FeaturedProjects
         limit={data?.featuredLimit ?? FALLBACK_FEATURED_LIMIT}
+        intro={data?.featuredIntro ?? ''}
         enabled={!content.isPending}
       />
       {data ? <LandingBottom data={data} /> : null}

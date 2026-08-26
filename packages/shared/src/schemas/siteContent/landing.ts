@@ -26,8 +26,38 @@ export const landingDataSchema = strictObject({
   ),
   /** Decorative, and hidden below `md` (docs/DATA_MODEL.md). */
   terminalLines: withDefault(arrayOf(string({ max: 200, allowEmpty: true }), { max: 20 }), []),
+  /**
+   * The pane of source beside the terminal. Decorative, and hidden below `lg`.
+   *
+   * `tabs` are the file names along its top and `code` is what it shows —
+   * rendered as text, never highlighted and never as markup.
+   */
+  codePanel: withDefault(
+    strictObject({
+      tabs: withDefault(arrayOf(string({ min: 1, max: 40 }), { max: 6 }), []),
+      code: withDefault(string({ max: 2000, allowEmpty: true }), ''),
+    }),
+    { tabs: [], code: '' },
+  ),
+  /**
+   * The small readout under the code pane. Decorative, hidden below `lg`, and
+   * authored: Wroom measures nothing about this machine and a public page is
+   * the wrong place to start.
+   */
+  statusRows: withDefault(
+    arrayOf(
+      strictObject({
+        label: string({ min: 1, max: 24 }),
+        value: withDefault(string({ max: 24, allowEmpty: true }), ''),
+      }),
+      { max: 6 },
+    ),
+    [],
+  ),
   socials: withDefault(arrayOf(strictObject(socialShape), { max: 12 }), []),
   ctaLabel: withDefault(string({ max: 80, allowEmpty: true }), ''),
+  /** The line under the featured work heading. */
+  featuredIntro: withDefault(string({ max: 200, allowEmpty: true }), ''),
   /** How many published projects the landing page shows. */
   featuredLimit: withDefault(number({ min: 1, max: 24, integer: true }), 6),
   /** Written by the publish action, never by an editor. See `marksField`. */
