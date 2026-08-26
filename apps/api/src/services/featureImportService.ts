@@ -48,8 +48,18 @@ const CELL_SEPARATOR = /[;,]/;
  */
 export type FeatureRow = {
   /**
-   * Where this row came from, 1-based, for a message that points at it. The CSV
-   * parser counts file lines; a caller working from an array counts positions.
+   * Where this row came from, so a message can point at it. **What the number
+   * counts depends on the format it arrived in, and the two do not agree:**
+   *
+   * - **CSV** — the 1-based line number in the file, header row included, as a
+   *   person reading it in a spreadsheet would count. The first feature is
+   *   therefore row 2.
+   * - **JSON** — the zero-based index in the payload's `features` array, so the
+   *   first feature is row 0 and the number is what you put in the brackets to
+   *   go and find it.
+   *
+   * Neither is convertible into the other without knowing which importer
+   * produced it, which is why nothing downstream does arithmetic on this.
    */
   row: number;
   ref: string;

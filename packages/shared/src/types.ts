@@ -474,10 +474,11 @@ export type BootstrapEntityKind = 'product' | 'project' | 'feature';
  * feature — in every case the value the importer matched on, so a reader can
  * see why an entry landed where it did.
  *
- * `row` is the 1-based position in the payload's `features` array, and null for
+ * `row` is the zero-based index in the payload's `features` array, and null for
  * the product and the project. It is the JSON counterpart of the CSV importer's
- * line number: there are no lines here, so the array index is what points a
- * caller at the entry it needs to fix.
+ * line number, but it does not count the same way: a file has a header line to
+ * skip and an array does not, so the first feature is row 0 here and row 2
+ * there. Read it as the subscript that finds the entry again, nothing more.
  */
 export type BootstrapPlanEntry = {
   kind: BootstrapEntityKind;

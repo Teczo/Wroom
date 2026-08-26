@@ -107,8 +107,10 @@ function projectChanges(
  */
 function toFeatureRows(features: BootstrapPayload['features']): FeatureRow[] {
   return features.map((feature, index) => ({
-    // 1-based, so a message points at the entry a caller can count to.
-    row: index + 1,
+    // The zero-based array index — literally what goes in the brackets to find
+    // this entry again. The CSV importer counts file lines instead; see the
+    // note on `FeatureRow.row`.
+    row: index,
     ref: feature.ref.toUpperCase(),
     title: feature.title,
     description: feature.description,
