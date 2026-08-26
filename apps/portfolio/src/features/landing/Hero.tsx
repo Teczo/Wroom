@@ -19,8 +19,10 @@ import type { LandingData } from './landingData';
  * It shares the row's query rather than making one of its own, and it is gone
  * below `lg` like the rest of the composition.
  *
- * The portrait the design also shows is still absent: it is an asset the
- * portfolio may not resolve, so it stays out rather than being invented (§11).
+ * The portrait behind the screen is `portrait` from the same record — resolved
+ * from an upload into public-container URLs at publish, because the portfolio
+ * may not read `assets` itself (§6, §8). It is the composite image §7.7 drops
+ * at 390px, so it is gone below `md`.
  *
  * Nothing in here animates on first paint. There is no `Reveal` above the fold
  * and no entrance transition: the headline is the largest thing on the page and
@@ -95,6 +97,7 @@ export function Hero({
 }) {
   const { greeting, name, statement, disciplines, badge, terminalLines, codePanel, statusRows } =
     data;
+  const portrait = data.portrait;
 
   // The same query the row below runs, deduplicated by TanStack Query: one
   // request, and the phone and the cards fill at the same moment.
@@ -107,7 +110,7 @@ export function Hero({
   const hasTerminal = terminalLines.length > 0;
   const hasCode = codePanel.tabs.length > 0 || codePanel.code !== '';
   const hasRail = hasCode || statusRows.length > 0;
-  const hasStage = hasTerminal || apps.length > 0;
+  const hasStage = hasTerminal || apps.length > 0 || portrait !== null;
 
   if (!hasCopy && !hasStage && !hasRail) return null;
 
@@ -178,10 +181,33 @@ export function Hero({
         {hasStage ? (
           <div className="hidden flex-col gap-6 md:flex">
             {hasTerminal ? <Terminal lines={terminalLines} /> : null}
-            {/* Tucked under the screen at the right, and only on a wide one. */}
-            <div className="hidden self-end lg:block">
-              <AppShelf apps={apps} />
-            </div>
+
+            {/*
+             * The portrait and the phone share a row under the screen, the way
+             * the reference has them share the stage. Stacked, the three of them
+             * make a column taller than the copy beside it and the hero stops
+             * reading as one composition.
+             *
+             * The portrait takes the `hero` variant for the largest slot on the
+             * page, never the original upload (§10), and its alt text is
+             * whatever was written on the asset — usually nothing, which is the
+             * right answer for a picture beside your own name.
+             */}
+            {portrait || apps.length > 0 ? (
+              <div className="flex items-end justify-center gap-4">
+                {portrait ? (
+                  <img
+                    src={portrait.variants?.hero ?? portrait.url}
+                    alt={portrait.alt}
+                    className="max-h-72 w-auto object-contain"
+                  />
+                ) : null}
+
+                <div className="hidden lg:block">
+                  <AppShelf apps={apps} />
+                </div>
+              </div>
+            ) : null}
           </div>
         ) : null}
 

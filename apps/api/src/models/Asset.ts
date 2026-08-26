@@ -30,7 +30,13 @@ const variantSetSchema = new Schema(
 
 const assetSchema = new Schema(
   {
-    projectId: { type: Schema.Types.ObjectId, ref: 'Project', required: true },
+    /**
+     * Null for a site asset — one that belongs to the portfolio's own pages
+     * rather than to a project, such as the portrait. Those are gated by
+     * `checkSiteAssetGates` rather than by the three, because there is no
+     * project or product to read (CLAUDE.md §8).
+     */
+    projectId: { type: Schema.Types.ObjectId, ref: 'Project', default: null },
     featureId: { type: Schema.Types.ObjectId, ref: 'Feature', default: null },
     kind: { type: String, enum: ASSET_KINDS as unknown as string[], required: true },
 

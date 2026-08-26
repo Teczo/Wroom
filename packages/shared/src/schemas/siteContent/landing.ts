@@ -1,5 +1,5 @@
-import { arrayOf, number, strictObject, string, withDefault } from '../../validate.js';
-import { marksField, socialShape } from './shared.js';
+import { arrayOf, nullable, number, objectId, strictObject, string, withDefault } from '../../validate.js';
+import { marksField, portraitField, socialShape } from './shared.js';
 
 /**
  * `siteContent.landing.data` — the hero of the public landing page.
@@ -60,6 +60,13 @@ export const landingDataSchema = strictObject({
   featuredIntro: withDefault(string({ max: 200, allowEmpty: true }), ''),
   /** How many published projects the landing page shows. */
   featuredLimit: withDefault(number({ min: 1, max: 24, integer: true }), 6),
-  /** Written by the publish action, never by an editor. See `marksField`. */
+  /**
+   * The cut-out beside the headline. An `assets` id in the draft; the publish
+   * action resolves it into `portrait` below, and the portfolio only ever sees
+   * that (§6, §8).
+   */
+  portraitAssetId: withDefault(nullable(objectId()), null),
+  /** Both written by the publish action, never by an editor. */
   marks: marksField(),
+  portrait: portraitField(),
 });

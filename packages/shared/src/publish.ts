@@ -48,6 +48,33 @@ export function isAssetPublishable(input: PublishGateInput): boolean {
 }
 
 /**
+ * The gate for an asset that belongs to the site rather than to a project.
+ *
+ * A portrait on the about page has no project and no product, so two of the
+ * three gates have nothing to read: there is no `project.portfolio.visibility`
+ * and no `product.ndaRestricted` to consult. What is left is the asset's own
+ * visibility, and that is the whole gate.
+ *
+ * It lives here, beside the three, so there is still exactly one file that
+ * decides whether bytes may be copied into a container the whole internet can
+ * read (CLAUDE.md §8). It returns the same shape, so a caller shows the reason
+ * the same way.
+ *
+ * `client-only` is not a state a site asset can be in — there is no client to
+ * scope it to — and it is refused here rather than quietly treated as public.
+ */
+export function checkSiteAssetGates(input: { assetVisibility: Visibility }): PublishGateResult {
+  return input.assetVisibility === 'public'
+    ? { publishable: true, blockedBy: [] }
+    : { publishable: false, blockedBy: ['asset-not-public'] };
+}
+
+/** The boolean form, for filtering. */
+export function isSiteAssetPublishable(input: { assetVisibility: Visibility }): boolean {
+  return checkSiteAssetGates(input).publishable;
+}
+
+/**
  * Whether the project itself may be published at all. An NDA-restricted product
  * blocks every child project regardless of the project's own visibility.
  */

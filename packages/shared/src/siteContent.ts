@@ -33,15 +33,18 @@ export function siteContentDiffers(
 /**
  * A page's `data` without the half nobody edits.
  *
- * `marks` is resolved by the publish action, so it is on every published record
- * and on no draft. Comparing it would make every page permanently "ahead of
- * what is live", which is the opposite of what the badge is for.
+ * `marks` and `portrait` are resolved by the publish action, so they are on
+ * every published record and on no draft. Comparing them would make every page
+ * permanently "ahead of what is live", which is the opposite of what the badge
+ * is for. `portraitAssetId` is not stripped: choosing a different image *is* an
+ * edit, and the badge should say so.
  *
- * It also means the badge tracks the words, not the library: re-approving a
- * mark changes what a republish would write without changing the draft, and
- * this comparison will not notice. Publishing again is what picks it up.
+ * It also means the badge tracks the words, not the library or the container:
+ * re-approving a mark, or replacing the bytes behind an image, changes what a
+ * republish would write without changing the draft, and this comparison will
+ * not notice. Publishing again is what picks it up.
  */
 function editable(data: Record<string, unknown> | undefined): Record<string, unknown> {
-  const { marks: _resolved, ...rest } = data ?? {};
+  const { marks: _marks, portrait: _portrait, ...rest } = data ?? {};
   return rest;
 }

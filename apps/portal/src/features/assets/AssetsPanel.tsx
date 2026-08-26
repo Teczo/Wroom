@@ -6,78 +6,23 @@ import { Link } from 'react-router-dom';
 import { Button } from '../../components/Button';
 import { Pill } from '../../components/Pill';
 import { EmptyState, ErrorState, LoadingState } from '../../components/StateViews';
-import { ApiRequestError } from '../../lib/api';
 import { shortDate } from '../../lib/format';
 import { useAssets, useCreateAsset, useDeleteAsset, useRequestUploadUrl } from './api';
-import { kindFor, measure } from './measure';
+import { useBlobUpload } from './upload';
 
 /**
- * Uploading media to Azure Blob straight from the browser.
+ * A project's media: what has been uploaded, and the box that adds to it.
  *
- * The file never passes through the API. The server checks its type and size,
- * signs a URL for one blob with a short expiry, and the browser PUTs to that.
- * The storage connection string stays on the server.
+ * The upload itself lives in `upload.ts` — the browser PUTs straight to Azure
+ * on a signed URL and the file never passes through the API. The site's own
+ * portrait goes up the same way, through the same hook, with a different pair
+ * of endpoints.
  */
-
-/** A courtesy only — the server check is the one that counts. */
-function localProblem(file: File): string | null {
-  if (!(UPLOAD_LIMITS.allowedMimeTypes as readonly string[]).includes(file.type)) {
-    return `${file.type || 'That file type'} is not one Wroom accepts.`;
-  }
-
-  if (file.size > UPLOAD_LIMITS.maxSizeBytes) {
-    const limit = Math.round(UPLOAD_LIMITS.maxSizeBytes / (1024 * 1024));
-    return `That file is ${Math.round(file.size / (1024 * 1024))}MB. The limit is ${limit}MB.`;
-  }
-
-  return null;
-}
 
 function megabytes(bytes: number): string {
   return bytes < 1024 * 1024
     ? `${Math.max(1, Math.round(bytes / 1024))}KB`
     : `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
-}
-
-/** Where the upload got to, and which half failed if it did. */
-type Phase =
-  | { at: 'idle' }
-  | { at: 'requesting'; filename: string }
-  | { at: 'uploading'; filename: string; percent: number }
-  | { at: 'saving'; filename: string }
-  | { at: 'rejected'; message: string }
-  | { at: 'failed'; message: string };
-
-/**
- * `fetch` cannot report upload progress, so this one request uses XHR — on a
- * phone connection a 40MB video with no progress bar looks like a hang.
- */
-function putToBlob(
-  url: string,
-  file: File,
-  onProgress: (percent: number) => void,
-): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const request = new XMLHttpRequest();
-
-    request.open('PUT', url);
-    request.setRequestHeader('x-ms-blob-type', 'BlockBlob');
-    request.setRequestHeader('Content-Type', file.type);
-
-    request.upload.onprogress = (event) => {
-      if (event.lengthComputable) onProgress(Math.round((event.loaded / event.total) * 100));
-    };
-
-    request.onload = () =>
-      request.status >= 200 && request.status < 300
-        ? resolve()
-        : reject(new Error(`Azure refused the upload (${request.status}).`));
-
-    request.onerror = () =>
-      reject(new Error('The upload could not reach storage. Check the connection and try again.'));
-
-    request.send(file);
-  });
 }
 
 function AssetRow({ projectId, asset }: { projectId: string; asset: Asset }) {
@@ -153,60 +98,9 @@ export function AssetsPanel({ projectId }: { projectId: string }) {
   const assets = useAssets(projectId);
   const requestUrl = useRequestUploadUrl(projectId);
   const createAsset = useCreateAsset(projectId);
-  const [phase, setPhase] = useState<Phase>({ at: 'idle' });
+  const { phase, busy, upload } = useBlobUpload({ requestUrl, createAsset });
 
   const items = assets.data?.items ?? [];
-  const busy = phase.at === 'requesting' || phase.at === 'uploading' || phase.at === 'saving';
-
-  async function upload(file: File): Promise<void> {
-    const problem = localProblem(file);
-    if (problem) {
-      setPhase({ at: 'rejected', message: problem });
-      return;
-    }
-
-    try {
-      setPhase({ at: 'requesting', filename: file.name });
-
-      const ticket = await requestUrl.mutateAsync({
-        filename: file.name,
-        mimeType: file.type,
-        sizeBytes: file.size,
-      });
-
-      setPhase({ at: 'uploading', filename: file.name, percent: 0 });
-
-      const measured = await measure(file);
-      await putToBlob(ticket.uploadUrl, file, (percent) =>
-        setPhase({ at: 'uploading', filename: file.name, percent }),
-      );
-
-      setPhase({ at: 'saving', filename: file.name });
-
-      await createAsset.mutateAsync({
-        blobName: ticket.blobName,
-        kind: kindFor(file.type),
-        filename: file.name,
-        mimeType: file.type,
-        sizeBytes: file.size,
-        ...measured,
-      });
-
-      setPhase({ at: 'idle' });
-    } catch (error) {
-      // Refused before the file moved, or the transfer itself broke — the two
-      // mean different things and get different messages.
-      const rejected = error instanceof ApiRequestError && error.status === 400;
-      const message =
-        error instanceof ApiRequestError
-          ? error.message
-          : error instanceof Error
-            ? error.message
-            : 'Something went wrong.';
-
-      setPhase(rejected ? { at: 'rejected', message } : { at: 'failed', message });
-    }
-  }
 
   return (
     <section className="rounded-xl border border-slate-200 bg-white">

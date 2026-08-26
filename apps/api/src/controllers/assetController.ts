@@ -3,7 +3,7 @@ import type { RequestHandler } from 'express';
 import { currentUser } from '../middleware/auth.js';
 import { validated } from '../middleware/validate.js';
 import * as assetService from '../services/assetService.js';
-import { createUploadTicket } from '../services/uploadService.js';
+import { SITE_UPLOAD_OWNER, createUploadTicket } from '../services/uploadService.js';
 import { queryString, sendData, sendList } from '../utils/http.js';
 
 export const list: RequestHandler = async (req, res) => {
@@ -61,7 +61,14 @@ export const publishState: RequestHandler = async (req, res) => {
 };
 
 export const requestUpload: RequestHandler = async (req, res) => {
-  sendData(res, await createUploadTicket(validated(req)));
+  const input = validated<{
+    projectId: string;
+    filename: string;
+    mimeType: string;
+    sizeBytes: number;
+  }>(req);
+
+  sendData(res, await createUploadTicket({ ...input, owner: input.projectId }));
 };
 
 /** The project-scoped form: the project comes from the route, not the body. */
@@ -70,6 +77,43 @@ export const requestProjectUpload: RequestHandler = async (req, res) => {
 
   sendData(
     res,
-    await createUploadTicket({ ...input, projectId: req.params.projectId as string }),
+    await createUploadTicket({ ...input, owner: req.params.projectId as string }),
   );
+};
+
+/**
+ * The site's own assets: the portrait the landing and about pages show.
+ *
+ * The same service, with no project. `null` is the owner rather than a magic
+ * string, so a request here can never reach a project's file and a project's
+ * request can never reach one of these (CLAUDE.md §8).
+ */
+export const listSite: RequestHandler = async (_req, res) => {
+  const items = await assetService.listAssets(null, {});
+  sendList(res, items, { total: items.length, page: 1, limit: items.length });
+};
+
+export const createSite: RequestHandler = async (req, res) => {
+  const asset = await assetService.createAsset(null, validated(req), currentUser(req));
+  sendData(res, asset, 201);
+};
+
+export const updateSite: RequestHandler = async (req, res) => {
+  const { asset, publishState: state } = await assetService.updateAsset(
+    null,
+    req.params.id as string,
+    validated(req),
+  );
+
+  sendData(res, asset, 200, { publishState: state });
+};
+
+export const removeSite: RequestHandler = async (req, res) => {
+  await assetService.deleteAsset(null, req.params.id as string);
+  res.status(204).end();
+};
+
+export const requestSiteUpload: RequestHandler = async (req, res) => {
+  const input = validated<{ filename: string; mimeType: string; sizeBytes: number }>(req);
+  sendData(res, await createUploadTicket({ ...input, owner: SITE_UPLOAD_OWNER }));
 };

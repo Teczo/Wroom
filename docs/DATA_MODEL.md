@@ -391,7 +391,9 @@ Run-rate rule: monthly + annual/12. One-off and usage excluded.
 ### `assets`
 ```js
 {
-  _id, projectId, featureId: null,
+  _id,
+  projectId,                    // null for a site asset — see below
+  featureId: null,
   kind,                         // "screenshot" | "video" | "logo" | "diagram" | "document"
   blobName, blobUrl,            // private container — read requires a SAS token
   thumbnailUrl,
@@ -417,6 +419,10 @@ Run-rate rule: monthly + annual/12. One-off and usage excluded.
 ```
 
 **Rule:** an asset is publishable only if `asset.visibility === "public"` **and** `project.portfolio.visibility === "public"` **and** `product.ndaRestricted === false`. Three gates, all must pass. Implemented once in `packages/shared/src/publish.ts`.
+
+**Site assets.** `projectId: null` marks an asset that belongs to the portfolio's own pages rather than to a project — today that is the portrait on the landing and about pages. It has no project and no product, so two of the three gates have nothing to read: it is publishable on `visibility === "public"` alone, decided by `checkSiteAssetGates` in the same file, never by a comparison written at a call site. `client-only` means nothing without a client and is refused.
+
+Site assets are uploaded and registered under `/api/site-assets`, and their blobs live under a `site/` prefix that no project id can collide with. Everything else — the size and type checks, the variants, the copy into the public container, the delete — is the same code as a project's.
 
 **Variants** are generated at upload from the original, at 400 / 800 / 1600px wide, in WebP with the original format as a fallback. The portfolio picks a variant per surface: `thumb` for the thumbnail strip and tech grids, `card` for carousel and index cards, `hero` for the main image. Serving a 2400px original into a 135px slot is the single largest performance loss available on this site.
 
@@ -527,7 +533,8 @@ The portfolio's own copy. Draft/published split so changing a sentence never req
   socials: [{ mediaKey: "github", url: "" }],
   ctaLabel: "Let's build something great",
   featuredIntro: "Selected products and platforms I've built.",
-  featuredLimit: 6
+  featuredLimit: 6,
+  portraitAssetId: null            // → assets._id, a site asset (projectId: null)
 }
 
 // about
@@ -553,11 +560,14 @@ are the rail beside it — also decorative, and hidden below `lg`.
 machine, and the public site is the wrong place for it to start: the rows say
 whatever was typed until somebody types something else.
 
-**`published.data` carries one field the draft does not: `marks`.**
+**`published.data` carries fields the draft does not: `marks`, and `portrait`.**
 
 ```js
 // siteContent.published.data, on landing / contact / skills
 marks: [{ key: "github", label: "GitHub", svg: "<svg …>" }]
+
+// siteContent.published.data, on landing / about
+portrait: { url, alt, variants: { thumb, card, hero } } | null
 ```
 
 The portfolio may not read `mediaLibrary`, so a `mediaKey` has to arrive already
@@ -566,10 +576,28 @@ every key the page names, resolves it through the same `resolveMarks` a project'
 tech stack uses, and writes the result here — dropping anything with
 `usageApproved: false` silently, exactly as a project publish does.
 
-It is server-owned: `PATCH /api/content/:key` strips `marks` from the body, so
-the only markup that reaches a published page comes from a `mediaLibrary` record
-the API sanitised on write. Resolution is frozen at publish — editing a mark in
-the library changes the live page only when the page is published again.
+`portrait` is the same idea for an image. The draft holds `portraitAssetId`, an
+id into `assets`, which the portfolio may never read; publishing runs the site
+asset gate, copies the blob and its variants into the public container, and
+writes the resulting public URLs here. A portrait that is missing or still
+private stops the publish and says which — a page is not published with a hole
+where a picture was meant to be.
+
+Unpublishing deletes those copies before clearing the record, unless another
+published page still shows the same portrait. So does swapping one portrait for
+another: the blob delete is what revokes access, and a snapshot removed while
+its blobs remain leaves a permanently cacheable public URL.
+
+`GET /public/content/:key` strips `portraitAssetId` on the way out: the resolved
+`portrait` is what a page renders, and a public payload has no business naming a
+record in an operational collection.
+
+Both are server-owned: `PATCH /api/content/:key` strips `marks` and `portrait`
+from the body, so the only markup that reaches a published page comes from a
+`mediaLibrary` record the API sanitised on write, and the only image URLs come
+from blobs the gate let through. Resolution is frozen at publish — editing a
+mark or replacing an image changes the live page only when the page is published
+again.
 
 ---
 
@@ -720,6 +748,8 @@ The portfolio does **not** query `projects`. Publishing is an explicit action th
 2. **Copies every publishable blob** — hero, OG, gallery, video poster, case study heroes, and all their variants — from the private container into the public container. Sets `publicBlobName`, `publicBlobUrl` and `publicVariants` on each asset.
 3. **Resolves `techStackKeys`, `platformKeys` and `clientMediaKey`** against `mediaLibrary`, dropping anything with `usageApproved: false`.
 4. **Writes the flattened `publishedProjects` document** using public URLs only.
+
+**Content publishing does the same two things for a page.** `siteContent` resolves its `mediaLibrary` keys into `published.data.marks` and copies its portrait into the public container before writing `published.data.portrait` — gate, copy, then write, in that order, and unpublishing reverses the copy first.
 
 **Unpublishing reverses step 2 before step 4.** Deleting the snapshot row without deleting the blob copies leaves a public, permanently cacheable URL for content that is no longer published. The blob delete is the operation that actually revokes access.
 

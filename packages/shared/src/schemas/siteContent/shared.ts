@@ -1,6 +1,7 @@
 import { MEDIA_SVG_MAX_LENGTH } from '../../constants.js';
 import {
   arrayOf,
+  nullable,
   slug,
   strictObject,
   string,
@@ -90,4 +91,35 @@ export type SiteContentMark = Infer<typeof resolvedMarkShape>;
  */
 export function marksField(): Validator<SiteContentMark[]> {
   return withDefault(arrayOf(strictObject(resolvedMarkShape), { max: 200 }), []);
+}
+
+/**
+ * `data.portrait` — an image resolved out of `assets` at publish.
+ *
+ * Server-owned, exactly like `marks`: the draft holds `portraitAssetId`, which
+ * is an id into an operational collection the portfolio may never read, and the
+ * publish action turns it into public-container URLs. A `portrait` sent to
+ * `PATCH /api/content/:key` is dropped rather than stored, so no request body
+ * can point a public page at a blob nobody gated.
+ *
+ * The shape mirrors a project snapshot's `heroImage`, because it is the same
+ * thing arrived at the same way — and the page picks a variant per slot rather
+ * than serving the original (§10).
+ */
+const variantsShape = {
+  thumb: withDefault(nullable(string({ max: 600, allowEmpty: true })), null),
+  card: withDefault(nullable(string({ max: 600, allowEmpty: true })), null),
+  hero: withDefault(nullable(string({ max: 600, allowEmpty: true })), null),
+};
+
+export const publishedImageShape = {
+  url: string({ min: 1, max: 600 }),
+  alt: withDefault(string({ max: 500, allowEmpty: true }), ''),
+  variants: withDefault(nullable(strictObject(variantsShape)), null),
+};
+
+export type SiteContentImage = Infer<typeof publishedImageShape>;
+
+export function portraitField(): Validator<SiteContentImage | null> {
+  return withDefault(nullable(strictObject(publishedImageShape)), null);
 }

@@ -74,3 +74,56 @@ export function useDeleteAsset(projectId: string) {
     onSuccess: () => client.invalidateQueries({ queryKey: assetKeys.forProject(projectId) }),
   });
 }
+
+/**
+ * The site's own assets — the portrait, and anything else that belongs to the
+ * portfolio's pages rather than to a project.
+ *
+ * Same collection, same service, same upload flow. What differs is the gate:
+ * with no project and no product to read, one of these is publishable on its
+ * own visibility alone, which is why `publishState` still rides along.
+ */
+export const siteAssetKeys = { all: ['site-assets'] as const };
+
+export function useSiteAssets() {
+  return useQuery({
+    queryKey: siteAssetKeys.all,
+    queryFn: () => apiList<AssetWithPublishState>('/api/site-assets'),
+  });
+}
+
+export function useRequestSiteUploadUrl() {
+  return useMutation({
+    mutationFn: (input: { filename: string; mimeType: string; sizeBytes: number }) =>
+      apiPost<UploadTicket>('/api/site-assets/upload-url', input),
+  });
+}
+
+export function useCreateSiteAsset() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: Record<string, unknown>) => apiPost<Asset>('/api/site-assets', input),
+    onSuccess: () => client.invalidateQueries({ queryKey: siteAssetKeys.all }),
+  });
+}
+
+/** Marking one public is what lets a page publish it (CLAUDE.md §8). */
+export function useUpdateSiteAsset() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, ...input }: { id: string } & Record<string, unknown>) =>
+      apiPatch<Asset>(`/api/site-assets/${id}`, input),
+    onSuccess: () => client.invalidateQueries({ queryKey: siteAssetKeys.all }),
+  });
+}
+
+export function useDeleteSiteAsset() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => apiDelete(`/api/site-assets/${id}`),
+    onSuccess: () => client.invalidateQueries({ queryKey: siteAssetKeys.all }),
+  });
+}

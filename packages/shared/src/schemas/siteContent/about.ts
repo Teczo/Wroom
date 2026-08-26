@@ -1,4 +1,5 @@
 import { nullable, objectId, strictObject, string, withDefault } from '../../validate.js';
+import { portraitField } from './shared.js';
 
 /**
  * `siteContent.about.data`.
@@ -10,4 +11,6 @@ import { nullable, objectId, strictObject, string, withDefault } from '../../val
 export const aboutDataSchema = strictObject({
   headline: withDefault(string({ max: 200, allowEmpty: true }), ''),
   portraitAssetId: withDefault(nullable(objectId()), null),
+  /** Written by the publish action, never by an editor. See `portraitField`. */
+  portrait: portraitField(),
 });

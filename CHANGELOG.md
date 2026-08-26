@@ -2,6 +2,18 @@
 
 ## 2026-08-26
 
+- You can put your portrait on the site. Upload it on the landing or about page
+  in the portal, mark it public, and publish — it appears beside the headline on
+  the front page and next to your writing on the about page. The about page has
+  had a portrait field for a while that did nothing; it works now.
+- Photos for the site's own pages no longer have to belong to a project. They
+  are uploaded on the page that uses them and live in their own list.
+- A portrait that is still private, or one you have deleted, stops the page
+  publishing and says so, rather than publishing a page with a hole in it. The
+  portal offers a "make it public" button right where the problem shows up.
+- Taking a page down, or swapping its portrait for another, deletes the public
+  copy of the old picture — unless another live page is still showing the same
+  one. A picture you take down stops being reachable, not just unlinked.
 - A project can now have its own app icon, picked from the media library on its
   portfolio screen. Publish the project and it appears on the phone in the
   landing page hero, tappable through to that project's page.
