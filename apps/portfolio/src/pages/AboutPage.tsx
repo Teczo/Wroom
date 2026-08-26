@@ -13,13 +13,10 @@ import { useDocumentMeta } from '../lib/useDocumentMeta';
  * `data.headline` and the narrative is `body` — markdown, because that half of
  * the page is genuinely just writing (docs/DATA_MODEL.md).
  *
- * The portrait is not here. `data.portraitAssetId` points at an `assets`
- * record, which is an operational collection the portfolio may never read
- * (§8, decision 8), and nothing resolves it into the published copy the way
- * `publishService` resolves a project's hero image into the snapshot. Rendering
- * it needs a resolved portrait in `siteContent.published.data` and a public
- * blob copy made at publish — a data model change and a publish change, which
- * are ticket triggers 1 and 4. Reported rather than invented.
+ * The portrait is `data.portrait` — resolved out of `assets` and copied into
+ * the public container by the publish action, because this app may read neither
+ * that collection nor a private blob (§6, §8). A page with none set renders the
+ * words alone rather than a frame with nothing in it (§7.4).
  */
 function About({ content }: { content: SiteContentBody }) {
   const data = readAboutData(content.data);
@@ -28,6 +25,7 @@ function About({ content }: { content: SiteContentBody }) {
   // It stands in when the page has no headline yet, so the page is never
   // without an `h1` while still never inventing one.
   const headline = data?.headline || content.title;
+  const portrait = data?.portrait ?? null;
 
   useDocumentMeta(content.meta.title || headline, content.meta.description);
 
@@ -35,6 +33,18 @@ function About({ content }: { content: SiteContentBody }) {
     <article className="mx-auto max-w-3xl px-5 py-14 sm:py-20">
       {headline ? (
         <h1 className="text-3xl font-semibold tracking-tight text-fg sm:text-4xl">{headline}</h1>
+      ) : null}
+
+      {/*
+       * The `card` variant: this sits in a column, not across the page, so the
+       * hero copy would be several times the pixels the slot can use (§10).
+       */}
+      {portrait ? (
+        <img
+          src={portrait.variants?.card ?? portrait.url}
+          alt={portrait.alt}
+          className="mt-8 w-full rounded-2xl border border-border object-cover sm:float-right sm:ml-8 sm:w-64"
+        />
       ) : null}
 
       {content.body ? (

@@ -3,8 +3,10 @@ import {
   PUBLISH_GATE_MESSAGES,
   VARIANT_ASSET_KINDS,
   checkPublishGates,
+  checkSiteAssetGates,
   type AssetVariantName,
   type Infer,
+  type PublishGateResult,
   type Visibility,
   type assetCreateShape,
 } from '@wroom/shared';
@@ -25,6 +27,7 @@ import {
   downloadBlob,
   publicBlobNameFor,
   resolveUploadedBlob,
+  SITE_UPLOAD_OWNER,
   uploadDerivedBlob,
   uploadPublicBlob,
 } from './uploadService.js';
@@ -55,11 +58,37 @@ async function projectGates(projectId: string): Promise<{
   };
 }
 
+/**
+ * Whether one asset may be copied into the public container.
+ *
+ * The branch is the whole of the difference between a project's asset and the
+ * site's own: a project asset answers to all three gates, a site asset has no
+ * project and no product to answer to and is decided by its own visibility
+ * (CLAUDE.md §8). Both calls land in `packages/shared/src/publish.ts` — the
+ * comparison is not written here.
+ */
+async function gateFor(
+  projectId: string | null,
+  visibility: Visibility,
+): Promise<PublishGateResult> {
+  if (projectId === null) return checkSiteAssetGates({ assetVisibility: visibility });
+
+  const gates = await projectGates(projectId);
+  return checkPublishGates({ ...gates, assetVisibility: visibility });
+}
+
+/** Where a set of assets is uploaded and registered under. */
+function ownerOf(projectId: string | null): string {
+  return projectId ?? SITE_UPLOAD_OWNER;
+}
+
 export async function listAssets(
-  projectId: string,
+  projectId: string | null,
   filters: { kind?: string; visibility?: string },
 ): Promise<AssetWithPublishState[]> {
-  const gates = await projectGates(projectId);
+  // Read once for a project, and not at all for the site — every asset in one
+  // list shares whatever the other two gates say.
+  const gates = projectId === null ? null : await projectGates(projectId);
 
   const query: Record<string, unknown> = { projectId };
   if (filters.kind) query.kind = filters.kind;
@@ -69,10 +98,9 @@ export async function listAssets(
 
   return items.map((asset) => ({
     ...(asset.toJSON() as Record<string, unknown>),
-    publishState: checkPublishGates({
-      ...gates,
-      assetVisibility: asset.visibility as Visibility,
-    }),
+    publishState: gates
+      ? checkPublishGates({ ...gates, assetVisibility: asset.visibility as Visibility })
+      : checkSiteAssetGates({ assetVisibility: asset.visibility as Visibility }),
   }));
 }
 
@@ -104,7 +132,12 @@ export async function reorderAssets(projectId: string, assetIds: string[]): Prom
 
 const ASSET_ORDER_GAP = 1000;
 
-export async function getAsset(projectId: string, id: string): Promise<AssetDocument> {
+/**
+ * One asset, scoped to its owner. `null` means the site's own assets, and the
+ * query is exact either way — a project's id never matches a site asset and a
+ * site request never reaches a project's file.
+ */
+export async function getAsset(projectId: string | null, id: string): Promise<AssetDocument> {
   const asset = await AssetModel.findOne({ _id: id, projectId });
   if (!asset) throw new NotFoundError('That asset');
   return asset;
@@ -119,14 +152,16 @@ export async function getAsset(projectId: string, id: string): Promise<AssetDocu
  * when it is created, and only WRM-041 will change that.
  */
 export async function createAsset(
-  projectId: string,
+  projectId: string | null,
   input: AssetInput,
   user: UserDocument,
 ): Promise<AssetDocument> {
-  await getProject(projectId);
+  // A site asset has no project to check; a project's asset must have a real
+  // one, and that lookup is what refuses an id nobody owns.
+  if (projectId !== null) await getProject(projectId);
 
   const { blobName, ...fields } = input;
-  const blobUrl = await resolveUploadedBlob(projectId, blobName);
+  const blobUrl = await resolveUploadedBlob(ownerOf(projectId), blobName);
 
   // Resizing happens before the record is written, so a file that turns out not
   // to be an image is a 422 with nothing created, rather than a half-made asset.
@@ -294,8 +329,10 @@ export async function copyToPublic(assetId: string): Promise<AssetDocument> {
   const asset = await AssetModel.findById(assetId);
   if (!asset) throw new NotFoundError('That asset');
 
-  const gates = await projectGates(String(asset.projectId));
-  const state = checkPublishGates({ ...gates, assetVisibility: asset.visibility as Visibility });
+  const state = await gateFor(
+    asset.projectId ? String(asset.projectId) : null,
+    asset.visibility as Visibility,
+  );
 
   if (!state.publishable) {
     throw new ForbiddenError(
@@ -338,6 +375,38 @@ export async function copyToPublic(assetId: string): Promise<AssetDocument> {
 }
 
 /**
+ * An asset as a published page carries it: public URLs and nothing else.
+ *
+ * Null when the asset was never copied out. That is the fail-closed reading —
+ * no public copy means the bytes are not in the public container, so there is
+ * no URL that would load anyway.
+ *
+ * `publicVariants` is read by name rather than iterated: it is a Mongoose
+ * nested document, and `Object.values` on one returns its internals.
+ */
+export function publicImageOf(
+  asset: AssetDocument,
+): { url: string; alt: string; variants: Record<string, string | null> | null } | null {
+  if (!asset.publicBlobUrl) return null;
+
+  const source = asset.publicVariants as Record<string, { url?: string } | null> | undefined;
+  const variants: Record<string, string | null> = {};
+  let found = false;
+
+  for (const name of ASSET_VARIANT_NAMES) {
+    const url = source?.[name]?.url ?? null;
+    variants[name] = url;
+    if (url) found = true;
+  }
+
+  return {
+    url: asset.publicBlobUrl,
+    alt: asset.altText,
+    variants: found ? variants : null,
+  };
+}
+
+/**
  * Removes an asset's public copies.
  *
  * The blobs go first and the record is updated second, deliberately. Deleting
@@ -367,22 +436,17 @@ export async function removeFromPublic(assetId: string): Promise<AssetDocument> 
  * otherwise.
  */
 export async function updateAsset(
-  projectId: string,
+  projectId: string | null,
   id: string,
   input: Partial<AssetInput>,
-): Promise<{ asset: AssetDocument; publishState: ReturnType<typeof checkPublishGates> }> {
+): Promise<{ asset: AssetDocument; publishState: PublishGateResult }> {
   const asset = await getAsset(projectId, id);
   asset.set(input);
   await asset.save();
 
-  const gates = await projectGates(projectId);
-
   return {
     asset,
-    publishState: checkPublishGates({
-      ...gates,
-      assetVisibility: asset.visibility as Visibility,
-    }),
+    publishState: await gateFor(projectId, asset.visibility as Visibility),
   };
 }
 
@@ -393,7 +457,7 @@ export async function updateAsset(
  * top. The public ones go first: those are the only ones reachable without a
  * signature, so they are the ones that matter if anything later fails.
  */
-export async function deleteAsset(projectId: string, id: string): Promise<void> {
+export async function deleteAsset(projectId: string | null, id: string): Promise<void> {
   const asset = await getAsset(projectId, id);
 
   for (const name of publicBlobNames(asset)) {
@@ -414,10 +478,9 @@ export async function deleteAsset(projectId: string, id: string): Promise<void> 
  * "why isn't my screenshot showing" has an answer without guesswork.
  */
 export async function explainPublishState(
-  projectId: string,
+  projectId: string | null,
   id: string,
-): Promise<ReturnType<typeof checkPublishGates>> {
-  const [asset, gates] = await Promise.all([getAsset(projectId, id), projectGates(projectId)]);
-
-  return checkPublishGates({ ...gates, assetVisibility: asset.visibility as Visibility });
+): Promise<PublishGateResult> {
+  const asset = await getAsset(projectId, id);
+  return gateFor(projectId, asset.visibility as Visibility);
 }

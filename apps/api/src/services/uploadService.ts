@@ -45,18 +45,28 @@ function assertAllowed(mimeType: string, sizeBytes: number): void {
   }
 }
 
+/**
+ * The prefix a site asset's blobs live under.
+ *
+ * A project id is 24 hex characters, so this can never collide with one — and
+ * `resolveUploadedBlob` checks the prefix, so an upload issued for the site
+ * cannot be registered against a project or the other way round.
+ */
+export const SITE_UPLOAD_OWNER = 'site';
+
 /** Keeps the original name readable but strips anything path-like. */
-function safeBlobName(projectId: string, filename: string): string {
+function safeBlobName(owner: string, filename: string): string {
   const cleaned = filename
     .replace(/[^a-zA-Z0-9._-]/g, '-')
     .replace(/-+/g, '-')
     .slice(-80);
 
-  return `${projectId}/${randomUUID()}-${cleaned}`;
+  return `${owner}/${randomUUID()}-${cleaned}`;
 }
 
 export async function createUploadTicket(input: {
-  projectId: string;
+  /** A project id, or `SITE_UPLOAD_OWNER` for an asset with no project. */
+  owner: string;
   filename: string;
   mimeType: string;
   sizeBytes: number;
@@ -73,7 +83,7 @@ export async function createUploadTicket(input: {
 
   const client = BlobServiceClient.fromConnectionString(env.azureStorage.connectionString);
   const container = client.getContainerClient(env.azureStorage.container);
-  const blobName = safeBlobName(input.projectId, input.filename);
+  const blobName = safeBlobName(input.owner, input.filename);
   const blob = container.getBlockBlobClient(blobName);
 
   const credential = client.credential;
@@ -118,18 +128,15 @@ function containerClient() {
 
 /**
  * Turns a blob name back into its permanent URL, having checked that it is one
- * this project was given and that something was actually uploaded to it.
+ * this owner was given and that something was actually uploaded to it.
  *
  * This is what stops a hand-edited request registering an asset that points at
- * another project's file, or at nothing at all.
+ * another project's file, at the site's own files, or at nothing at all.
  */
-export async function resolveUploadedBlob(
-  projectId: string,
-  blobName: string,
-): Promise<string> {
-  if (!blobName.startsWith(`${projectId}/`)) {
-    throw new ValidationError('That upload does not belong to this project.', {
-      blobName: 'This is not a path the project was given.',
+export async function resolveUploadedBlob(owner: string, blobName: string): Promise<string> {
+  if (!blobName.startsWith(`${owner}/`)) {
+    throw new ValidationError('That upload does not belong here.', {
+      blobName: 'This is not a path that was issued for this owner.',
     });
   }
 

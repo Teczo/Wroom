@@ -22,6 +22,7 @@ import { enquiriesRouter } from './enquiriesAdmin.js';
 import { accountsRouter } from './infrastructure.js';
 import { integrationsRouter } from './integrations.js';
 import { mediaLibraryRouter } from './mediaLibrary.js';
+import { siteAssetsRouter } from './siteAssets.js';
 import { revenueRouter } from './revenue.js';
 import { notesRouter } from './notes.js';
 import { projectLinkAdminRouter } from './projectLinks.js';
@@ -78,6 +79,7 @@ apiRouter.use('/notes', notesRouter);
 apiRouter.use('/decisions', decisionsRouter);
 apiRouter.use('/media-library', mediaLibraryRouter);
 apiRouter.use('/content', contentRouter);
+apiRouter.use('/site-assets', siteAssetsRouter);
 apiRouter.use('/enquiries', enquiriesRouter);
 
 /** Hands back a short-lived SAS URL; the storage key never leaves the server. */

@@ -134,6 +134,8 @@ const publishedProjectSchema = new Schema(
 
     techStack: { type: [markSchema], default: [] },
     platforms: { type: [markSchema], default: [] },
+    /** The project's own icon. Null when none was picked or it was not approved. */
+    appIcon: { type: markSchema, default: null },
     /** Only ever set when the mark was `usageApproved`. */
     clientLogo: {
       type: new Schema(

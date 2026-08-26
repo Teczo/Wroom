@@ -4,11 +4,16 @@ import { TypeOut } from '../../components/TypeOut';
 import { usePrefersReducedMotion } from '../../lib/usePrefersReducedMotion';
 
 /**
- * The decorative terminal beside the hero.
+ * The decorative screen beside the hero.
  *
  * The lines are `terminalLines` from the published `landing` record and nothing
  * is written here (§2 rule 8). It is decoration, and it is gone below `md`
  * (§7.7, docs/DATA_MODEL.md) — a phone gets the words instead.
+ *
+ * The reference draws it as a wide, softly lit pane with the session set
+ * straight onto it, so there is no window bar: the prompt in the copy is what
+ * says "terminal", and a row of fake traffic lights would be chrome the design
+ * does not have.
  *
  * Two things keep it out of the way of the first paint, which is what the
  * "nothing above the fold animates" rule is protecting (§7.5):
@@ -70,18 +75,14 @@ export function Terminal({ lines, className = '' }: TerminalProps) {
   if (lines.length === 0) return null;
 
   return (
-    <div className={`overflow-hidden rounded-2xl border border-border bg-surface ${className}`}>
-      {/*
-       * The window bar. Chrome drawn from tokens, not a mark from the library —
-       * there is nothing here to look up (§7.3).
-       */}
-      <div aria-hidden className="flex items-center gap-2 border-b border-border px-4 py-3">
-        <span className="size-2.5 rounded-full bg-border" />
-        <span className="size-2.5 rounded-full bg-border" />
-        <span className="size-2.5 rounded-full bg-border" />
-      </div>
-
-      <div className="p-4 font-mono text-sm leading-5 text-fg">
+    /*
+     * The glow is a token, not a literal: §7.1 admits no hex written outside
+     * `index.css`, and this is the same value the lit borders elsewhere use.
+     */
+    <div
+      className={`overflow-hidden rounded-[1.75rem] border border-border bg-surface-deep/70 p-8 shadow-[0_0_100px_var(--color-accent-glow)] lg:p-10 ${className}`}
+    >
+      <div className="min-h-64 font-mono text-xs leading-[1.75] text-accent/70">
         {lines.map((line, index) => (
           // The index is the key on purpose: these are lines of a fixed script,
           // and two identical lines in one terminal is ordinary.

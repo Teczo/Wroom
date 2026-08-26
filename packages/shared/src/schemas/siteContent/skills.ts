@@ -1,4 +1,5 @@
 import { arrayOf, slug, strictObject, string, withDefault } from '../../validate.js';
+import { marksField } from './shared.js';
 
 /**
  * `siteContent.skills.data` — icon and label, grouped.
@@ -28,4 +29,6 @@ export const skillsDataSchema = strictObject({
     ),
     [],
   ),
+  /** Written by the publish action, never by an editor. See `marksField`. */
+  marks: marksField(),
 });

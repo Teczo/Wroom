@@ -201,6 +201,8 @@ export type ProjectPortfolio = {
 
   techStackKeys: string[];
   platformKeys: string[];
+  /** A `mediaLibrary.key` of kind `app` — the project's own icon. */
+  appIconMediaKey: string | null;
 
   heroAssetId: Id | null;
   ogAssetId: Id | null;
@@ -762,6 +764,8 @@ export type PublishedProject = {
 
   techStack: PublishedMark[];
   platforms: PublishedMark[];
+  /** The project's own icon, resolved from `portfolio.appIconMediaKey`. */
+  appIcon: PublishedMark | null;
   /** Only ever set when the mark was usageApproved. */
   clientLogo: { label: string; svg: string } | null;
 

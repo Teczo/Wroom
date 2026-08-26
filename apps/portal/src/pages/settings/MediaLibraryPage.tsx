@@ -22,6 +22,7 @@ const KIND_TITLES: Record<MediaKind, string> = {
   platform: 'Platforms',
   client: 'Clients',
   social: 'Social',
+  app: 'App icons',
 };
 
 /** The counts a 409 comes back with, spelled out. */
@@ -32,6 +33,7 @@ function blockedBreakdown(details: Record<string, unknown> | undefined): string[
   const lines: string[] = [];
   const tech = count('techStack');
   const platforms = count('platforms');
+  const appIcon = count('appIcon');
   const clientLogo = count('clientLogo');
 
   // The noun and the verb both have to agree — "1 product use it" reads as a bug.
@@ -41,6 +43,9 @@ function blockedBreakdown(details: Record<string, unknown> | undefined): string[
   if (tech > 0) lines.push(`${one(tech, 'project', 'lists', 'list')} it in their tech stack`);
   if (platforms > 0) {
     lines.push(`${one(platforms, 'project', 'lists', 'list')} it as a platform`);
+  }
+  if (appIcon > 0) {
+    lines.push(`${one(appIcon, 'project', 'uses', 'use')} it as their app icon`);
   }
   if (clientLogo > 0) {
     lines.push(`${one(clientLogo, 'product', 'uses', 'use')} it as the client logo`);

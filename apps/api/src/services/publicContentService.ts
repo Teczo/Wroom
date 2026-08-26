@@ -20,5 +20,26 @@ export async function getPublishedContent(key: string): Promise<Record<string, u
 
   if (!record?.published) throw new NotFoundError('That page');
 
-  return record.published as unknown as Record<string, unknown>;
+  const published = record.published as unknown as Record<string, unknown>;
+
+  return { ...published, data: withoutOperationalRefs(published.data) };
+}
+
+/**
+ * The published `data`, minus the ids that only mean anything inside the portal.
+ *
+ * `portraitAssetId` points into `assets`, an operational collection this API
+ * may never serve from and the portfolio may never read. The resolved
+ * `portrait` beside it is what the page renders, so the id is of no use out
+ * here — and a public payload naming an operational record is exactly what
+ * `publishedProjects` is careful not to do (docs/DATA_MODEL.md).
+ *
+ * It is stripped here rather than at publish so the portal can still tell that
+ * the draft names a different image from the one that is live.
+ */
+function withoutOperationalRefs(data: unknown): Record<string, unknown> {
+  if (typeof data !== 'object' || data === null) return {};
+
+  const { portraitAssetId: _id, ...rest } = data as Record<string, unknown>;
+  return rest;
 }

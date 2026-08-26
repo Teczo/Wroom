@@ -12,6 +12,7 @@ const KIND_HINTS: Record<MediaKind, string> = {
   platform: 'Where something runs — web, desktop, VR, mobile, tablet.',
   client: "A client's own mark. Only approve one you have permission to show.",
   social: 'A link mark — GitHub, LinkedIn, email.',
+  app: "A project's own icon, as it would look on a phone's home screen.",
 };
 
 /**

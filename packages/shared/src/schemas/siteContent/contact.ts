@@ -1,5 +1,5 @@
 import { arrayOf, strictObject, string, withDefault } from '../../validate.js';
-import { optionalEmail, socialShape } from './shared.js';
+import { marksField, optionalEmail, socialShape } from './shared.js';
 
 /**
  * `siteContent.contact.data`.
@@ -13,4 +13,6 @@ export const contactDataSchema = strictObject({
   intro: withDefault(string({ max: 1000, allowEmpty: true }), ''),
   email: withDefault(optionalEmail(), ''),
   socials: withDefault(arrayOf(strictObject(socialShape), { max: 12 }), []),
+  /** Written by the publish action, never by an editor. See `marksField`. */
+  marks: marksField(),
 });
