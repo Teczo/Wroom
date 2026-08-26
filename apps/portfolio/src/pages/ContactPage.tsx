@@ -2,6 +2,7 @@ import { ENQUIRY_HONEYPOT_FIELD, ENQUIRY_LIMITS, type SiteContentBody } from '@w
 import { useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
+import { Mark, findMark } from '../components/Mark';
 import { ContentPage } from '../features/content/ContentPage';
 import { readContactData, type ContactData } from '../features/content/pageData';
 import { useSubmitEnquiry } from '../features/content/enquiryApi';
@@ -314,10 +315,11 @@ function ContactForm({ relatedProjectId }: { relatedProjectId: string }) {
 /**
  * The address and the social row.
  *
- * The marks are missing for the same reason they are missing on the skills
- * page: `socials[].mediaKey` is a `mediaLibrary` key and nothing resolves it
- * into the published copy, so each link is labelled by the key its author
- * chose. That string is data from the record, not copy written here.
+ * Each link draws its mark from `data.marks`, resolved from the library by the
+ * publish action. The label stays beside it rather than being replaced by it:
+ * this is a list of ways to reach somebody, and a row of bare glyphs makes the
+ * reader work out which is which. A key that resolved to nothing simply has no
+ * glyph in front of its name.
  */
 function ContactChannels({ data }: { data: ContactData }) {
   const socials = data.socials.filter((social) => social.url !== '');
@@ -337,18 +339,23 @@ function ContactChannels({ data }: { data: ContactData }) {
 
       {socials.length > 0 ? (
         <ul className="flex flex-wrap gap-x-5 gap-y-2">
-          {socials.map((social) => (
-            <li key={social.mediaKey}>
-              <a
-                href={social.url}
-                target="_blank"
-                rel="noreferrer noopener"
-                className="font-heading text-sm font-medium capitalize text-muted transition-colors hover:text-accent"
-              >
-                {social.mediaKey}
-              </a>
-            </li>
-          ))}
+          {socials.map((social) => {
+            const mark = findMark(data.marks, social.mediaKey);
+
+            return (
+              <li key={social.mediaKey}>
+                <a
+                  href={social.url}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="inline-flex items-center gap-2 font-heading text-sm font-medium capitalize text-muted transition-colors hover:text-accent"
+                >
+                  {mark ? <Mark mark={mark} className="size-4" /> : null}
+                  {mark?.label || social.mediaKey}
+                </a>
+              </li>
+            );
+          })}
         </ul>
       ) : null}
     </div>

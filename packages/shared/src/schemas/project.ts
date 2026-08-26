@@ -172,6 +172,11 @@ const portfolioSchema = object({
   /** Both reference `mediaLibrary.key`. Keys, not labels. */
   techStackKeys: withDefault(arrayOf(slug(), { max: 40 }), []),
   platformKeys: withDefault(arrayOf(slug(), { max: 40 }), []),
+  /**
+   * The project's own icon, as an app has one. A `mediaLibrary.key` of kind
+   * `app`, resolved into the snapshot at publish like every other mark.
+   */
+  appIconMediaKey: withDefault(nullable(slug()), null),
 
   heroAssetId: withDefault(nullable(objectId()), null),
   ogAssetId: withDefault(nullable(objectId()), null),
@@ -219,6 +224,7 @@ export const projectCreateShape = {
     caseStudies: [],
     techStackKeys: [],
     platformKeys: [],
+    appIconMediaKey: null,
     heroAssetId: null,
     ogAssetId: null,
   }),
@@ -256,6 +262,7 @@ export const projectPortfolioUpdateShape = {
 
   techStackKeys: arrayOf(slug(), { max: 40 }),
   platformKeys: arrayOf(slug(), { max: 40 }),
+  appIconMediaKey: nullable(slug()),
 
   heroAssetId: nullable(objectId()),
   ogAssetId: nullable(objectId()),

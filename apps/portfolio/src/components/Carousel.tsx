@@ -43,6 +43,15 @@ export interface CarouselProps {
    * phone (§7.7) widening to a fixed card from `md` up, where several fit.
    */
   slideClassName?: string;
+  /**
+   * Where the arrows sit from `md` up. `below` puts them either side of the
+   * dots under the track; `side` lifts them onto the ends of the track itself,
+   * which is what the landing row is drawn as.
+   *
+   * It changes nothing on a phone: the arrows are hidden either way and the
+   * dots do the telling (§7.7).
+   */
+  controls?: 'below' | 'side';
   className?: string;
 }
 
@@ -73,6 +82,7 @@ export function Carousel({
   label,
   children,
   slideClassName = 'w-full md:w-96',
+  controls = 'below',
   className = '',
 }: CarouselProps) {
   const trackRef = useRef<HTMLUListElement | null>(null);
@@ -185,71 +195,96 @@ export function Carousel({
 
   if (count === 0) return null;
 
+  const showControls = count > 1 && scrollable;
+
+  const arrow = (direction: 'left' | 'right') => (
+    <button
+      type="button"
+      className={arrowClass}
+      onClick={() => nudge(direction === 'left' ? -1 : 1)}
+      disabled={direction === 'left' ? atStart : atEnd}
+      aria-label={direction === 'left' ? 'Previous' : 'Next'}
+    >
+      <Chevron direction={direction} />
+    </button>
+  );
+
+  const dots = (
+    <div className="flex items-center gap-1">
+      {slides.map((_, index) => (
+        <button
+          key={index}
+          type="button"
+          onClick={() => goTo(index)}
+          aria-label={`Go to slide ${index + 1} of ${count}`}
+          aria-current={index === active}
+          // 24px of tap target around a 8px dot. Eight of these have to
+          // fit across a 390px phone, which rules out a 44px target here.
+          className="flex size-6 items-center justify-center"
+        >
+          <span
+            aria-hidden
+            className={`size-2 rounded-full transition-colors ${
+              index === active ? 'bg-accent' : 'bg-border'
+            }`}
+          />
+        </button>
+      ))}
+    </div>
+  );
+
   return (
     <div className={className}>
-      <ul
-        ref={trackRef}
-        // `relative` is load-bearing: `offsetLeft` on a slide is measured from
-        // its offset parent, and the arithmetic above only holds if that parent
-        // is the track itself.
-        // The scrollbar is hidden because the arrows and dots are the
-        // affordance; the track keeps `tabIndex` so it stays keyboard-scrollable.
-        className="relative flex snap-x snap-mandatory gap-5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        aria-label={label}
-        role="group"
-        tabIndex={0}
-      >
-        {slides.map((slide, index) => (
-          <li key={index} className={`shrink-0 snap-start ${slideClassName}`}>
-            {slide}
-          </li>
-        ))}
-      </ul>
+      {/* `relative` so the side arrows have the track to sit on. */}
+      <div className="relative">
+        <ul
+          ref={trackRef}
+          // `relative` is load-bearing: `offsetLeft` on a slide is measured from
+          // its offset parent, and the arithmetic above only holds if that parent
+          // is the track itself.
+          // The scrollbar is hidden because the arrows and dots are the
+          // affordance; the track keeps `tabIndex` so it stays keyboard-scrollable.
+          className="relative flex snap-x snap-mandatory gap-5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          aria-label={label}
+          role="group"
+          tabIndex={0}
+        >
+          {slides.map((slide, index) => (
+            <li key={index} className={`shrink-0 snap-start ${slideClassName}`}>
+              {slide}
+            </li>
+          ))}
+        </ul>
 
-      {count > 1 && scrollable ? (
-        <div className="mt-5 flex items-center justify-center gap-4">
-          <button
-            type="button"
-            className={arrowClass}
-            onClick={() => nudge(-1)}
-            disabled={atStart}
-            aria-label="Previous"
-          >
-            <Chevron direction="left" />
-          </button>
-
-          <div className="flex items-center gap-1">
-            {slides.map((_, index) => (
-              <button
-                key={index}
-                type="button"
-                onClick={() => goTo(index)}
-                aria-label={`Go to slide ${index + 1} of ${count}`}
-                aria-current={index === active}
-                // 24px of tap target around a 8px dot. Eight of these have to
-                // fit across a 390px phone, which rules out a 44px target here.
-                className="flex size-6 items-center justify-center"
-              >
-                <span
-                  aria-hidden
-                  className={`size-2 rounded-full transition-colors ${
-                    index === active ? 'bg-accent' : 'bg-border'
-                  }`}
-                />
-              </button>
-            ))}
+        {/*
+         * Side placement: the arrows straddle the ends of the track, centred by
+         * a full-height flex row rather than a translate — `index.css` strips
+         * every transform under reduced motion, so a transform may never be
+         * what holds something in position (§7.5).
+         *
+         * The row itself takes no pointer events, or it would swallow every
+         * click landing on the cards behind it.
+         */}
+        {controls === 'side' && showControls ? (
+          <div className="pointer-events-none absolute inset-0 hidden items-center justify-between md:flex">
+            <span className="pointer-events-auto -ml-3">{arrow('left')}</span>
+            <span className="pointer-events-auto -mr-3">{arrow('right')}</span>
           </div>
+        ) : null}
+      </div>
 
-          <button
-            type="button"
-            className={arrowClass}
-            onClick={() => nudge(1)}
-            disabled={atEnd}
-            aria-label="Next"
-          >
-            <Chevron direction="right" />
-          </button>
-        </div>
+      {showControls ? (
+        controls === 'side' ? (
+          // The dots are the phone's affordance, and on a wide screen the
+          // arrows on the track have already said the row moves.
+          <div className="mt-5 flex justify-center md:hidden">{dots}</div>
+        ) : (
+          <div className="mt-5 flex items-center justify-center gap-4">
+            {arrow('left')}
+            {dots}
+            {arrow('right')}
+          </div>
+        )
       ) : null}
     </div>
   );

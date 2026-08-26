@@ -26,6 +26,25 @@ export function siteContentDiffers(
     // compared as a whole. Without this a page whose only change was in `data`
     // — a reordered social row, a new discipline — would show as up to date
     // while the live site still served the old one.
-    JSON.stringify(draft.data ?? {}) !== JSON.stringify(published.data ?? {})
+    JSON.stringify(editable(draft.data)) !== JSON.stringify(editable(published.data))
   );
+}
+
+/**
+ * A page's `data` without the half nobody edits.
+ *
+ * `marks` and `portrait` are resolved by the publish action, so they are on
+ * every published record and on no draft. Comparing them would make every page
+ * permanently "ahead of what is live", which is the opposite of what the badge
+ * is for. `portraitAssetId` is not stripped: choosing a different image *is* an
+ * edit, and the badge should say so.
+ *
+ * It also means the badge tracks the words, not the library or the container:
+ * re-approving a mark, or replacing the bytes behind an image, changes what a
+ * republish would write without changing the draft, and this comparison will
+ * not notice. Publishing again is what picks it up.
+ */
+function editable(data: Record<string, unknown> | undefined): Record<string, unknown> {
+  const { marks: _marks, portrait: _portrait, ...rest } = data ?? {};
+  return rest;
 }

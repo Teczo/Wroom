@@ -8,8 +8,17 @@ import {
   type Validator,
 } from '@wroom/shared';
 
+import { UPLOAD_LIMITS } from '@wroom/shared';
+
 import { Button } from '../../components/Button';
 import { Field, inputClasses } from '../../components/Field';
+import {
+  useCreateSiteAsset,
+  useRequestSiteUploadUrl,
+  useSiteAssets,
+  useUpdateSiteAsset,
+} from '../assets/api';
+import { useBlobUpload } from '../assets/upload';
 import { MarkGlyph } from '../mediaLibrary/MarkPreview';
 import { useMediaLibrary } from '../mediaLibrary/api';
 
@@ -262,6 +271,196 @@ function SocialsEditor({
   );
 }
 
+/**
+ * The portrait a page shows: pick one of the site's images, or add one.
+ *
+ * No thumbnail. The private container allows no anonymous read, so a blob URL
+ * in an `<img>` renders broken — the media panel makes the same call, and a
+ * filename with its state beside it is honest where a broken image is not.
+ *
+ * Marking it public is part of the job rather than a separate errand: an image
+ * that is still private stops the page publishing, and the button that fixes it
+ * belongs where that is discovered.
+ */
+function PortraitField({
+  value,
+  onChange,
+  idPrefix,
+}: {
+  value: string | null;
+  onChange: (assetId: string | null) => void;
+  idPrefix: string;
+}) {
+  const assets = useSiteAssets();
+  const requestUrl = useRequestSiteUploadUrl();
+  const createAsset = useCreateSiteAsset();
+  const publish = useUpdateSiteAsset();
+
+  const { phase, busy, upload } = useBlobUpload({
+    requestUrl,
+    createAsset,
+    // Uploading one is choosing it. Anything else means picking from a list the
+    // file was just added to, which is a step nobody wants.
+    onCreated: (asset) => onChange(asset._id),
+  });
+
+  const items = assets.data?.items ?? [];
+  const chosen = items.find((asset) => asset._id === value) ?? null;
+
+  return (
+    <fieldset className="space-y-2">
+      <legend className="text-sm font-medium text-slate-800">Portrait</legend>
+      <p className="text-xs text-slate-500">
+        Shown on the page once it is published. It has to be marked public first —
+        nothing reaches the public site until it is.
+      </p>
+
+      {items.length > 0 ? (
+        <div className="flex flex-wrap gap-1.5">
+          {items.map((asset) => (
+            <button
+              key={asset._id}
+              type="button"
+              // Pressing the chosen one clears it — a portrait is optional.
+              onClick={() => onChange(value === asset._id ? null : asset._id)}
+              className={`min-h-11 rounded-lg border px-3 text-xs ${
+                value === asset._id
+                  ? 'border-slate-900 bg-slate-900 text-white'
+                  : 'border-slate-300 bg-white text-slate-700 hover:border-slate-400'
+              }`}
+            >
+              {asset.filename}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      {value !== null && !chosen && assets.isSuccess ? (
+        <p className="text-xs text-amber-700">
+          This page points at an image that is no longer here. Choose another, or clear it —
+          publishing will refuse until you do.
+        </p>
+      ) : null}
+
+      {chosen && chosen.visibility !== 'public' ? (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-2">
+          <p className="text-xs text-amber-900">
+            {chosen.filename} is private, so the page cannot publish it yet.
+          </p>
+          <Button
+            type="button"
+            variant="secondary"
+            className="min-h-9 text-xs"
+            disabled={publish.isPending}
+            onClick={() => publish.mutate({ id: chosen._id, visibility: 'public' })}
+          >
+            {publish.isPending ? 'Marking…' : 'Make it public'}
+          </Button>
+        </div>
+      ) : null}
+
+      <label className="inline-flex">
+        <span className="sr-only">Choose a portrait to upload</span>
+        <input
+          id={`${idPrefix}-portrait-file`}
+          type="file"
+          accept={UPLOAD_LIMITS.allowedMimeTypes.join(',')}
+          disabled={busy}
+          className="block w-full text-xs text-slate-600 file:mr-3 file:min-h-11 file:rounded-lg file:border-0 file:bg-slate-900 file:px-4 file:text-sm file:font-medium file:text-white disabled:opacity-50"
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            event.target.value = '';
+            if (file) void upload(file);
+          }}
+        />
+      </label>
+
+      {phase.at === 'requesting' || phase.at === 'saving' ? (
+        <p className="text-xs text-slate-600">
+          {phase.at === 'requesting' ? 'Checking the file…' : 'Saving…'} {phase.filename}
+        </p>
+      ) : null}
+
+      {phase.at === 'uploading' ? (
+        <p className="text-xs text-slate-600">
+          Uploading {phase.filename} — {phase.percent}%
+        </p>
+      ) : null}
+
+      {phase.at === 'rejected' || phase.at === 'failed' ? (
+        <p className="text-xs text-red-700">{phase.message}</p>
+      ) : null}
+    </fieldset>
+  );
+}
+
+type StatusRow = { label: string; value: string };
+
+/**
+ * The landing page's status readout: a label and a value, repeated.
+ *
+ * Both halves are typed. Nothing in Wroom measures a build, a machine or a
+ * queue, and a public page is the wrong place to grow that — these rows say
+ * what you write until you write something else.
+ */
+function StatusRowsEditor({
+  rows,
+  onChange,
+}: {
+  rows: StatusRow[];
+  onChange: (next: StatusRow[]) => void;
+}) {
+  const update = (index: number, patch: Partial<StatusRow>) =>
+    onChange(rows.map((row, at) => (at === index ? { ...row, ...patch } : row)));
+
+  return (
+    <fieldset className="space-y-2">
+      <legend className="text-sm font-medium text-slate-800">Status readout</legend>
+      <p className="text-xs text-slate-500">
+        The small panel under the code pane. Decorative, hidden on a phone, and
+        nothing here is measured — you write both halves.
+      </p>
+
+      {rows.map((row, index) => (
+        <div key={index} className="flex items-center gap-2">
+          <input
+            aria-label={`Status row ${index + 1} label`}
+            className={inputClasses}
+            value={row.label}
+            placeholder="BUILD"
+            onChange={(event) => update(index, { label: event.target.value })}
+          />
+          <input
+            aria-label={`Status row ${index + 1} value`}
+            className={inputClasses}
+            value={row.value}
+            placeholder="READY"
+            onChange={(event) => update(index, { value: event.target.value })}
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            className="min-h-9 shrink-0 px-2 text-xs text-red-600 hover:bg-red-50"
+            aria-label={`Remove status row ${index + 1}`}
+            onClick={() => onChange(rows.filter((_, at) => at !== index))}
+          >
+            ✕
+          </Button>
+        </div>
+      ))}
+
+      <Button
+        type="button"
+        variant="secondary"
+        className="min-h-9 text-xs"
+        onClick={() => onChange([...rows, { label: '', value: '' }])}
+      >
+        Add a row
+      </Button>
+    </fieldset>
+  );
+}
+
 // --- the four forms --------------------------------------------------------
 
 export function LandingDataForm({
@@ -352,6 +551,42 @@ export function LandingDataForm({
         placeholder="developer@teczo:~$ whoami"
       />
 
+      <PortraitField
+        idPrefix="ld"
+        value={data.portraitAssetId}
+        onChange={(portraitAssetId) => onChange({ ...data, portraitAssetId })}
+      />
+
+      <StringListEditor
+        label="Code pane tabs"
+        hint="The file names along the top of the pane beside the terminal."
+        idPrefix="ld-code-tab"
+        values={data.codePanel.tabs}
+        onChange={(tabs) => onChange({ ...data, codePanel: { ...data.codePanel, tabs } })}
+        placeholder="App.jsx"
+      />
+
+      <Field
+        label="Code pane"
+        htmlFor="ld-code"
+        error={errors['data.codePanel.code']}
+        hint="Shown as plain text, exactly as typed. Decorative, and hidden on a phone."
+      >
+        <textarea
+          id="ld-code"
+          className={`${inputClasses} min-h-40 font-mono text-xs`}
+          value={data.codePanel.code}
+          onChange={(event) =>
+            onChange({ ...data, codePanel: { ...data.codePanel, code: event.target.value } })
+          }
+        />
+      </Field>
+
+      <StatusRowsEditor
+        rows={data.statusRows}
+        onChange={(statusRows) => onChange({ ...data, statusRows })}
+      />
+
       <SocialsEditor
         socials={data.socials}
         onChange={(socials) => onChange({ ...data, socials })}
@@ -365,6 +600,21 @@ export function LandingDataForm({
           value={data.ctaLabel}
           onChange={(event) => onChange({ ...data, ctaLabel: event.target.value })}
           placeholder="Let's build something great"
+        />
+      </Field>
+
+      <Field
+        label="Featured work intro"
+        htmlFor="ld-featured-intro"
+        error={errors['data.featuredIntro']}
+        hint="One line under the Featured Projects heading."
+      >
+        <input
+          id="ld-featured-intro"
+          className={inputClasses}
+          value={data.featuredIntro}
+          onChange={(event) => onChange({ ...data, featuredIntro: event.target.value })}
+          placeholder="Selected products and platforms I've built."
         />
       </Field>
 
@@ -416,25 +666,11 @@ export function AboutDataForm({
         />
       </Field>
 
-      <Field
-        label="Portrait asset id"
-        htmlFor="ab-portrait"
-        error={errors['data.portraitAssetId']}
-        hint="An asset id, typed in. There is no endpoint that lists files across projects yet, so there is nothing to build a picker from — see the report."
-      >
-        <input
-          id="ab-portrait"
-          className={`${inputClasses} font-mono`}
-          value={data.portraitAssetId ?? ''}
-          placeholder="none"
-          onChange={(event) =>
-            onChange({
-              ...data,
-              portraitAssetId: event.target.value.trim() === '' ? null : event.target.value.trim(),
-            })
-          }
-        />
-      </Field>
+      <PortraitField
+        idPrefix="ab"
+        value={data.portraitAssetId}
+        onChange={(portraitAssetId) => onChange({ ...data, portraitAssetId })}
+      />
     </div>
   );
 }

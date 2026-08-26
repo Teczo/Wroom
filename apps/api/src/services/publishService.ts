@@ -205,9 +205,13 @@ export async function publishProject(
 
   // --- 3. resolve the mediaLibrary keys -----------------------------------
   // Anything not usage-approved is dropped here, and the publish carries on.
-  const [techStack, platforms, clientLogo] = await Promise.all([
+  const [techStack, platforms, appIcons, clientLogo] = await Promise.all([
     resolveMarks(project.portfolio.techStackKeys ?? []),
     resolveMarks(project.portfolio.platformKeys ?? []),
+    // One key at most, and it resolves to nothing when the mark is missing or
+    // was never usage-approved — the project publishes without an icon rather
+    // than failing, which is what every other mark here does.
+    resolveMarks(project.portfolio.appIconMediaKey ? [project.portfolio.appIconMediaKey] : []),
     resolveClientMark(product.clientMediaKey),
   ]);
 
@@ -294,6 +298,7 @@ export async function publishProject(
 
     techStack,
     platforms,
+    appIcon: appIcons[0] ?? null,
     clientLogo,
 
     heroImage: toImage(heroAsset),

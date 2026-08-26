@@ -1,5 +1,6 @@
 import { FeaturedProjects } from '../features/landing/FeaturedProjects';
 import { Hero } from '../features/landing/Hero';
+import { LandingBottom } from '../features/landing/LandingBottom';
 import { FALLBACK_FEATURED_LIMIT, readLandingData } from '../features/landing/landingData';
 import { usePublishedContent } from '../features/content/api';
 import { useDocumentMeta } from '../lib/useDocumentMeta';
@@ -18,10 +19,21 @@ import { useDocumentMeta } from '../lib/useDocumentMeta';
  *
  * The projects wait for the content record because it says how many of them to
  * ask for. That wait is the row's loading state, not a blank page.
+ *
+ * The bar at the foot of the page is the site's one CTA, and the social row
+ * beside it is from the same record — the design puts both under the work
+ * rather than in the hero.
+ *
+ * The hero is told how many projects to expect and when to ask, because the
+ * phone on it is built from the same list as the row below: one query, asked
+ * once, drawn twice.
  */
 export function LandingPage() {
   const content = usePublishedContent('landing');
   const data = readLandingData(content.data?.data);
+
+  const featuredLimit = data?.featuredLimit ?? FALLBACK_FEATURED_LIMIT;
+  const featuredEnabled = !content.isPending;
 
   useDocumentMeta(
     content.data?.meta.title || content.data?.title || '',
@@ -30,11 +42,15 @@ export function LandingPage() {
 
   return (
     <>
-      {data ? <Hero data={data} /> : null}
+      {data ? (
+        <Hero data={data} featuredLimit={featuredLimit} featuredEnabled={featuredEnabled} />
+      ) : null}
       <FeaturedProjects
-        limit={data?.featuredLimit ?? FALLBACK_FEATURED_LIMIT}
-        enabled={!content.isPending}
+        limit={featuredLimit}
+        intro={data?.featuredIntro ?? ''}
+        enabled={featuredEnabled}
       />
+      {data ? <LandingBottom data={data} /> : null}
     </>
   );
 }

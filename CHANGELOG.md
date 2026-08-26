@@ -1,5 +1,70 @@
 # Changelog
 
+## 2026-08-26
+
+- You can put your portrait on the site. Upload it on the landing or about page
+  in the portal, mark it public, and publish — it appears beside the headline on
+  the front page and next to your writing on the about page. The about page has
+  had a portrait field for a while that did nothing; it works now.
+- Photos for the site's own pages no longer have to belong to a project. They
+  are uploaded on the page that uses them and live in their own list.
+- A portrait that is still private, or one you have deleted, stops the page
+  publishing and says so, rather than publishing a page with a hole in it. The
+  portal offers a "make it public" button right where the problem shows up.
+- Taking a page down, or swapping its portrait for another, deletes the public
+  copy of the old picture — unless another live page is still showing the same
+  one. A picture you take down stops being reachable, not just unlinked.
+- A project can now have its own app icon, picked from the media library on its
+  portfolio screen. Publish the project and it appears on the phone in the
+  landing page hero, tappable through to that project's page.
+- The media library has a new kind for those icons — "app icons" — so they do
+  not clutter the tech and platform grids.
+- A project without an icon is simply not on the phone, and if none of your
+  published projects has one there is no phone. Deleting a mark that a project
+  uses as its app icon is refused, the same way it already is for a tech or
+  platform mark, and the refusal says which.
+- The landing page has the rail from the design back: a pane of code with file
+  tabs along the top, and a small readout of labels and values under it. Both
+  are yours to write on the landing page in the portal, both are decoration for
+  a wide screen, and both are gone on a phone. Leave either empty and it is not
+  drawn at all.
+- The readout is written, not measured. Nothing in Wroom watches a build or a
+  machine, so those rows say whatever you type until you type something else.
+- There is now a line of copy under the Featured Projects heading, also written
+  in the portal.
+- Your icons now show up on the public site. Publishing a page — landing,
+  contact or skills — looks up every mark you referenced in the media library
+  and copies it into what the live site serves, so the social row at the foot of
+  the landing page, the contact links and the whole skills grid draw real logos
+  instead of printing the key you typed.
+- A mark you have not approved for use, or a key with no record behind it,
+  simply does not draw: the link keeps its words and the page publishes as
+  normal, the same way an unapproved mark drops off a project page.
+- Changing a logo in the media library does not change the live site on its own.
+  Publish the page again and it picks the new one up.
+- The landing page has been rebuilt to the new design. The greeting and your
+  name sit large on the left with the statement under them, the disciplines on
+  one green line, and the purpose panel beneath — all of it still written in the
+  portal. The terminal beside it is now a wide, softly lit screen with no window
+  bar, and it still types itself out.
+- The featured work row now looks like the design: smaller cards with a picture
+  band across the top, the name, the blurb, and the project's category as a
+  green chip underneath. The category was already being published and was not
+  being shown anywhere.
+- On a wide screen the arrows for that row now sit on the ends of the row itself
+  rather than under it. On a phone nothing changes — one card at a time, swipe,
+  dots underneath.
+- The site header is now a floating rounded bar with a border, instead of a
+  full-width strip across the top.
+- Your social links and the "let's build something great" bar now appear at the
+  foot of the landing page, side by side, both from the landing record. The
+  button that used to sit in the hero has moved into that bar, which is where
+  the design puts it.
+- Four things in the design are not on the page yet because nothing in the
+  portal can fill them: the portrait, the phone with your app icons, the code
+  panel and the system-status readout. Each needs a new field before it can be
+  written and published, rather than being typed into the site's code.
+
 ## 2026-08-25
 
 - A project's public page has been rebuilt to the new design. The hero is now a

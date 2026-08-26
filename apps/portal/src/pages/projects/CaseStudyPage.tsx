@@ -29,7 +29,7 @@ import {
   CaseStudiesEditor,
   caseStudyProblems,
 } from '../../features/portfolio/CaseStudiesEditor';
-import { AssetPicker, MarkMultiSelect } from '../../features/portfolio/pickers';
+import { AssetPicker, MarkMultiSelect, MarkPicker } from '../../features/portfolio/pickers';
 import { projectKeys, useProject } from '../../features/projects/api';
 import { ApiRequestError, apiPatchWithMeta } from '../../lib/api';
 import { humanise, shortDate } from '../../lib/format';
@@ -108,6 +108,7 @@ export function CaseStudyPage() {
   // --- reference data ---
   const [techStackKeys, setTechStackKeys] = useState<string[]>([]);
   const [platformKeys, setPlatformKeys] = useState<string[]>([]);
+  const [appIconMediaKey, setAppIconMediaKey] = useState('');
   const [loaded, setLoaded] = useState(false);
   const [confirmingPublic, setConfirmingPublic] = useState<string | null>(null);
 
@@ -145,6 +146,7 @@ export function CaseStudyPage() {
 
     setTechStackKeys(portfolio.techStackKeys);
     setPlatformKeys(portfolio.platformKeys);
+    setAppIconMediaKey(portfolio.appIconMediaKey ?? '');
 
     setLoaded(true);
   }
@@ -233,6 +235,9 @@ export function CaseStudyPage() {
 
         techStackKeys,
         platformKeys,
+        // No icon is null, not an empty string — the snapshot resolves a key or
+        // carries nothing at all.
+        appIconMediaKey: appIconMediaKey === '' ? null : appIconMediaKey,
         // `sortOrder` is renumbered from the list's own order on every save,
         // so the two can never disagree — a consumer that sorts by the field
         // and one that takes the array as it comes get the same answer.
@@ -469,6 +474,14 @@ export function CaseStudyPage() {
         </Field>
         <Field label="Platforms" htmlFor="pf-platforms" error={errors.platformKeys}>
           <MarkMultiSelect value={platformKeys} onChange={setPlatformKeys} kinds={['platform']} />
+        </Field>
+        <Field
+          label="App icon"
+          htmlFor="pf-app-icon"
+          error={errors.appIconMediaKey}
+          hint="Puts this project on the phone in the landing page hero. Tap again to clear it."
+        >
+          <MarkPicker value={appIconMediaKey} onChange={setAppIconMediaKey} kinds={['app']} />
         </Field>
 
         <SectionHeading

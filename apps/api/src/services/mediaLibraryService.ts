@@ -67,7 +67,7 @@ export async function updateMediaItem(
  * Where a single key is referenced from, counted per place so the refusal can
  * say which one to go and fix.
  *
- * These three paths are `docs/DATA_MODEL.md`'s, and they are read through the
+ * These four paths are `docs/DATA_MODEL.md`'s, and they are read through the
  * raw driver rather than through Mongoose on purpose: `config/db.ts` sets
  * `strictQuery: true`, which silently *drops* a condition on a path the schema
  * does not declare — a delete would then be refused against a count of every
@@ -78,20 +78,23 @@ export async function updateMediaItem(
 async function countReferences(key: string): Promise<{
   techStack: number;
   platforms: number;
+  appIcon: number;
   clientLogo: number;
   total: number;
 }> {
-  const [techStack, platforms, clientLogo] = await Promise.all([
+  const [techStack, platforms, appIcon, clientLogo] = await Promise.all([
     ProjectModel.collection.countDocuments({ 'portfolio.techStackKeys': key }),
     ProjectModel.collection.countDocuments({ 'portfolio.platformKeys': key }),
+    ProjectModel.collection.countDocuments({ 'portfolio.appIconMediaKey': key }),
     ProductModel.collection.countDocuments({ clientMediaKey: key }),
   ]);
 
   return {
     techStack,
     platforms,
+    appIcon,
     clientLogo,
-    total: techStack + platforms + clientLogo,
+    total: techStack + platforms + appIcon + clientLogo,
   };
 }
 
@@ -113,6 +116,9 @@ export async function deleteMediaItem(id: string): Promise<void> {
     }
     if (references.platforms > 0) {
       places.push(`the platforms of ${references.platforms} project(s)`);
+    }
+    if (references.appIcon > 0) {
+      places.push(`${references.appIcon} project(s) as their app icon`);
     }
     if (references.clientLogo > 0) {
       places.push(`${references.clientLogo} product(s) as the client logo`);
