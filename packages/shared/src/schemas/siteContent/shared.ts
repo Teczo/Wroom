@@ -1,4 +1,14 @@
-import { slug, string, url, withDefault, type Validator } from '../../validate.js';
+import { MEDIA_SVG_MAX_LENGTH } from '../../constants.js';
+import {
+  arrayOf,
+  slug,
+  strictObject,
+  string,
+  url,
+  withDefault,
+  type Infer,
+  type Validator,
+} from '../../validate.js';
 
 /**
  * Pieces more than one page's `data` needs.
@@ -47,3 +57,37 @@ export const socialShape = {
   mediaKey: slug(),
   url: withDefault(optionalUrl(), ''),
 };
+
+/**
+ * A mark as a published page carries it — the same three fields a project's
+ * snapshot holds for its tech stack, for the same reason: the portfolio may
+ * never read `mediaLibrary` (§6, §8), so a key has to arrive already resolved
+ * or it arrives as a string nobody can draw.
+ *
+ * `svg` is not pattern-checked here. It is not markup anyone posted: the
+ * publish action writes it, having read it from a record the API sanitised on
+ * write, which is the gate the render path depends on (§8).
+ */
+export const resolvedMarkShape = {
+  key: slug(),
+  label: withDefault(string({ max: 120, allowEmpty: true }), ''),
+  svg: withDefault(string({ max: MEDIA_SVG_MAX_LENGTH, allowEmpty: true }), ''),
+};
+
+export type SiteContentMark = Infer<typeof resolvedMarkShape>;
+
+/**
+ * `data.marks` — every mark the page's keys resolved to, deduplicated.
+ *
+ * Server-owned. The publish action fills it and the draft never carries it, so
+ * a `marks` array sent to `PATCH /api/content/:key` is dropped rather than
+ * stored: the only markup that reaches a published page comes from the library
+ * by way of `resolveMarks`, never from a request body.
+ *
+ * It lives on the page rather than beside each key because two rows can name
+ * the same mark, and because the draft's shape then stays exactly what somebody
+ * edits — a key and a URL.
+ */
+export function marksField(): Validator<SiteContentMark[]> {
+  return withDefault(arrayOf(strictObject(resolvedMarkShape), { max: 200 }), []);
+}

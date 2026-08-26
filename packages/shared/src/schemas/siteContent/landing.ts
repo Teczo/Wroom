@@ -1,5 +1,5 @@
 import { arrayOf, number, strictObject, string, withDefault } from '../../validate.js';
-import { socialShape } from './shared.js';
+import { marksField, socialShape } from './shared.js';
 
 /**
  * `siteContent.landing.data` — the hero of the public landing page.
@@ -30,4 +30,6 @@ export const landingDataSchema = strictObject({
   ctaLabel: withDefault(string({ max: 80, allowEmpty: true }), ''),
   /** How many published projects the landing page shows. */
   featuredLimit: withDefault(number({ min: 1, max: 24, integer: true }), 6),
+  /** Written by the publish action, never by an editor. See `marksField`. */
+  marks: marksField(),
 });

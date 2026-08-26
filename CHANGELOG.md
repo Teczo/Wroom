@@ -2,6 +2,16 @@
 
 ## 2026-08-26
 
+- Your icons now show up on the public site. Publishing a page — landing,
+  contact or skills — looks up every mark you referenced in the media library
+  and copies it into what the live site serves, so the social row at the foot of
+  the landing page, the contact links and the whole skills grid draw real logos
+  instead of printing the key you typed.
+- A mark you have not approved for use, or a key with no record behind it,
+  simply does not draw: the link keeps its words and the page publishes as
+  normal, the same way an unapproved mark drops off a project page.
+- Changing a logo in the media library does not change the live site on its own.
+  Publish the page again and it picks the new one up.
 - The landing page has been rebuilt to the new design. The greeting and your
   name sit large on the left with the statement under them, the disciplines on
   one green line, and the purpose panel beneath — all of it still written in the

@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 
+import { Mark, findMark } from '../../components/Mark';
 import type { LandingData } from './landingData';
 
 /**
@@ -10,10 +11,10 @@ import type { LandingData } from './landingData';
  * publish (§2 rule 8). Either half missing and that half is not drawn; both
  * missing and the section does not exist (§7.4).
  *
- * The marks are missing for the same reason they are missing on the contact
- * and skills pages: `socials[].mediaKey` is a `mediaLibrary` key and nothing
- * resolves it into the published copy, so each link is labelled by the key its
- * author chose. That string is data from the record, not copy written here.
+ * Each link draws its mark from `data.marks`, which the publish action resolved
+ * from the library. A key that resolved to nothing — no record, no markup, or a
+ * mark whose usage was never approved — keeps its words instead of leaving a
+ * blank square, and the row stays usable either way.
  *
  * At 390px the two halves stack and the bar goes full width (§7.7).
  */
@@ -28,18 +29,27 @@ export function LandingBottom({ data }: { data: LandingData }) {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         {socials.length > 0 ? (
           <ul className="flex flex-wrap gap-2">
-            {socials.map((social) => (
-              <li key={social.mediaKey}>
-                <a
-                  href={social.url}
-                  target="_blank"
-                  rel="noreferrer noopener"
-                  className="inline-flex h-11 min-w-11 items-center justify-center rounded-lg border border-border bg-surface/60 px-3 font-heading text-xs font-medium capitalize text-muted transition-colors hover:border-border-strong hover:text-accent"
-                >
-                  {social.mediaKey}
-                </a>
-              </li>
-            ))}
+            {socials.map((social) => {
+              const mark = findMark(data.marks, social.mediaKey);
+              const name = mark?.label || social.mediaKey;
+
+              return (
+                <li key={social.mediaKey}>
+                  <a
+                    href={social.url}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    // The mark is `aria-hidden`, so the label on the link is
+                    // what a screen reader announces — and with an icon in the
+                    // tile it is the only thing that names the destination.
+                    aria-label={mark ? name : undefined}
+                    className="inline-flex h-11 min-w-11 items-center justify-center rounded-lg border border-border bg-surface/60 px-3 font-heading text-xs font-medium capitalize text-muted transition-colors hover:border-border-strong hover:text-accent"
+                  >
+                    {mark ? <Mark mark={mark} className="size-5" /> : name}
+                  </a>
+                </li>
+              );
+            })}
           </ul>
         ) : (
           // Holds the bar to the right of the row when there are no links, so

@@ -542,6 +542,24 @@ Skills carries no proficiency level, years, or per-item prose. It is icon and la
 
 `terminalLines` is decorative and hidden below `md`.
 
+**`published.data` carries one field the draft does not: `marks`.**
+
+```js
+// siteContent.published.data, on landing / contact / skills
+marks: [{ key: "github", label: "GitHub", svg: "<svg …>" }]
+```
+
+The portfolio may not read `mediaLibrary`, so a `mediaKey` has to arrive already
+resolved or it arrives as a string nobody can draw. The publish action collects
+every key the page names, resolves it through the same `resolveMarks` a project's
+tech stack uses, and writes the result here — dropping anything with
+`usageApproved: false` silently, exactly as a project publish does.
+
+It is server-owned: `PATCH /api/content/:key` strips `marks` from the body, so
+the only markup that reaches a published page comes from a `mediaLibrary` record
+the API sanitised on write. Resolution is frozen at publish — editing a mark in
+the library changes the live page only when the page is published again.
+
 ---
 
 ### `enquiries`

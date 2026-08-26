@@ -1,5 +1,6 @@
 import type { SiteContentBody } from '@wroom/shared';
 
+import { Mark, findMark } from '../components/Mark';
 import { Markdown } from '../components/Markdown';
 import { Reveal } from '../components/Reveal';
 import { ContentPage } from '../features/content/ContentPage';
@@ -14,15 +15,12 @@ import { useDocumentMeta } from '../lib/useDocumentMeta';
  * field list waiting to be finished, so there is nothing here to render them
  * from and nothing here that should grow one.
  *
- * The marks themselves are missing for now. `items[].mediaKey` is a
- * `mediaLibrary` key, and the portfolio may not read `mediaLibrary` (§6, §8) —
- * a project's tech grid only has SVG to draw because `publishService` resolves
- * its keys into the snapshot at publish. Nothing does that for `siteContent`,
- * so each tile shows its authored label and no icon. An empty box where the
- * mark will go would be a placeholder, and §7.4 is explicit that a section with
- * nothing behind it renders nothing rather than a frame. When resolution lands
- * the icon fills the tile above the label and this grid does not otherwise
- * change.
+ * The marks come from `data.marks`, which the publish action resolves out of
+ * `mediaLibrary` — the portfolio may not read that collection itself (§6, §8),
+ * so a key arrives already drawn or it does not arrive at all. A tile whose key
+ * resolved to nothing keeps its label and shows no icon, because an empty box
+ * where a mark will go is a placeholder and §7.4 is explicit that nothing
+ * behind a thing means the thing is not drawn.
  */
 function Skills({ content }: { content: SiteContentBody }) {
   const data = readSkillsData(content.data);
@@ -60,16 +58,21 @@ function Skills({ content }: { content: SiteContentBody }) {
               * the same kind of object and should not read as two systems.
               */}
             <ul className="mt-5 grid grid-cols-3 gap-3 sm:grid-cols-5 sm:gap-4 md:grid-cols-6">
-              {group.items.map((item) => (
-                <li
-                  key={item.mediaKey}
-                  className="flex min-h-20 flex-col items-center justify-center gap-2 rounded-xl border border-border bg-surface p-3 text-center"
-                >
-                  <span className="text-xs font-medium text-fg">
-                    {item.label || item.mediaKey}
-                  </span>
-                </li>
-              ))}
+              {group.items.map((item) => {
+                const mark = findMark(data?.marks ?? [], item.mediaKey);
+
+                return (
+                  <li
+                    key={item.mediaKey}
+                    className="flex min-h-20 flex-col items-center justify-center gap-2 rounded-xl border border-border bg-surface p-3 text-center"
+                  >
+                    {mark ? <Mark mark={mark} className="size-7 text-accent" /> : null}
+                    <span className="text-xs font-medium text-fg">
+                      {item.label || mark?.label || item.mediaKey}
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           </section>
         </Reveal>

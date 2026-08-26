@@ -3,6 +3,7 @@ import type { Types } from 'mongoose';
 
 import { SiteContentModel, type SiteContentDocument } from '../models/SiteContent.js';
 import { NotFoundError } from '../utils/errors.js';
+import { resolveMarks } from './mediaLibraryService.js';
 
 type DraftInput = Infer<typeof siteContentDraftShape> & { data: Record<string, unknown> };
 
@@ -16,7 +17,58 @@ type DraftInput = Infer<typeof siteContentDraftShape> & { data: Record<string, u
  *
  * `key` is not creatable: the seeded records are the whole set, so there is no
  * path in this module that inserts one.
+ *
+ * Publishing does one thing beyond the copy: it resolves the page's
+ * `mediaLibrary` keys into `published.data.marks`. The portfolio may never read
+ * `mediaLibrary` (§6, §8), so a social row or a skills grid has icons only if
+ * the publish action put them there — the same reasoning, and the same
+ * `resolveMarks` call, as a project's tech stack.
  */
+
+/**
+ * Every `mediaLibrary` key a page's `data` names, in the order it names them.
+ *
+ * Shape-led rather than key-led: it looks for the two places a key can appear —
+ * a social row and a skills group — wherever they occur, so a page that grows a
+ * social row needs nothing added here. `data` is a stored blob rather than a
+ * parsed one, so every step checks what it has before reading through it.
+ *
+ * Deduplicated, because a mark named twice is one lookup and one entry.
+ */
+function collectMediaKeys(data: Record<string, unknown>): string[] {
+  const keys: string[] = [];
+
+  const push = (value: unknown) => {
+    if (typeof value === 'string' && value !== '') keys.push(value);
+  };
+
+  const rowsOf = (value: unknown): Record<string, unknown>[] =>
+    Array.isArray(value)
+      ? value.filter((row): row is Record<string, unknown> => typeof row === 'object' && row !== null)
+      : [];
+
+  for (const social of rowsOf(data.socials)) push(social.mediaKey);
+
+  for (const group of rowsOf(data.groups)) {
+    for (const item of rowsOf(group.items)) push(item.mediaKey);
+  }
+
+  return [...new Set(keys)];
+}
+
+/**
+ * A stored blob without the fields the publish action owns.
+ *
+ * `marks` is written by publishing and by nothing else. Stripping it on the way
+ * in is what makes that true: without this, a request body could put arbitrary
+ * markup in a draft, and the one thing standing between `mediaLibrary` and a
+ * page that renders markup is that the markup always came from `mediaLibrary`
+ * (§8).
+ */
+function withoutResolvedMarks(data: Record<string, unknown>): Record<string, unknown> {
+  const { marks: _resolved, ...rest } = data;
+  return rest;
+}
 
 export type SiteContentSummaryRow = {
   _id: Types.ObjectId;
@@ -69,7 +121,7 @@ export async function updateDraft(
       // Replaced whole, never merged. `data` is one page's structured content
       // and is edited as a unit, so a partial merge would leave a half-old
       // half-new object that matches no version anyone reviewed.
-      data: input.data ?? record.draft.data ?? {},
+      data: withoutResolvedMarks(input.data ?? record.draft.data ?? {}),
     },
     updatedByUserId,
   });
@@ -79,9 +131,16 @@ export async function updateDraft(
 }
 
 /**
- * Copies the draft onto the live site. A plain object is taken from the draft
- * so the two halves stay independent documents — editing the draft afterwards
- * must not quietly change what is published.
+ * Copies the draft onto the live site, resolving its marks on the way.
+ *
+ * A plain object is taken from the draft so the two halves stay independent
+ * documents — editing the draft afterwards must not quietly change what is
+ * published.
+ *
+ * `marks` is rebuilt from the library on every publish and never carried over
+ * from what was there before. A mark whose approval was withdrawn therefore
+ * leaves the live page at the next publish, rather than surviving because it
+ * was already written down.
  */
 export async function publishSiteContent(
   key: string,
@@ -90,6 +149,13 @@ export async function publishSiteContent(
   const record = await getSiteContent(key);
 
   const draft = record.draft;
+  const draftData = withoutResolvedMarks(draft.data ?? {});
+
+  // Dropped silently when the key has no record or its usage was never
+  // approved, which is what `resolveMarks` already does for a project. A
+  // withheld trademark costs the page one icon; it does not stop the publish
+  // (docs/DATA_MODEL.md, §8).
+  const marks = await resolveMarks(collectMediaKeys(draftData));
 
   record.set({
     published: {
@@ -99,7 +165,7 @@ export async function publishSiteContent(
       // Deep-copied so the two halves stay independent documents. A shared
       // reference would mean editing the draft afterwards silently changed what
       // is published, which is the one thing the split exists to prevent.
-      data: structuredClone(draft.data ?? {}),
+      data: { ...structuredClone(draftData), marks },
     },
     publishedAt: new Date(),
     publishedByUserId,

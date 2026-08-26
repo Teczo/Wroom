@@ -26,6 +26,22 @@ export function siteContentDiffers(
     // compared as a whole. Without this a page whose only change was in `data`
     // — a reordered social row, a new discipline — would show as up to date
     // while the live site still served the old one.
-    JSON.stringify(draft.data ?? {}) !== JSON.stringify(published.data ?? {})
+    JSON.stringify(editable(draft.data)) !== JSON.stringify(editable(published.data))
   );
+}
+
+/**
+ * A page's `data` without the half nobody edits.
+ *
+ * `marks` is resolved by the publish action, so it is on every published record
+ * and on no draft. Comparing it would make every page permanently "ahead of
+ * what is live", which is the opposite of what the badge is for.
+ *
+ * It also means the badge tracks the words, not the library: re-approving a
+ * mark changes what a republish would write without changing the draft, and
+ * this comparison will not notice. Publishing again is what picks it up.
+ */
+function editable(data: Record<string, unknown> | undefined): Record<string, unknown> {
+  const { marks: _resolved, ...rest } = data ?? {};
+  return rest;
 }
