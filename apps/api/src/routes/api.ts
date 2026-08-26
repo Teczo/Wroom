@@ -1,4 +1,5 @@
 import {
+  bootstrapImportSchema,
   projectTypeCreateSchema,
   projectTypeUpdateSchema,
   uploadRequestSchema,
@@ -6,6 +7,7 @@ import {
 import { Router } from 'express';
 
 import { requestUpload } from '../controllers/assetController.js';
+import * as bootstrapImport from '../controllers/bootstrapImportController.js';
 import * as costController from '../controllers/costController.js';
 import * as dashboard from '../controllers/dashboardController.js';
 import * as featureController from '../controllers/featureController.js';
@@ -39,6 +41,22 @@ apiRouter.get('/me', meta.me);
 
 /** Not under a project — the template is the same blank file for all of them. */
 apiRouter.get('/features/csv-template', featureController.csvTemplate);
+
+/**
+ * Bootstrap import — a product, a project and its features in one body. Flat,
+ * because it is not scoped to a project: creating one is the point of it.
+ */
+apiRouter.post(
+  '/import/bootstrap/preview',
+  validateBody(bootstrapImportSchema),
+  bootstrapImport.preview,
+);
+apiRouter.post(
+  '/import/bootstrap/commit',
+  validateBody(bootstrapImportSchema),
+  bootstrapImport.commit,
+);
+
 apiRouter.get('/features/:id/time-summary', timeController.featureTimeSummary);
 apiRouter.get('/dashboard', dashboard.summary);
 apiRouter.get('/costs/summary', costController.summary);

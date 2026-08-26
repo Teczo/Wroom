@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-08-26
+
+- A whole brainstorm can now become a real project in one call. Send a product,
+  a project and its features together and the API creates all three — instead of
+  filling in the portal's create form after the thinking is already done. There
+  is a preview that shows exactly what would be created and what already exists
+  without writing anything, and a commit that does the work. Running the same
+  payload twice does not duplicate anything: the second run updates what
+  changed and leaves everything else alone. Nothing is ever deleted.
+- Features that arrive this way can wait on each other by name, the same way
+  they can in a features spreadsheet, and the two importers now share one piece
+  of code for working that out rather than having a copy each.
+- There is no screen for this yet — it is the API the assistant integration will
+  call.
+
 ## 2026-08-25
 
 - A project's public page has been rebuilt to the new design. The hero is now a
