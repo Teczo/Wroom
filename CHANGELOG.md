@@ -2,6 +2,20 @@
 
 ## 2026-08-26
 
+- Wroom can now be connected to Claude as a custom connector, so a brainstorm
+  ends with "put this into Wroom" instead of a form. Claude first asks what
+  already exists — the products, the project type keys and the slugs in use —
+  then shows you a plan of exactly what it would create and change, and writes
+  nothing until you say go. Running the same brainstorm twice will not
+  duplicate anything.
+- The connector can only do those three things. It cannot read costs, revenue,
+  time, credentials, infrastructure or enquiries, and the list of what it can
+  reach is fixed in code rather than left to a setting.
+- Anyone connecting has to sign in through Auth0 first; the connector's address
+  on its own gets you nothing.
+- A service signing in to the API no longer appears in the team as a person.
+  Previously the first thing to authenticate against an empty database became
+  the owner, which would have handed that role to a robot.
 - A whole brainstorm can now become a real project in one call. Send a product,
   a project and its features together and the API creates all three — instead of
   filling in the portal's create form after the thinking is already done. There
