@@ -1,0 +1,92 @@
+# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+#
+# The MCP server deploys the same way the API does and for the same reason: it
+# is a long-running Node process, not a static site. Vercel hosts the two
+# frontends and nothing else (CLAUDE.md §3).
+name: Build and deploy Node.js app to Azure Web App - wroom-mcp
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/mcp/**'
+      - 'packages/shared/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/main_wroom-mcp.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.x'
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build -w @wroom/shared
+      - run: npm run build -w @wroom/mcp
+
+      # Production dependencies only. --ignore-scripts skips the root `prepare`
+      # hook, which builds @wroom/shared and needs typescript — already gone by now.
+      - run: npm ci --omit=dev --ignore-scripts
+
+      - name: Stage the deployment package
+        run: |
+          mkdir -p deploy/apps/mcp
+          cp package.json package-lock.json deploy/
+          cp -R node_modules deploy/node_modules
+          cp apps/mcp/package.json deploy/apps/mcp/
+          cp -R apps/mcp/dist deploy/apps/mcp/dist
+          # Workspace symlinks do not survive zip deploy — replace with the real package.
+          rm -rf deploy/node_modules/@wroom
+          mkdir -p deploy/node_modules/@wroom/shared
+          cp packages/shared/package.json deploy/node_modules/@wroom/shared/
+          cp -R packages/shared/dist deploy/node_modules/@wroom/shared/dist
+
+      - name: Upload artifact for deployment job
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcp-app
+          path: deploy
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: mcp-app
+          path: deploy
+
+      # The same subscription, tenant and service principal as the API. The
+      # principal needs a role assignment on the wroom-mcp web app as well — if
+      # Azure's Deploy Center generated a fresh set of secrets when that app was
+      # created, point the three lines below at those instead.
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_988AB78C240B4ACF9EF9AB78F8AD54CD }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_F19C25DEB7124911A9E3B626EB07FBE5 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_58F259A26DFA40A7961450E278467F39 }}
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'wroom-mcp'
+          slot-name: 'Production'
+          package: deploy

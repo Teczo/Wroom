@@ -16,6 +16,9 @@
 - A service signing in to the API no longer appears in the team as a person.
   Previously the first thing to authenticate against an empty database became
   the owner, which would have handed that role to a robot.
+- The connector deploys itself when its code changes on main, the same way the
+  API already does. It is not a Vercel project — Vercel still hosts the two
+  websites and nothing else.
 - A whole brainstorm can now become a real project in one call. Send a product,
   a project and its features together and the API creates all three — instead of
   filling in the portal's create form after the thinking is already done. There
