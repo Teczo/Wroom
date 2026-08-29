@@ -1,7 +1,7 @@
-import { AppShelf } from './AppShelf';
-import { Terminal } from './Terminal';
-import { useFeaturedProjects } from './api';
-import type { LandingData } from './landingData';
+import { AppShelf } from "./AppShelf";
+import { Terminal } from "./Terminal";
+import { useFeaturedProjects } from "./api";
+import type { LandingData } from "./landingData";
 
 /**
  * The top of the landing page.
@@ -19,10 +19,10 @@ import type { LandingData } from './landingData';
  * It shares the row's query rather than making one of its own, and it is gone
  * below `lg` like the rest of the composition.
  *
- * The portrait behind the screen is `portrait` from the same record — resolved
- * from an upload into public-container URLs at publish, because the portfolio
- * may not read `assets` itself (§6, §8). It is the composite image §7.7 drops
- * at 390px, so it is gone below `md`.
+ * The portrait is `portrait` from the same record — resolved from an upload
+ * into public-container URLs at publish, because the portfolio may not read
+ * `assets` itself (§6, §8). It is the composite image §7.7 drops at 390px, so
+ * it is gone below `md`.
  *
  * Nothing in here animates on first paint. There is no `Reveal` above the fold
  * and no entrance transition: the headline is the largest thing on the page and
@@ -75,7 +75,10 @@ function StatusPanel({ rows }: { rows: { label: string; value: string }[] }) {
   return (
     <dl className="rounded-2xl border border-border bg-surface-deep/70 px-5 py-4">
       {rows.map((row) => (
-        <div key={row.label} className="flex items-baseline justify-between gap-4 py-1.5">
+        <div
+          key={row.label}
+          className="flex items-baseline justify-between gap-4 py-1.5"
+        >
           <dt className="font-heading text-[0.625rem] uppercase tracking-[0.14em] text-muted">
             {row.label}
           </dt>
@@ -95,20 +98,31 @@ export function Hero({
   featuredLimit: number;
   featuredEnabled: boolean;
 }) {
-  const { greeting, name, statement, disciplines, badge, terminalLines, codePanel, statusRows } =
-    data;
+  const {
+    greeting,
+    name,
+    statement,
+    disciplines,
+    badge,
+    terminalLines,
+    codePanel,
+    statusRows,
+  } = data;
   const portrait = data.portrait;
 
   // The same query the row below runs, deduplicated by TanStack Query: one
   // request, and the phone and the cards fill at the same moment.
   const projects = useFeaturedProjects(featuredLimit, featuredEnabled);
-  const apps = (projects.data?.items ?? []).filter((project) => project.appIcon?.svg);
+  const apps = (projects.data?.items ?? []).filter(
+    (project) => project.appIcon?.svg,
+  );
 
-  const hasHeading = greeting !== '' || name !== '';
-  const hasBadge = badge.title !== '' || badge.body !== '';
-  const hasCopy = hasHeading || statement !== '' || disciplines.length > 0 || hasBadge;
+  const hasHeading = greeting !== "" || name !== "";
+  const hasBadge = badge.title !== "" || badge.body !== "";
+  const hasCopy =
+    hasHeading || statement !== "" || disciplines.length > 0 || hasBadge;
   const hasTerminal = terminalLines.length > 0;
-  const hasCode = codePanel.tabs.length > 0 || codePanel.code !== '';
+  const hasCode = codePanel.tabs.length > 0 || codePanel.code !== "";
   const hasRail = hasCode || statusRows.length > 0;
   const hasStage = hasTerminal || apps.length > 0 || portrait !== null;
 
@@ -122,11 +136,11 @@ export function Hero({
    */
   const columns = hasStage
     ? hasRail
-      ? 'md:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,0.72fr)]'
-      : 'md:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]'
+      ? "md:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,0.72fr)]"
+      : "md:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]"
     : hasRail
-      ? 'lg:grid-cols-[minmax(0,1fr)_minmax(0,0.72fr)]'
-      : '';
+      ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,0.72fr)]"
+      : "";
 
   return (
     <section className="mx-auto max-w-6xl px-5 py-14 sm:py-20 lg:py-24">
@@ -140,7 +154,9 @@ export function Hero({
           ) : null}
 
           {statement ? (
-            <p className="mt-6 max-w-md text-lg text-muted sm:text-xl">{statement}</p>
+            <p className="mt-6 max-w-md text-lg text-muted sm:text-xl">
+              {statement}
+            </p>
           ) : null}
 
           {/*
@@ -172,7 +188,9 @@ export function Hero({
                 </p>
               ) : null}
               {badge.body ? (
-                <p className="mt-2 text-xs uppercase tracking-wide text-muted">{badge.body}</p>
+                <p className="mt-2 text-xs uppercase tracking-wide text-muted">
+                  {badge.body}
+                </p>
               ) : null}
             </div>
           ) : null}
@@ -183,29 +201,70 @@ export function Hero({
             {hasTerminal ? <Terminal lines={terminalLines} /> : null}
 
             {/*
-             * The portrait and the phone share a row under the screen, the way
-             * the reference has them share the stage. Stacked, the three of them
-             * make a column taller than the copy beside it and the hero stops
-             * reading as one composition.
+             * The portrait, the screen and the phone are one composition rather
+             * than three stacked boxes. The portrait rises into the foot of the
+             * terminal — which is empty space, since the panel holds its full
+             * height from the first frame while the script types — and the
+             * phone sits over its lower right corner. Positioned, so it paints
+             * in front of the panel it overlaps; the pull-up only applies when
+             * there is a terminal above to overlap.
              *
-             * The portrait takes the `hero` variant for the largest slot on the
-             * page, never the original upload (§10), and its alt text is
-             * whatever was written on the asset — usually nothing, which is the
-             * right answer for a picture beside your own name.
+             * It is bounded by height rather than width, so the element box
+             * is the picture and nothing else: the fade at its foot and the
+             * overlap above it both measure against the image itself, which
+             * letterboxing inside a wider box would throw out. It takes the
+             * `hero`
+             * variant for the largest slot on the page, never the original
+             * upload (§10), and its alt text is whatever was written on the
+             * asset — usually nothing, which is the right answer for a picture
+             * beside your own name.
+             *
+             * Nothing here animates, on first paint or at all. The glow and the
+             * fade are painted values, so the composition is complete the
+             * moment it is drawn and there is nothing for reduced motion to
+             * turn off (§7.5).
              */}
             {portrait || apps.length > 0 ? (
-              <div className="flex items-end justify-center gap-4">
+              <div
+                className={`relative ${hasTerminal && portrait ? "-mt-20 lg:-mt-32" : ""}`}
+              >
                 {portrait ? (
-                  <img
-                    src={portrait.variants?.hero ?? portrait.url}
-                    alt={portrait.alt}
-                    className="max-h-72 w-auto object-contain"
-                  />
+                  <>
+                    {/*
+                     * The light behind the figure, so it stands in the room
+                     * rather than on top of it. The colour is the same token
+                     * the lit panels use — §7.1 admits no hex outside
+                     * `index.css`.
+                     */}
+                    <div
+                      aria-hidden
+                      className="pointer-events-none absolute inset-x-0 bottom-10 top-6 mx-auto max-w-xs rounded-full bg-[radial-gradient(circle,var(--color-accent-glow),transparent_70%)] blur-3xl"
+                    />
+
+                    {/*
+                     * The fade at the foot. The upload is a crop, and a crop
+                     * ends in a straight line across the page unless the last
+                     * of it is masked away.
+                     */}
+                    <img
+                      src={portrait.variants?.hero ?? portrait.url}
+                      alt={portrait.alt}
+                      className="relative mx-auto max-h-[26rem] w-auto max-w-full object-contain lg:max-h-[28rem] [-webkit-mask-image:linear-gradient(to_bottom,black_72%,transparent)] [mask-image:linear-gradient(to_bottom,black_72%,transparent)]"
+                    />
+                  </>
                 ) : null}
 
-                <div className="hidden lg:block">
-                  <AppShelf apps={apps} />
-                </div>
+                {apps.length > 0 ? (
+                  <div
+                    className={
+                      portrait
+                        ? "absolute bottom-0 right-0 hidden lg:block"
+                        : "hidden justify-center lg:flex"
+                    }
+                  >
+                    <AppShelf apps={apps} />
+                  </div>
+                ) : null}
               </div>
             ) : null}
           </div>
@@ -213,7 +272,9 @@ export function Hero({
 
         {hasRail ? (
           <div className="hidden flex-col gap-5 lg:flex">
-            {hasCode ? <CodePane tabs={codePanel.tabs} code={codePanel.code} /> : null}
+            {hasCode ? (
+              <CodePane tabs={codePanel.tabs} code={codePanel.code} />
+            ) : null}
             {statusRows.length > 0 ? <StatusPanel rows={statusRows} /> : null}
           </div>
         ) : null}

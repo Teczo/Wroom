@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-08-29
+
+- The portrait on the landing page is much larger and now sits as part of the
+  composition rather than beside it: it rises into the foot of the terminal
+  panel, has a soft light behind it, and its lower edge fades into the page
+  instead of stopping at a straight line. Where a project has an app icon, the
+  phone sits over its lower right corner instead of squeezing it sideways. The
+  phone-width layout is unchanged — the whole composite is still dropped there.
+
 ## 2026-08-26
 
 - Wroom can now be connected to Claude as a custom connector, so a brainstorm
