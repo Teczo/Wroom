@@ -10,10 +10,11 @@ import { usePrefersReducedMotion } from '../../lib/usePrefersReducedMotion';
  * is written here (§2 rule 8). It is decoration, and it is gone below `md`
  * (§7.7, docs/DATA_MODEL.md) — a phone gets the words instead.
  *
- * The reference draws it as a wide, softly lit pane with the session set
- * straight onto it, so there is no window bar: the prompt in the copy is what
- * says "terminal", and a row of fake traffic lights would be chrome the design
- * does not have.
+ * The bar across its top is three lights and the session name — `terminalTitle`
+ * from the same record, so the caption is an edit and a publish like everything
+ * else (§2 rule 8). The lights are geometry rather than marks: there is nothing
+ * to look up and nothing to correct in a library (§7.3). A record with no title
+ * keeps the bar and loses the caption.
  *
  * Two things keep it out of the way of the first paint, which is what the
  * "nothing above the fold animates" rule is protecting (§7.5):
@@ -37,10 +38,11 @@ const LINE_PAUSE_MS = 320;
 
 export interface TerminalProps {
   lines: string[];
+  title?: string;
   className?: string;
 }
 
-export function Terminal({ lines, className = '' }: TerminalProps) {
+export function Terminal({ lines, title = '', className = '' }: TerminalProps) {
   const reduced = usePrefersReducedMotion();
 
   // The copy itself, as one value. The array arrives fresh from the parsed
@@ -80,9 +82,26 @@ export function Terminal({ lines, className = '' }: TerminalProps) {
      * `index.css`, and this is the same value the lit borders elsewhere use.
      */
     <div
-      className={`overflow-hidden rounded-[1.75rem] border border-border bg-surface-deep/70 p-8 shadow-[0_0_100px_var(--color-accent-glow)] lg:p-10 ${className}`}
+      className={`overflow-hidden rounded-[1.75rem] border border-border bg-surface-deep/70 shadow-[0_0_100px_var(--color-accent-glow)] ${className}`}
     >
-      <div className="min-h-64 font-mono text-xs leading-[1.75] text-accent/70">
+      {/*
+       * The window bar. The lights are three painted circles in the token
+       * colours and carry no meaning — `aria-hidden`, because "red, amber,
+       * green" read aloud is noise in front of the session below.
+       */}
+      <div className="flex items-center gap-3 border-b border-border px-6 py-3.5">
+        <span aria-hidden className="flex gap-2">
+          <span className="size-3 rounded-full bg-light-red" />
+          <span className="size-3 rounded-full bg-light-amber" />
+          <span className="size-3 rounded-full bg-light-green" />
+        </span>
+
+        {title ? (
+          <span className="ml-auto truncate font-mono text-[0.6875rem] text-muted">{title}</span>
+        ) : null}
+      </div>
+
+      <div className="min-h-64 p-8 font-mono text-xs leading-[1.75] text-accent/70 lg:p-10">
         {lines.map((line, index) => (
           // The index is the key on purpose: these are lines of a fixed script,
           // and two identical lines in one terminal is ordinary.

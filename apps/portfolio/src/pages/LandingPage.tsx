@@ -1,5 +1,6 @@
 import { FeaturedProjects } from '../features/landing/FeaturedProjects';
 import { Hero } from '../features/landing/Hero';
+import { Stats } from '../features/landing/Stats';
 import { LandingBottom } from '../features/landing/LandingBottom';
 import { FALLBACK_FEATURED_LIMIT, readLandingData } from '../features/landing/landingData';
 import { usePublishedContent } from '../features/content/api';
@@ -19,6 +20,10 @@ import { useDocumentMeta } from '../lib/useDocumentMeta';
  *
  * The projects wait for the content record because it says how many of them to
  * ask for. That wait is the row's loading state, not a blank page.
+ *
+ * The band of counts sits between the hero and the work, which is where the
+ * design puts it: the last thing read before the projects themselves. It is
+ * from the same record and disappears entirely when nothing is written in it.
  *
  * The bar at the foot of the page is the site's one CTA, and the social row
  * beside it is from the same record — the design puts both under the work
@@ -45,11 +50,15 @@ export function LandingPage() {
       {data ? (
         <Hero data={data} featuredLimit={featuredLimit} featuredEnabled={featuredEnabled} />
       ) : null}
+
+      {data ? <Stats data={data} /> : null}
+
       <FeaturedProjects
         limit={featuredLimit}
         intro={data?.featuredIntro ?? ''}
         enabled={featuredEnabled}
       />
+
       {data ? <LandingBottom data={data} /> : null}
     </>
   );

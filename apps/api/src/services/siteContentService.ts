@@ -32,9 +32,10 @@ type DraftInput = Infer<typeof siteContentDraftShape> & { data: Record<string, u
  *
  * - it resolves the page's `mediaLibrary` keys into `published.data.marks`, the
  *   same `resolveMarks` call a project's tech stack goes through;
- * - it copies the page's portrait into the public container and writes the
- *   resulting URLs into `published.data.portrait`, the same order a project
- *   publish uses — gate, copy, then write (docs/DATA_MODEL.md, "Publishing").
+ * - it copies the page's portrait and its CV into the public container and
+ *   writes the resulting URLs into `published.data.portrait` and
+ *   `published.data.cv`, the same order a project publish uses — gate, copy,
+ *   then write (docs/DATA_MODEL.md, "Publishing").
  *
  * Unpublishing reverses the copy before clearing the record, because deleting
  * the blob is what revokes access; removing the row only stops it being linked.
@@ -43,10 +44,15 @@ type DraftInput = Infer<typeof siteContentDraftShape> & { data: Record<string, u
 /**
  * Every `mediaLibrary` key a page's `data` names, in the order it names them.
  *
- * Shape-led rather than key-led: it looks for the two places a key can appear —
- * a social row and a skills group — wherever they occur, so a page that grows a
- * social row needs nothing added here. `data` is a stored blob rather than a
- * parsed one, so every step checks what it has before reading through it.
+ * Shape-led rather than key-led: it looks for the places a key can appear — a
+ * social row, a skills group, the landing page's tech row and its stat band —
+ * wherever they occur, so a page that grows a social row needs nothing added
+ * here. `data` is a stored blob rather than a parsed one, so every step checks
+ * what it has before reading through it.
+ *
+ * A field added to a page's schema that names a mark has to be added here too,
+ * or it publishes with nothing in `marks` and the page draws a blank where the
+ * icon was meant to be.
  *
  * Deduplicated, because a mark named twice is one lookup and one entry.
  */
@@ -68,13 +74,18 @@ function collectMediaKeys(data: Record<string, unknown>): string[] {
     for (const item of rowsOf(group.items)) push(item.mediaKey);
   }
 
+  // The landing page's tech row is a bare list of keys rather than rows.
+  if (Array.isArray(data.techMarks)) for (const key of data.techMarks) push(key);
+
+  for (const stat of rowsOf(data.stats)) push(stat.mediaKey);
+
   return [...new Set(keys)];
 }
 
 /**
  * A stored blob without the fields the publish action owns.
  *
- * `marks` and `portrait` are written by publishing and by nothing else.
+ * `marks`, `portrait` and `cv` are written by publishing and by nothing else.
  * Stripping them on the way in is what makes that true: without this, a request
  * body could put arbitrary markup in a draft, or point a public page at a blob
  * no gate ever saw. The one thing standing between the library and a page that
@@ -82,14 +93,14 @@ function collectMediaKeys(data: Record<string, unknown>): string[] {
  * both always came from the publish action (§8).
  */
 function withoutResolvedFields(data: Record<string, unknown>): Record<string, unknown> {
-  const { marks: _marks, portrait: _portrait, ...rest } = data;
+  const { marks: _marks, portrait: _portrait, cv: _cv, ...rest } = data;
   return rest;
 }
 
-/** The URL a stored `data.portrait` points at, if it has one. */
-function portraitUrl(data: unknown): string | null {
-  const portrait = (data as { portrait?: { url?: unknown } } | undefined)?.portrait;
-  return typeof portrait?.url === 'string' && portrait.url !== '' ? portrait.url : null;
+/** The URL a stored `data.portrait` or `data.cv` points at, if it has one. */
+function publicUrlAt(data: unknown, field: 'portrait' | 'cv'): string | null {
+  const held = (data as Record<string, { url?: unknown } | undefined> | undefined)?.[field];
+  return typeof held?.url === 'string' && held.url !== '' ? held.url : null;
 }
 
 /**
@@ -134,19 +145,72 @@ async function resolvePortrait(assetId: unknown): Promise<Record<string, unknown
 }
 
 /**
- * Takes a portrait's public copies away, unless another live page still shows
- * the same one.
+ * Copies a page's CV into the public container and describes it.
+ *
+ * The same shape as the portrait above — same gate, same copy, same refusal to
+ * publish a page around a hole — with two differences.
+ *
+ * It has to be a document. Every mime type the uploader accepts that is not an
+ * image is either this or a video, and a hero button that hands a visitor an
+ * mp4 labelled "Download CV" is not a thing to let through quietly.
+ *
+ * It carries `filename` rather than `alt` and no variants: the public blob name
+ * is content-addressed so it cannot be guessed (§8), which also makes it
+ * meaningless as a saved filename. The name the visitor sees is the one on the
+ * asset.
+ */
+async function resolveCv(assetId: unknown): Promise<Record<string, unknown> | null> {
+  if (typeof assetId !== 'string' || assetId === '') return null;
+
+  const asset = await AssetModel.findOne({ _id: assetId, projectId: null });
+
+  if (!asset) {
+    throw new UnprocessableError(
+      'The CV this page points at is no longer in the library. Clear it on the page, or upload it again.',
+      { cvAssetId: 'No site asset with that id.' },
+    );
+  }
+
+  if (asset.mimeType !== 'application/pdf') {
+    throw new UnprocessableError('The CV has to be a PDF.', {
+      cvAssetId: `${asset.filename} is a ${asset.mimeType}, which is not something to hand a visitor as a CV.`,
+    });
+  }
+
+  const gate = checkSiteAssetGates({ assetVisibility: asset.visibility as Visibility });
+
+  if (!gate.publishable) {
+    throw new UnprocessableError('The CV on this page cannot be published yet.', {
+      reasons: gate.blockedBy.map((reason) => PUBLISH_GATE_MESSAGES[reason]),
+    });
+  }
+
+  const copied = await copyToPublic(String(asset._id));
+
+  return copied.publicBlobUrl
+    ? { url: copied.publicBlobUrl, filename: copied.filename }
+    : null;
+}
+
+/**
+ * Takes a portrait's or a CV's public copies away, unless another live page
+ * still shows the same one.
  *
  * One asset can be the portrait of more than one page — the landing hero and
  * the about page are the obvious pair — and deleting the blobs because one of
  * them stopped using it would break the other. The check is against what is
  * published rather than what is drafted: a draft shows nobody anything.
  *
+ * It looks in both places a site file can be named, not just the one the caller
+ * happens to be revoking. A URL still pointed at from anywhere published is a
+ * URL whose bytes have to stay, and asking about one field would answer the
+ * wrong question in the unsafe direction.
+ *
  * The blobs go before the record is rewritten, and a URL with no asset behind
  * it is still deleted: the bytes are what is reachable, so the bytes are what
  * has to go (§8).
  */
-async function revokePortrait(url: string | null, exceptKey: string): Promise<void> {
+async function revokeSiteFile(url: string | null, exceptKey: string): Promise<void> {
   if (!url) return;
 
   /*
@@ -160,7 +224,7 @@ async function revokePortrait(url: string | null, exceptKey: string): Promise<vo
    */
   const stillShown = await SiteContentModel.collection.countDocuments({
     key: { $ne: exceptKey },
-    'published.data.portrait.url': url,
+    $or: [{ 'published.data.portrait.url': url }, { 'published.data.cv.url': url }],
   });
 
   if (stillShown > 0) return;
@@ -267,7 +331,9 @@ export async function publishSiteContent(
   // name a URL that already resolves — and if the gate refuses, nothing has
   // changed anywhere.
   const portrait = await resolvePortrait(draftData.portraitAssetId);
-  const previousPortrait = portraitUrl(record.published?.data);
+  const cv = await resolveCv(draftData.cvAssetId);
+  const previousPortrait = publicUrlAt(record.published?.data, 'portrait');
+  const previousCv = publicUrlAt(record.published?.data, 'cv');
 
   record.set({
     published: {
@@ -277,7 +343,7 @@ export async function publishSiteContent(
       // Deep-copied so the two halves stay independent documents. A shared
       // reference would mean editing the draft afterwards silently changed what
       // is published, which is the one thing the split exists to prevent.
-      data: { ...structuredClone(draftData), marks, portrait },
+      data: { ...structuredClone(draftData), marks, portrait, cv },
     },
     publishedAt: new Date(),
     publishedByUserId,
@@ -285,20 +351,24 @@ export async function publishSiteContent(
 
   await saveWithoutTouchingUpdatedAt(record);
 
-  // Swapping the portrait leaves the old one public otherwise — a cacheable URL
-  // for a picture the site no longer shows anywhere (§8). Same asset republished
+  // Swapping either one leaves the old one public otherwise — a cacheable URL
+  // for a file the site no longer shows anywhere (§8). Same asset republished
   // is the same URL, so this does nothing in the ordinary case.
-  if (previousPortrait && previousPortrait !== portraitUrl(record.published?.data)) {
-    await revokePortrait(previousPortrait, record.key);
+  if (previousPortrait && previousPortrait !== publicUrlAt(record.published?.data, 'portrait')) {
+    await revokeSiteFile(previousPortrait, record.key);
+  }
+
+  if (previousCv && previousCv !== publicUrlAt(record.published?.data, 'cv')) {
+    await revokeSiteFile(previousCv, record.key);
   }
 
   return record;
 }
 
 /**
- * Takes the page off the live site, and takes its portrait out of the public
- * container on the way. The draft is left exactly as it is, so unpublishing
- * loses nothing and republishing needs no retyping.
+ * Takes the page off the live site, and takes its portrait and its CV out of
+ * the public container on the way. The draft is left exactly as it is, so
+ * unpublishing loses nothing and republishing needs no retyping.
  *
  * Doing this to a record that is already unpublished succeeds and changes
  * nothing, because "there is no published copy" is the state being asked for
@@ -310,7 +380,8 @@ export async function unpublishSiteContent(key: string): Promise<SiteContentDocu
   // Before the row goes, not after. A snapshot removed while its blobs remain
   // leaves a permanently cacheable public URL for a page nobody publishes any
   // more (§8).
-  await revokePortrait(portraitUrl(record.published?.data), record.key);
+  await revokeSiteFile(publicUrlAt(record.published?.data, 'portrait'), record.key);
+  await revokeSiteFile(publicUrlAt(record.published?.data, 'cv'), record.key);
 
   record.set({ published: null, publishedAt: null, publishedByUserId: null });
 

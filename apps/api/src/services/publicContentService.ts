@@ -28,11 +28,12 @@ export async function getPublishedContent(key: string): Promise<Record<string, u
 /**
  * The published `data`, minus the ids that only mean anything inside the portal.
  *
- * `portraitAssetId` points into `assets`, an operational collection this API
- * may never serve from and the portfolio may never read. The resolved
- * `portrait` beside it is what the page renders, so the id is of no use out
- * here — and a public payload naming an operational record is exactly what
- * `publishedProjects` is careful not to do (docs/DATA_MODEL.md).
+ * `portraitAssetId` and `cvAssetId` point into `assets`, an operational
+ * collection this API may never serve from and the portfolio may never read.
+ * The resolved `portrait` and `cv` beside them are what the page renders, so
+ * the ids are of no use out here — and a public payload naming an operational
+ * record is exactly what `publishedProjects` is careful not to do
+ * (docs/DATA_MODEL.md).
  *
  * It is stripped here rather than at publish so the portal can still tell that
  * the draft names a different image from the one that is live.
@@ -40,6 +41,9 @@ export async function getPublishedContent(key: string): Promise<Record<string, u
 function withoutOperationalRefs(data: unknown): Record<string, unknown> {
   if (typeof data !== 'object' || data === null) return {};
 
-  const { portraitAssetId: _id, ...rest } = data as Record<string, unknown>;
+  const { portraitAssetId: _portraitId, cvAssetId: _cvId, ...rest } = data as Record<
+    string,
+    unknown
+  >;
   return rest;
 }

@@ -1,5 +1,36 @@
 # Changelog
 
+## 2026-08-30
+
+- The landing page can now say the things the new design shows and the portal
+  had nowhere to write. All of it is edited on the landing tab and published the
+  usual way — none of it is typed into the site.
+- There is a pill above the headline for what you are, separate from the
+  disciplines list, which is what you do.
+- Two buttons under the statement. The first goes to the work list. The second
+  hands over your CV: upload a PDF on the same tab, mark it public, and the
+  button appears. Without both a label and a published file there is no second
+  button, because a download that downloads nothing is worse than none.
+- A row of tech marks under the buttons, with a line above it you write, drawn
+  from the media library in the order you set.
+- A band of counts between the hero and the work — a glyph, a number and what it
+  counts, up to six of them. Nothing here is measured: Wroom counts no clients
+  and times no career, so these say what you type until you type something else.
+  Two per row on a phone.
+- The terminal has a window bar now, with three lights and the session name you
+  write beside them.
+- The site header has a button on the right whose words you write, going to the
+  contact page. On a phone it sits at the foot of the menu rather than squeezing
+  into the bar beside the hamburger.
+- Every one of these disappears completely when it has nothing written in it —
+  no empty heading, no placeholder.
+- The media library has a new group, stat glyphs, for the icons beside those
+  counts. Nothing is seeded into it; add the marks you want in the portal.
+- Swapping the CV or the portrait for a different file, or unpublishing the page,
+  now takes the old file out of public storage — and checks every published page
+  before it does, so a picture two pages share does not vanish from one because
+  the other stopped using it.
+
 ## 2026-08-29
 
 - The portrait on the landing page is much larger and now sits as part of the

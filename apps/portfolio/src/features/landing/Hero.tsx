@@ -1,3 +1,7 @@
+import { Link } from "react-router-dom";
+
+import { Mark, findMark } from "../../components/Mark";
+import { buttonClasses } from "../../components/Button";
 import { AppShelf } from "./AppShelf";
 import { Terminal } from "./Terminal";
 import { useFeaturedProjects } from "./api";
@@ -6,10 +10,15 @@ import type { LandingData } from "./landingData";
 /**
  * The top of the landing page.
  *
- * Every word here is the published `landing` record — greeting, name,
- * statement, disciplines and badge (§2 rule 8). A field left empty in the
- * portal is a piece of the hero that does not render, rather than an empty
- * heading or a placeholder (§7.4).
+ * Every word here is the published `landing` record — the role pill, greeting,
+ * name, statement, disciplines, the two button labels, the tech row and the
+ * badge (§2 rule 8). A field left empty in the portal is a piece of the hero
+ * that does not render, rather than an empty heading or a placeholder (§7.4).
+ *
+ * The second button is the one piece that needs two things rather than one: a
+ * label, and a CV that publishing resolved into a public URL. Either missing
+ * and there is no button, because a download that downloads nothing is worse
+ * than no download.
  *
  * The rail on the right is the code pane and the status readout, both written
  * in the portal like everything else. They are decoration for a wide screen and
@@ -99,16 +108,23 @@ export function Hero({
   featuredEnabled: boolean;
 }) {
   const {
+    role,
     greeting,
     name,
     statement,
     disciplines,
+    heroPrimaryLabel,
+    heroSecondaryLabel,
     badge,
     terminalLines,
+    terminalTitle,
+    techLabel,
+    techMarks,
     codePanel,
     statusRows,
   } = data;
   const portrait = data.portrait;
+  const cv = data.cv;
 
   // The same query the row below runs, deduplicated by TanStack Query: one
   // request, and the phone and the cards fill at the same moment.
@@ -119,8 +135,28 @@ export function Hero({
 
   const hasHeading = greeting !== "" || name !== "";
   const hasBadge = badge.title !== "" || badge.body !== "";
+
+  // A label with nowhere to go is not a button. The first always has somewhere
+  // — the work index — so its label is the whole of the test; the second needs
+  // the file as well.
+  const showPrimary = heroPrimaryLabel !== "";
+  const showSecondary = heroSecondaryLabel !== "" && cv !== null;
+  const hasActions = showPrimary || showSecondary;
+
+  // Keys that resolved to nothing are dropped rather than drawn as gaps: a
+  // withheld mark costs the row one logo, not its shape (§7.4).
+  const tech = techMarks
+    .map((key) => findMark(data.marks, key))
+    .filter((mark): mark is NonNullable<typeof mark> => mark !== null);
+
   const hasCopy =
-    hasHeading || statement !== "" || disciplines.length > 0 || hasBadge;
+    role !== "" ||
+    hasHeading ||
+    statement !== "" ||
+    disciplines.length > 0 ||
+    hasActions ||
+    tech.length > 0 ||
+    hasBadge;
   const hasTerminal = terminalLines.length > 0;
   const hasCode = codePanel.tabs.length > 0 || codePanel.code !== "";
   const hasRail = hasCode || statusRows.length > 0;
@@ -146,6 +182,18 @@ export function Hero({
     <section className="mx-auto max-w-6xl px-5 py-14 sm:py-20 lg:py-24">
       <div className={`grid items-center gap-12 lg:gap-16 ${columns}`}>
         <div>
+          {/*
+           * The pill above the headline. A dot and a word — the dot is painted
+           * geometry rather than a mark, because there is nothing behind it to
+           * look up or correct (§7.3).
+           */}
+          {role ? (
+            <p className="mb-6 inline-flex items-center gap-2.5 rounded-full border border-border bg-surface/60 px-4 py-2 font-heading text-xs font-medium uppercase tracking-[0.16em] text-fg">
+              <span aria-hidden className="size-2 rounded-full bg-accent" />
+              {role}
+            </p>
+          ) : null}
+
           {hasHeading ? (
             <h1 className="text-5xl font-bold leading-[0.98] tracking-[-0.05em] text-fg sm:text-6xl lg:text-7xl">
               {greeting ? <span>{greeting} </span> : null}
@@ -176,6 +224,68 @@ export function Hero({
           ) : null}
 
           {/*
+           * The two buttons. Neither destination is authored: the first is the
+           * work index and the second is the CV publishing resolved, because an
+           * href written in the portal is a link on a public page that nobody
+           * reviews.
+           *
+           * The CV opens in a tab rather than saving quietly — the file is on
+           * the blob container, a different origin, and `download` is ignored
+           * across origins. Saying so here so nobody later reads the attribute
+           * as a promise it keeps.
+           */}
+          {hasActions ? (
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+              {showPrimary ? (
+                <Link to="/work" className={buttonClasses("primary", "w-full sm:w-auto")}>
+                  {heroPrimaryLabel}
+                  <span aria-hidden>↗</span>
+                </Link>
+              ) : null}
+
+              {showSecondary && cv ? (
+                <a
+                  href={cv.url}
+                  download={cv.filename || undefined}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className={buttonClasses("secondary", "w-full sm:w-auto")}
+                >
+                  {heroSecondaryLabel}
+                  <span aria-hidden>↓</span>
+                </a>
+              ) : null}
+            </div>
+          ) : null}
+
+          {/*
+           * The tech row. Marks only, at the size the design draws them, with
+           * each one's label carried for a screen reader — `Mark` is
+           * `aria-hidden`, so without this the row announces as nothing at all.
+           */}
+          {tech.length > 0 ? (
+            <div className="mt-10">
+              {techLabel ? (
+                <p className="font-heading text-[0.625rem] font-medium uppercase tracking-[0.18em] text-muted">
+                  {techLabel}
+                </p>
+              ) : null}
+
+              <ul className="mt-4 flex flex-wrap items-center gap-5">
+                {tech.map((mark) => (
+                  // `flex`, because `Mark` renders a span and a bare inline
+                  // element ignores a width — it only takes its size as a flex
+                  // item, which is how every other caller happens to use it.
+                  <li key={mark.key} className="flex items-center">
+                    <Mark mark={mark} className="size-8" />
+                    <span className="sr-only">{mark.label || mark.key}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          {/*
            * The purpose panel: a rule in the accent down its left edge rather
            * than a full border, so it reads as a pull quote off the headline
            * instead of another card.
@@ -198,7 +308,7 @@ export function Hero({
 
         {hasStage ? (
           <div className="hidden flex-col gap-6 md:flex">
-            {hasTerminal ? <Terminal lines={terminalLines} /> : null}
+            {hasTerminal ? <Terminal lines={terminalLines} title={terminalTitle} /> : null}
 
             {/*
              * The portrait, the screen and the phone are one composition rather

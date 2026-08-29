@@ -1,12 +1,29 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 
+import { usePublishedContent } from '../features/content/api';
+import { readLandingData } from '../features/landing/landingData';
+
 /**
  * The public site's chrome.
  *
  * Below `md` the links collapse into a full-screen overlay (§7.7). It is a
  * boolean and a fixed panel — no drawer library, and none is needed: the panel
  * is `fixed inset-0`, which is the whole of the mechanism.
+ *
+ * The pill on the right is `headerCtaLabel` from the published `landing`
+ * record, so the words on it are an edit and a publish like everything else
+ * (§2 rule 8). Unwritten and there is no pill — the nav is the whole header,
+ * which is what it was before this.
+ *
+ * Reading the landing record here means every page asks for it, not only the
+ * landing page. That is one small cached read that the header genuinely needs,
+ * deduplicated by TanStack Query against the landing page's own call and held
+ * for the session, so a visit costs one request no matter where it starts.
+ *
+ * Below `md` the pill goes to the foot of the overlay rather than beside the
+ * hamburger: two controls in a bar that has room for one is how a header stops
+ * working at 390px (§7.7).
  */
 const links = [
   { to: '/work', label: 'Work' },
@@ -54,6 +71,9 @@ function MenuIcon({ open }: { open: boolean }) {
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
   const location = useLocation();
+
+  const content = usePublishedContent('landing');
+  const ctaLabel = readLandingData(content.data?.data)?.headerCtaLabel ?? '';
 
   // Navigating away closes it. Without this, following a link leaves the panel
   // covering the page it just went to.
@@ -108,6 +128,16 @@ export function SiteHeader() {
           ))}
         </nav>
 
+        {ctaLabel ? (
+          <Link
+            to="/contact"
+            className="hidden min-h-11 items-center gap-2 rounded-full border border-accent px-5 font-heading text-sm font-medium text-accent transition-colors hover:bg-accent hover:text-on-accent md:inline-flex"
+          >
+            {ctaLabel}
+            <span aria-hidden>↗</span>
+          </Link>
+        ) : null}
+
         <button
           type="button"
           className="-mr-2 inline-flex size-11 items-center justify-center rounded-lg text-fg transition-colors hover:bg-surface md:hidden"
@@ -157,6 +187,18 @@ export function SiteHeader() {
               </NavLink>
             ))}
           </nav>
+
+          {ctaLabel ? (
+            <div className="px-5 py-6">
+              <Link
+                to="/contact"
+                className="flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-accent bg-accent px-5 font-heading text-sm font-semibold text-on-accent"
+              >
+                {ctaLabel}
+                <span aria-hidden>↗</span>
+              </Link>
+            </div>
+          ) : null}
         </div>
       ) : null}
     </header>

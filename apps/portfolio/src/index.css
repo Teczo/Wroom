@@ -112,6 +112,16 @@
   --color-notice: #fbbf24;
   --color-notice-soft: #2a2110;
 
+  /* --- ornament ---
+   * The three lights on the terminal's window bar. They are decoration and say
+   * nothing about any state, which is why they are their own values rather
+   * than `danger` and `notice` — reading one of those in a component should
+   * still mean something has gone wrong.
+   */
+  --color-light-red: #ff5f57;
+  --color-light-amber: #febc2e;
+  --color-light-green: #28c840;
+
   /* --- atmosphere ---
    * The four translucent values behind the background, the panel shadow and
    * the lift under a hovered button. They are tokens rather than literals
