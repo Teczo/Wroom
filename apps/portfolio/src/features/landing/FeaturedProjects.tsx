@@ -30,7 +30,7 @@ function ProjectCard({ project }: { project: PublishedProject }) {
   return (
     <Link
       to={`/work/${project.slug}`}
-      className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-border bg-gradient-to-br from-surface to-surface-deep transition-[border-color,transform] hover:-translate-y-1 hover:border-border-strong"
+      className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-gradient-to-br from-surface to-surface-deep transition-[border-color,transform] hover:-translate-y-1 hover:border-border-strong"
     >
       {/*
        * The image band is a fixed slice of the card rather than the picture's
@@ -42,7 +42,7 @@ function ProjectCard({ project }: { project: PublishedProject }) {
        * and a screen reader reading a screenshot's alt text here would announce
        * the project twice.
        */}
-      <div className="relative h-40 w-full shrink-0 border-b border-border bg-surface-deep">
+      <div className="h-40 w-full shrink-0 border-b border-border bg-surface-deep">
         {image ? (
           <img
             src={image}
@@ -52,19 +52,6 @@ function ProjectCard({ project }: { project: PublishedProject }) {
             className="size-full object-cover"
           />
         ) : null}
-
-        {/*
-         * The arrow, in the corner the design puts it. Geometry rather than a
-         * mark — there is nothing behind it to look up (§7.3). It sits on the
-         * band, so it carries its own dark ground to stay legible over whatever
-         * the screenshot happens to be.
-         */}
-        <span
-          aria-hidden
-          className="absolute right-3 top-3 flex size-8 items-center justify-center rounded-lg border border-border bg-canvas/80 font-heading text-sm text-muted transition-colors group-hover:border-accent group-hover:text-accent"
-        >
-          ↗
-        </span>
       </div>
 
       <div className="flex flex-1 flex-col p-4">

@@ -15,8 +15,8 @@
   size, your intro line under it, and a View all projects button that goes to the
   full list. On a phone the button sits under the heading at full width.
 - The project cards keep their screenshot across the top of the card, and now
-  carry the project's icon beside its name and an arrow in the picture's corner.
-  A project with no icon simply starts at its name.
+  carry the project's icon beside its name. A project with no icon simply starts
+  at its name.
 - Three things the new design has no place for are gone from the page: the code
   pane, the BUILD / READY readout and the phone of app icons. Nothing you wrote
   has been deleted — all of it is still on the landing record, so any of them can
