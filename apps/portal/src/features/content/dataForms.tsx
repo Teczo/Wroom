@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 import {
   aboutDataSchema,
   contactDataSchema,
@@ -10,10 +12,12 @@ import {
 
 import { UPLOAD_LIMITS } from '@wroom/shared';
 
+import { ApiRequestError } from '../../lib/api';
 import { Button } from '../../components/Button';
 import { Field, inputClasses } from '../../components/Field';
 import {
   useCreateSiteAsset,
+  useDeleteSiteAsset,
   useRequestSiteUploadUrl,
   useSiteAssets,
   useUpdateSiteAsset,
@@ -272,6 +276,77 @@ function SocialsEditor({
 }
 
 /**
+ * Deleting one of the site's files for good.
+ *
+ * Two steps, the same shape the media library's mark rows use: a Delete button
+ * that opens a confirmation rather than acting, and a refusal panel when the
+ * API says the file is still in use.
+ *
+ * The API refuses while any page names it — a saved draft as much as a
+ * published one. So the way to delete the file a page is using is to clear it
+ * on that page, save, and come back. The refusal says which page; this says
+ * what to do about it.
+ */
+function DeleteFileButton({ assetId, filename }: { assetId: string; filename: string }) {
+  const remove = useDeleteSiteAsset();
+  const [confirming, setConfirming] = useState(false);
+
+  const blocked =
+    remove.error instanceof ApiRequestError && remove.error.status === 409 ? remove.error : null;
+  const otherError =
+    remove.error instanceof ApiRequestError && remove.error.status !== 409 ? remove.error : null;
+
+  if (!confirming) {
+    return (
+      <Button
+        type="button"
+        variant="ghost"
+        className="min-h-9 px-2 text-xs text-red-600 hover:bg-red-50"
+        onClick={() => setConfirming(true)}
+      >
+        Delete file
+      </Button>
+    );
+  }
+
+  return (
+    <div className="w-full rounded-lg border border-red-200 bg-red-50 p-3">
+      <p className="text-sm text-red-900">
+        Delete {filename} for good? This removes the file itself, not just its place on
+        this page.
+      </p>
+
+      <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+        <Button
+          type="button"
+          variant="danger"
+          disabled={remove.isPending}
+          onClick={() => remove.mutate(assetId, { onSuccess: () => setConfirming(false) })}
+        >
+          {remove.isPending ? 'Deleting…' : 'Delete it'}
+        </Button>
+        <Button type="button" variant="secondary" onClick={() => setConfirming(false)}>
+          Keep it
+        </Button>
+      </div>
+
+      {blocked ? (
+        <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
+          <p className="text-sm font-medium text-amber-900">Still in use</p>
+          <p className="mt-1 text-sm text-amber-800">{blocked.message}</p>
+          <p className="mt-2 text-xs text-amber-700">
+            Clear it on that page and save. A page that has been published has to be
+            published again before the file is free.
+          </p>
+        </div>
+      ) : null}
+
+      {otherError ? <p className="mt-3 text-sm text-red-700">{otherError.message}</p> : null}
+    </div>
+  );
+}
+
+/**
  * A file a page points at: pick one of the site's uploads, or add one.
  *
  * Two slots use it — the portrait on the landing and about pages, and the CV
@@ -379,6 +454,18 @@ function SiteAssetField({
           >
             {publish.isPending ? 'Marking…' : 'Make it public'}
           </Button>
+        </div>
+      ) : null}
+
+      {/*
+       * Deleting is offered on the chosen file only. Every file in the list
+       * belongs to some page or to none, and a row of delete buttons over a
+       * picker is a mis-click waiting to happen — this way the file has been
+       * selected deliberately before it can be removed.
+       */}
+      {chosen ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <DeleteFileButton assetId={chosen._id} filename={chosen.filename} />
         </div>
       ) : null}
 

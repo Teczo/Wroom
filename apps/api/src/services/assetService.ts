@@ -14,8 +14,15 @@ import type { Types } from 'mongoose';
 
 import { AssetModel, type AssetDocument } from '../models/Asset.js';
 import { ProductModel } from '../models/Product.js';
+import { SiteContentModel } from '../models/SiteContent.js';
 import type { UserDocument } from '../models/User.js';
-import { ForbiddenError, NotFoundError, UnprocessableError, ValidationError } from '../utils/errors.js';
+import {
+  ConflictError,
+  ForbiddenError,
+  NotFoundError,
+  UnprocessableError,
+  ValidationError,
+} from '../utils/errors.js';
 import { NotAnImageError, generateVariants, measureOriginal } from './imageVariantService.js';
 import { getProject } from './projectService.js';
 import {
@@ -471,6 +478,97 @@ export async function deleteAsset(projectId: string | null, id: string): Promise
   // Covers an older record whose blobName could not be derived from its URL.
   await deleteBlobByUrl(asset.blobUrl);
   await asset.deleteOne();
+}
+
+/**
+ * Every content page that names a site asset, and how.
+ *
+ * A page can name one in two ways and they are not the same lookup. A draft
+ * holds the asset's id — `portraitAssetId`, `cvAssetId` — because that is what
+ * an editor picked. A published page holds the public URL its blob was copied
+ * to, because the portfolio may never read `assets` at all (§6, §8). Asking
+ * only one of those questions misses half the references.
+ *
+ * Through the raw driver, like `siteContentService` does its own counting and
+ * for the same reason: `config/db.ts` sets `strictQuery: true`, which silently
+ * drops a condition on a path the schema does not declare, and both `data`
+ * blobs are `Mixed`. A dropped condition here would find no references,
+ * conclude the file is unused and delete it — the failure would be silent and
+ * in the unsafe direction.
+ */
+async function siteContentReferences(
+  asset: AssetDocument,
+): Promise<{ key: string; where: 'draft' | 'published' }[]> {
+  const id = String(asset._id);
+  const url = asset.publicBlobUrl;
+
+  const conditions: Record<string, unknown>[] = [
+    { 'draft.data.portraitAssetId': id },
+    { 'draft.data.cvAssetId': id },
+  ];
+
+  if (url) {
+    conditions.push({ 'published.data.portrait.url': url }, { 'published.data.cv.url': url });
+  }
+
+  const rows = await SiteContentModel.collection
+    .find({ $or: conditions })
+    .project({ key: 1, draft: 1, published: 1 })
+    .toArray();
+
+  const found: { key: string; where: 'draft' | 'published' }[] = [];
+
+  for (const row of rows) {
+    const draft = (row.draft as { data?: Record<string, unknown> } | undefined)?.data ?? {};
+    const published =
+      (row.published as { data?: Record<string, unknown> } | undefined)?.data ?? {};
+
+    if (draft.portraitAssetId === id || draft.cvAssetId === id) {
+      found.push({ key: String(row.key), where: 'draft' });
+    }
+
+    const urlAt = (field: 'portrait' | 'cv') =>
+      (published[field] as { url?: unknown } | undefined)?.url;
+
+    if (url && (urlAt('portrait') === url || urlAt('cv') === url)) {
+      found.push({ key: String(row.key), where: 'published' });
+    }
+  }
+
+  return found;
+}
+
+/**
+ * Deletes a site asset, unless a page still names it.
+ *
+ * `deleteAsset` removes the blobs and the record and asks nothing about who was
+ * using them. For a project asset that is survivable — the page rebuilds from
+ * the project. For a site asset it is not: a published page holds a URL rather
+ * than a reference, so deleting the bytes leaves a live page pointing at
+ * nothing, with no publish step in between to notice (§8).
+ *
+ * So it refuses, the way deleting an in-use mark refuses, and names the pages
+ * to go and fix. A draft counts as much as a published page: the reference is
+ * the saved draft rather than whatever is on screen, so clearing the field in
+ * the portal has to be saved before the file can go.
+ */
+export async function deleteSiteAsset(id: string): Promise<void> {
+  const asset = await getAsset(null, id);
+  const references = await siteContentReferences(asset);
+
+  if (references.length > 0) {
+    const places = references.map(
+      (reference) =>
+        `the ${reference.where === 'draft' ? 'draft' : 'published version'} of the ${reference.key} page`,
+    );
+
+    throw new ConflictError(
+      `${asset.filename} is still used by ${[...new Set(places)].join(', and ')}. Clear it there and save first.`,
+      { references },
+    );
+  }
+
+  await deleteAsset(null, id);
 }
 
 /**

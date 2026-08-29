@@ -109,7 +109,10 @@ export const updateSite: RequestHandler = async (req, res) => {
 };
 
 export const removeSite: RequestHandler = async (req, res) => {
-  await assetService.deleteAsset(null, req.params.id as string);
+  // Not `deleteAsset`: a site asset is refused while a content page still names
+  // it, because a published page holds the URL rather than a reference and
+  // would be left pointing at bytes that no longer exist.
+  await assetService.deleteSiteAsset(req.params.id as string);
   res.status(204).end();
 };
 

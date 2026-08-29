@@ -130,6 +130,12 @@
    * that colour lifted by about 3%.
    */
   --color-accent-glow: #6dff9a1a;
+  /*
+   * The halo a primary button carries at rest. Stronger than `accent-glow`,
+   * which is the faint light behind a panel — this one has to read as the
+   * button giving off light rather than as a soft edge.
+   */
+  --color-accent-halo: #b7ff7538;
   --color-grid: #05110c;
   --color-glow: #081912;
   --color-shadow: #00000038;

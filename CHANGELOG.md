@@ -2,6 +2,16 @@
 
 ## 2026-08-30
 
+- The green buttons carry their glow all the time now, not only when the pointer
+  is over them, which is how the design draws them. It is a painted shadow, so
+  it is there the moment the page appears and there is nothing in it for reduced
+  motion to switch off.
+- A file you have uploaded for the site — a portrait, a CV — can now be deleted
+  from the portal, from the same box you pick it in. It asks first.
+- A file a page is still using cannot be deleted. It says which page, and whether
+  it is the draft or the live version, rather than deleting the file and leaving
+  that page pointing at nothing. Clear it on the page, save, and then it will go.
+
 - The landing page is laid out the way the new design draws it. The words are on
   the left, your portrait stands in the middle, and the terminal sits on the
   right with the Currently Building note pinned under it. On a phone the picture
