@@ -2,6 +2,26 @@
 
 ## 2026-08-30
 
+- The landing page is laid out the way the new design draws it. The words are on
+  the left, your portrait stands in the middle, and the terminal sits on the
+  right with the Currently Building note pinned under it. On a phone the picture
+  and the terminal both go, as they did before, and the words carry the page.
+- Home is in the navigation now, and the current page is marked with a lit dot
+  under its name rather than a line. Home lights only on the front page — a
+  project page lights Work.
+- The wordmark has its `</>` mark beside it, in the bar and at the top of the
+  phone menu.
+- The featured work has a proper heading — a My Work label, the title at full
+  size, your intro line under it, and a View all projects button that goes to the
+  full list. On a phone the button sits under the heading at full width.
+- The project cards have been redrawn: the screenshot now bleeds out of the lower
+  right corner behind the words, with the project's icon beside its name and an
+  arrow in the corner. A project with no icon simply starts at its name.
+- Three things the new design has no place for are gone from the page: the code
+  pane, the BUILD / READY readout and the phone of app icons. Nothing you wrote
+  has been deleted — all of it is still on the landing record, so any of them can
+  come back.
+
 - The landing page can now say the things the new design shows and the portal
   had nowhere to write. All of it is edited on the landing tab and published the
   usual way — none of it is typed into the site.

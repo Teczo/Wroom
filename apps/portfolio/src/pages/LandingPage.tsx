@@ -29,9 +29,8 @@ import { useDocumentMeta } from '../lib/useDocumentMeta';
  * beside it is from the same record — the design puts both under the work
  * rather than in the hero.
  *
- * The hero is told how many projects to expect and when to ask, because the
- * phone on it is built from the same list as the row below: one query, asked
- * once, drawn twice.
+ * The hero asks for nothing of its own. It is the record and the portrait, so
+ * the only query on this page is the row's.
  */
 export function LandingPage() {
   const content = usePublishedContent('landing');
@@ -48,7 +47,7 @@ export function LandingPage() {
   return (
     <>
       {data ? (
-        <Hero data={data} featuredLimit={featuredLimit} featuredEnabled={featuredEnabled} />
+        <Hero data={data} />
       ) : null}
 
       {data ? <Stats data={data} /> : null}
