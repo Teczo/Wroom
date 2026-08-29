@@ -28,67 +28,71 @@ function ProjectCard({ project }: { project: PublishedProject }) {
     : null;
 
   return (
-    /*
-     * The words sit on the card and the screenshot bleeds out of its lower
-     * right corner, as the design draws it — one composition rather than a
-     * picture with a caption under it. `overflow-hidden` is what makes the
-     * bleed a bleed instead of a card that has grown a corner.
-     */
     <Link
       to={`/work/${project.slug}`}
-      className="group relative flex h-full min-h-56 flex-col overflow-hidden rounded-xl border border-border bg-gradient-to-br from-surface to-surface-deep p-5 transition-[border-color,transform] hover:-translate-y-1 hover:border-border-strong"
+      className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-border bg-gradient-to-br from-surface to-surface-deep transition-[border-color,transform] hover:-translate-y-1 hover:border-border-strong"
     >
       {/*
-       * The screenshot, behind the words and off the edge. `aria-hidden` and
-       * empty alt: the link is named by the heading above it, and a screen
-       * reader reading a screenshot's alt text here would announce the project
-       * twice.
+       * The image band is a fixed slice of the card rather than the picture's
+       * own aspect, so a row of cards lines up whatever shape the screenshots
+       * are. A project with no hero keeps the band as a lit panel — a card that
+       * suddenly starts at its title breaks the row.
+       *
+       * `aria-hidden` and empty alt: the link is named by the heading below it,
+       * and a screen reader reading a screenshot's alt text here would announce
+       * the project twice.
        */}
-      {image ? (
-        <img
-          src={image}
-          alt=""
-          aria-hidden
-          loading="lazy"
-          className="pointer-events-none absolute -bottom-6 -right-10 w-3/5 rounded-lg border border-border opacity-70 transition-opacity group-hover:opacity-100"
-        />
-      ) : null}
-
-      {/*
-       * The arrow, in the corner the design puts it. Geometry rather than a
-       * mark — there is nothing behind it to look up (§7.3).
-       */}
-      <span
-        aria-hidden
-        className="absolute right-4 top-4 flex size-8 items-center justify-center rounded-lg border border-border bg-canvas/70 font-heading text-sm text-muted transition-colors group-hover:border-accent group-hover:text-accent"
-      >
-        ↗
-      </span>
-
-      <div className="relative flex items-center gap-2.5 pr-10">
-        {/*
-         * The project's own icon, resolved into the snapshot at publish. A
-         * project without one is not drawn as a blank square — the name simply
-         * starts the row (§7.4).
-         */}
-        {project.appIcon?.svg ? (
-          <Mark mark={project.appIcon} className="size-6 shrink-0 text-accent" />
+      <div className="relative h-40 w-full shrink-0 border-b border-border bg-surface-deep">
+        {image ? (
+          <img
+            src={image}
+            alt=""
+            aria-hidden
+            loading="lazy"
+            className="size-full object-cover"
+          />
         ) : null}
 
-        <h3 className="font-heading text-base font-semibold text-fg">{project.name}</h3>
+        {/*
+         * The arrow, in the corner the design puts it. Geometry rather than a
+         * mark — there is nothing behind it to look up (§7.3). It sits on the
+         * band, so it carries its own dark ground to stay legible over whatever
+         * the screenshot happens to be.
+         */}
+        <span
+          aria-hidden
+          className="absolute right-3 top-3 flex size-8 items-center justify-center rounded-lg border border-border bg-canvas/80 font-heading text-sm text-muted transition-colors group-hover:border-accent group-hover:text-accent"
+        >
+          ↗
+        </span>
       </div>
 
-      {project.shortDescription ? (
-        <p className="relative mt-2 line-clamp-3 max-w-[62%] text-xs leading-relaxed text-muted">
-          {project.shortDescription}
-        </p>
-      ) : null}
+      <div className="flex flex-1 flex-col p-4">
+        <div className="flex items-center gap-2.5">
+          {/*
+           * The project's own icon, resolved into the snapshot at publish. A
+           * project without one is not drawn as a blank square — the name
+           * simply starts the row (§7.4).
+           */}
+          {project.appIcon?.svg ? (
+            <Mark mark={project.appIcon} className="size-6 shrink-0 text-accent" />
+          ) : null}
 
-      {project.category ? (
-        <span className="relative mt-auto inline-flex w-fit rounded border border-border bg-canvas/70 px-2 py-1 font-heading text-[0.625rem] font-medium uppercase tracking-[0.14em] text-accent">
-          {project.category}
-        </span>
-      ) : null}
+          <h3 className="font-heading text-base font-semibold text-fg">{project.name}</h3>
+        </div>
+
+        {project.shortDescription ? (
+          <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-muted">
+            {project.shortDescription}
+          </p>
+        ) : null}
+
+        {project.category ? (
+          <span className="mt-4 inline-flex w-fit rounded border border-border px-2 py-1 font-heading text-[0.625rem] font-medium uppercase tracking-[0.14em] text-accent">
+            {project.category}
+          </span>
+        ) : null}
+      </div>
     </Link>
   );
 }
