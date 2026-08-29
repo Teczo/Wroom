@@ -84,15 +84,15 @@ export function Hero({ data }: { data: LandingData }) {
    */
   const columns = portrait
     ? hasRail
-      ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)_minmax(0,1fr)]"
-      : "lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]"
+      ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)_minmax(0,1fr)]"
+      : "lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]"
     : hasRail
       ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]"
       : "";
 
   return (
-    <section className="mx-auto max-w-6xl px-5 py-14 sm:py-20 lg:py-24">
-      <div className={`grid items-center gap-12 lg:gap-14 ${columns}`}>
+    <section className="mx-auto max-w-6xl px-5 py-8 sm:py-10 lg:py-12">
+      <div className={`grid items-center gap-10 lg:gap-10 ${columns}`}>
         <div>
           {/*
            * The pill above the headline. A dot and a word — the dot is painted
@@ -194,7 +194,14 @@ export function Hero({ data }: { data: LandingData }) {
                 </p>
               ) : null}
 
-              <ul className="mt-4 flex flex-wrap items-center gap-5">
+              {/*
+               * `gap-4` rather than `gap-5`: seven marks at `size-8` need 320px
+               * of the 333px this column gets at desktop width, and the wider
+               * gutter tipped the last one onto a second line. It still wraps
+               * when there are more of them — that is the row working, not
+               * failing.
+               */}
+              <ul className="mt-4 flex flex-wrap items-center gap-4">
                 {tech.map((mark) => (
                   // `flex`, because `Mark` renders a span and a bare inline
                   // element ignores a width — it only takes its size as a flex
@@ -212,7 +219,10 @@ export function Hero({ data }: { data: LandingData }) {
         {/*
          * The portrait, as its own column between the words and the rail.
          *
-         * It is bounded by height rather than width, so the element box is the
+         * Bounded on both axes, and the column is the one that usually binds:
+         * the upload is taller than it is wide, so widening this column is what
+         * makes the picture bigger — raising the height cap alone does nothing
+         * until the cap is the smaller of the two. The element box stays the
          * picture and nothing else — the glow behind it and the fade at its
          * foot both measure against the image itself, which letterboxing inside
          * a wider box would throw out. It takes the `hero` variant for the
@@ -244,7 +254,7 @@ export function Hero({ data }: { data: LandingData }) {
             <img
               src={portrait.variants?.hero ?? portrait.url}
               alt={portrait.alt}
-              className="relative mx-auto max-h-[30rem] w-auto max-w-full object-contain [-webkit-mask-image:linear-gradient(to_bottom,black_78%,transparent)] [mask-image:linear-gradient(to_bottom,black_78%,transparent)]"
+              className="relative mx-auto max-h-[34rem] w-auto max-w-full object-contain [-webkit-mask-image:linear-gradient(to_bottom,black_78%,transparent)] [mask-image:linear-gradient(to_bottom,black_78%,transparent)]"
             />
           </div>
         ) : null}

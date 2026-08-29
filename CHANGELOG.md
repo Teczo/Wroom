@@ -2,6 +2,17 @@
 
 ## 2026-08-30
 
+- The landing page is tighter at the top. The space between the header and the
+  hero, and between the tech row and the counts, were both 96 pixels and are now
+  48 — they came from the same setting, so they moved together.
+- Your portrait is bigger. It was being held back by the width of its column
+  rather than by any height limit, so the column is wider and the gutters either
+  side are narrower; the picture is about a fifth larger.
+- The tech marks stay on one line at desktop width. Narrowing that column by a
+  few pixels had tipped the seventh onto a second row.
+- The rules between the counts are short lines floating between them now, rather
+  than full-height lines dividing the panel into boxes.
+
 - The green buttons carry their glow all the time now, not only when the pointer
   is over them, which is how the design draws them. It is a painted shadow, so
   it is there the moment the page appears and there is nothing in it for reduced
