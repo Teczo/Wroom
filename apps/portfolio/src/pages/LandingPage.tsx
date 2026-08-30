@@ -1,6 +1,6 @@
 import { FeaturedProjects } from '../features/landing/FeaturedProjects';
 import { Hero } from '../features/landing/Hero';
-import { Stats } from '../features/landing/Stats';
+import { StatsBand } from '../components/StatsBand';
 import { LandingBottom } from '../features/landing/LandingBottom';
 import { FALLBACK_FEATURED_LIMIT, readLandingData } from '../features/landing/landingData';
 import { usePublishedContent } from '../features/content/api';
@@ -50,7 +50,7 @@ export function LandingPage() {
         <Hero data={data} />
       ) : null}
 
-      {data ? <Stats data={data} /> : null}
+      {data ? <StatsBand stats={data.stats} marks={data.marks} /> : null}
 
       <FeaturedProjects
         limit={featuredLimit}

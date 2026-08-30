@@ -549,7 +549,28 @@ The portfolio's own copy. Draft/published split so changing a sentence never req
 }
 
 // about
-{ headline: "", portraitAssetId: null }   // narrative lives in body
+{
+  headline: "About Me",
+  subtitle: "Developer. Builder. Problem Solver.",   // the line under it
+                                                    // narrative itself lives in body
+  terminalLines: ["developer@teczo:~$ whoami", "jayagaren"],
+  terminalTitle: "developer@teczo ~",
+  infoCards: [{ mediaKey: "clock", label: "Experience", value: "6+ Years" }],
+  philosophy: { label: "My Philosophy", body: "" },
+  techLabel: "Tech I Love",
+  techMarks: ["react", "node"],                     // → mediaLibrary.key, kind "tech"
+  exploring: { label: "Currently Exploring", items: ["Agentic development workflows"] },
+  stats: [{ mediaKey: "rocket", value: "6+", label: "Years Building" }],
+  driversLabel: "What Drives Me",
+  drivers: [{ mediaKey: "ship", title: "Shipping", body: "" }],
+  journeyLabel: "My Journey",
+  journey: [{ year: "2019", event: "Graduated in Mechanical Engineering" }],
+  ctaHeadline: "Let's build something that ships.",
+  ctaBody: "",
+  ctaLabel: "Get In Touch",                         // → /contact
+  socials: [{ mediaKey: "github", url: "" }],
+  portraitAssetId: null                             // → assets._id, a site asset (projectId: null)
+}
 
 // skills
 {
@@ -582,10 +603,38 @@ and a published CV; either missing and it is not drawn.
 has to fit in a pill and the other is a sentence across the foot of the page.
 Both go to `/contact`.
 
+**About repeats landing's shapes rather than improving on them.** `terminalLines`,
+`terminalTitle`, `techLabel`, `techMarks`, `stats` and `socials` are the same
+fields with the same meanings, so one editor and one key sweep serve both pages.
+Its terminal is hidden below `lg` rather than `md` — it sits in a column beside
+the intro rather than across a hero.
+
+**Every heading on the about page is a field.** `philosophy.label`,
+`exploring.label`, `driversLabel`, `journeyLabel` and `techLabel` are the words
+above each section, because a section title written into a component is copy
+living in the repo (CLAUDE.md §2 rule 8). A section with content and no label
+renders the content without a heading.
+
+`infoCards` is `{ label, value }` rather than named fields for experience,
+location, role and focus: which four facts belong in those tiles is editorial,
+and a schema that named them would need a migration to say a fifth thing.
+
+The glyph on an `infoCards`, `stats` or `drivers` row is a `mediaLibrary` key of
+kind `stat` — the kind exists for marks that are neither a logo, a platform nor
+anybody's trademark, which is exactly what these are. All three tolerate an
+empty key: the row renders without an icon until one is drawn.
+
+`journey[].year` is a string. It is a caption on a timeline, not a number
+anything sorts or counts by, and the entries render in the order they are
+written.
+
+About's `ctaLabel` is a label only, like the landing hero's buttons: the button
+goes to `/contact`, fixed in the page.
+
 **`published.data` carries fields the draft does not: `marks`, `portrait`, and `cv`.**
 
 ```js
-// siteContent.published.data, on landing / contact / skills
+// siteContent.published.data, on landing / about / contact / skills
 marks: [{ key: "github", label: "GitHub", svg: "<svg …>" }]
 
 // siteContent.published.data, on landing / about

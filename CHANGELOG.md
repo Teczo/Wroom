@@ -2,6 +2,18 @@
 
 ## 2026-08-30
 
+- The about page is now the full page from the design, and every word on it is
+  written in the portal: a headline and the line under it, four info tiles, a
+  terminal, a philosophy panel, a row of tech marks, what you are exploring, a
+  band of counts, four driver cards, a timeline of years, and a closing bar with
+  a button and your social links. A section you leave empty does not appear at
+  all — no empty heading, no placeholder card.
+- The about tab in the portal has an editor for all of it, with move buttons on
+  the repeating rows, so a year can be slotted into the middle of the timeline
+  rather than the rest of it retyped.
+- The counts under the landing hero no longer cut their labels short on a phone;
+  a long label wraps onto a second line instead.
+
 - The landing page is tighter at the top. The space between the header and the
   hero, and between the tech row and the counts, were both 96 pixels and are now
   48 — they came from the same setting, so they moved together.

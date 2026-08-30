@@ -79,6 +79,11 @@ function collectMediaKeys(data: Record<string, unknown>): string[] {
 
   for (const stat of rowsOf(data.stats)) push(stat.mediaKey);
 
+  // The about page's tiles and drivers carry a glyph each, from the same corner
+  // of the library the stats above draw from.
+  for (const card of rowsOf(data.infoCards)) push(card.mediaKey);
+  for (const driver of rowsOf(data.drivers)) push(driver.mediaKey);
+
   return [...new Set(keys)];
 }
 
