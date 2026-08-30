@@ -1,14 +1,18 @@
-import { Mark, findMark } from '../../components/Mark';
-import { Reveal } from '../../components/Reveal';
-import type { LandingData } from './landingData';
+import type { SiteContentMark } from '@wroom/shared';
+
+import { Mark, findMark } from './Mark';
+import { Reveal } from './Reveal';
 
 /**
- * The band of counts under the hero.
+ * The band of counts, under the landing hero and again on the about page.
  *
- * Every row is `stats` from the published `landing` record — the glyph, the
- * number and what it counts (§2 rule 8). Nothing here is measured: Wroom counts
- * no clients and times no career, so these say what was written until somebody
+ * Every row is `stats` from a published content record — the glyph, the number
+ * and what it counts (§2 rule 8). Nothing here is measured: Wroom counts no
+ * clients and times no career, so these say what was written until somebody
  * writes something else.
+ *
+ * It takes the rows and the marks rather than a whole record, because two pages
+ * with the same band should not be two bands that drift apart.
  *
  * A row whose `mediaKey` resolved to nothing — no record, no markup, or a mark
  * whose usage was never approved — keeps its number and loses its glyph, rather
@@ -23,17 +27,31 @@ import type { LandingData } from './landingData';
  * the reference draws them: a short line floating between two counts instead of
  * a grid dividing the panel into boxes.
  */
-export function Stats({ data }: { data: LandingData }) {
-  const stats = data.stats.filter((stat) => stat.value !== '' && stat.label !== '');
+export interface StatRow {
+  mediaKey: string;
+  value: string;
+  label: string;
+}
+
+export function StatsBand({
+  stats: rows,
+  marks,
+  className = 'mx-auto max-w-6xl px-5 pb-14 sm:pb-20',
+}: {
+  stats: readonly StatRow[];
+  marks: SiteContentMark[];
+  className?: string;
+}) {
+  const stats = rows.filter((stat) => stat.value !== '' && stat.label !== '');
 
   if (stats.length === 0) return null;
 
   return (
-    <section className="mx-auto max-w-6xl px-5 pb-14 sm:pb-20">
+    <section className={className}>
       <Reveal>
         <dl className="grid grid-cols-2 overflow-hidden rounded-2xl border border-border bg-surface-deep sm:grid-cols-4">
           {stats.map((stat) => {
-            const mark = findMark(data.marks, stat.mediaKey);
+            const mark = findMark(marks, stat.mediaKey);
 
             return (
               /*
@@ -64,7 +82,7 @@ export function Stats({ data }: { data: LandingData }) {
                     <span className="block font-heading text-2xl font-bold text-fg sm:text-3xl">
                       {stat.value}
                     </span>
-                    <span className="mt-0.5 block truncate text-xs text-muted">{stat.label}</span>
+                    <span className="mt-0.5 block text-xs leading-snug text-muted">{stat.label}</span>
                   </dd>
                 </div>
               </div>

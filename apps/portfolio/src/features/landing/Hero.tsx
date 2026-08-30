@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 
 import { Mark, findMark } from "../../components/Mark";
 import { buttonClasses } from "../../components/Button";
-import { Terminal } from "./Terminal";
+import { Terminal } from "../../components/Terminal";
 import type { LandingData } from "./landingData";
 
 /**

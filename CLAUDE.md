@@ -347,6 +347,14 @@ Design references are desktop. These are the confirmed 390px behaviours — impl
 | Tech stack / platforms | Three icons per row. |
 | Work index | One column, cards keep their screenshot aspect ratio. |
 | CTA footer | Stacked, button full width. |
+| About intro | Single column. The tiles go full width, one per row. |
+| About portrait | Kept, static and centred — on this page the picture is content, not ornament. |
+| About terminal | Hidden below `lg`. Decorative, like the landing one. |
+| About panels | Philosophy, tech and exploring stack; the tech marks are two per row, not four. |
+| About stats | Two per row, not four — the shared band. |
+| Drivers | Single column. Not a two-column grid. |
+| Journey | Unchanged — the timeline is vertical at every width. |
+| About CTA | Stacked, button full width, social row under it. |
 
 ---
 

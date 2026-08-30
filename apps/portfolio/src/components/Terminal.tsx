@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react';
 
-import { TypeOut } from '../../components/TypeOut';
-import { usePrefersReducedMotion } from '../../lib/usePrefersReducedMotion';
+import { TypeOut } from './TypeOut';
+import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion';
 
 /**
- * The decorative screen beside the hero.
+ * The decorative screen beside the landing hero, and again beside the about
+ * page's intro.
  *
  * The lines are `terminalLines` from the published `landing` record and nothing
- * is written here (§2 rule 8). It is decoration, and it is gone below `md`
- * (§7.7, docs/DATA_MODEL.md) — a phone gets the words instead.
+ * is written here (§2 rule 8). It is decoration, and the page it
+ * sits on decides the width below which it is gone — a phone gets the words
+ * instead either way (§7.7, docs/DATA_MODEL.md).
  *
  * The bar across its top is three lights and the session name — `terminalTitle`
  * from the same record, so the caption is an edit and a publish like everything

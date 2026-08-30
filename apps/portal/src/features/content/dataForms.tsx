@@ -619,6 +619,148 @@ function StatusRowsEditor({
   );
 }
 
+/**
+ * A repeater of rows, each optionally led by a mark from the library.
+ *
+ * Four of the fields on these pages are the same errand — a glyph, one or two
+ * pieces of text, and the order they appear in — so they are one editor rather
+ * than four that drift apart. What differs between them is the words: the
+ * legend, the hint, what a row is called and what its fields are.
+ *
+ * The move buttons are not decoration. A timeline renders in the order it is
+ * written, so being able to slot a year into the middle of one is the
+ * difference between editing it and retyping it.
+ */
+type RowField<T> = {
+  key: keyof T & string;
+  label: string;
+  placeholder?: string;
+  multiline?: boolean;
+};
+
+function RowsEditor<T extends Record<string, string>>({
+  rows,
+  onChange,
+  idPrefix,
+  legend,
+  hint,
+  addLabel,
+  itemNoun,
+  fields,
+  blank,
+  glyph,
+}: {
+  rows: T[];
+  onChange: (next: T[]) => void;
+  idPrefix: string;
+  legend: string;
+  hint: string;
+  addLabel: string;
+  itemNoun: string;
+  fields: readonly RowField<T>[];
+  blank: T;
+  glyph?: { kinds: readonly string[]; emptyLabel: string };
+}) {
+  const update = (index: number, patch: Partial<T>) =>
+    onChange(rows.map((row, at) => (at === index ? { ...row, ...patch } : row)));
+
+  function move(from: number, to: number): void {
+    if (to < 0 || to >= rows.length) return;
+    const next = [...rows];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved as T);
+    onChange(next);
+  }
+
+  return (
+    <fieldset className="space-y-2">
+      <legend className="text-sm font-medium text-slate-800">{legend}</legend>
+      <p className="text-xs text-slate-500">{hint}</p>
+
+      {rows.map((row, index) => (
+        <div key={index} className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-2">
+          {glyph ? (
+            <MarkSelect
+              id={`${idPrefix}-glyph-${index}`}
+              value={row.mediaKey ?? ''}
+              onChange={(mediaKey) => update(index, { mediaKey } as unknown as Partial<T>)}
+              kinds={glyph.kinds}
+              emptyLabel={glyph.emptyLabel}
+            />
+          ) : null}
+
+          {fields.map((field) =>
+            field.multiline ? (
+              <textarea
+                key={field.key}
+                aria-label={`${itemNoun} ${index + 1} ${field.label}`}
+                className={`${inputClasses} min-h-20`}
+                value={row[field.key] ?? ''}
+                placeholder={field.placeholder}
+                onChange={(event) =>
+                  update(index, { [field.key]: event.target.value } as unknown as Partial<T>)
+                }
+              />
+            ) : (
+              <input
+                key={field.key}
+                aria-label={`${itemNoun} ${index + 1} ${field.label}`}
+                className={inputClasses}
+                value={row[field.key] ?? ''}
+                placeholder={field.placeholder}
+                onChange={(event) =>
+                  update(index, { [field.key]: event.target.value } as unknown as Partial<T>)
+                }
+              />
+            ),
+          )}
+
+          <div className="flex justify-end gap-1">
+            <Button
+              type="button"
+              variant="ghost"
+              className="min-h-9 px-2 text-xs"
+              disabled={index === 0}
+              aria-label={`Move ${itemNoun} ${index + 1} up`}
+              onClick={() => move(index, index - 1)}
+            >
+              ↑
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              className="min-h-9 px-2 text-xs"
+              disabled={index === rows.length - 1}
+              aria-label={`Move ${itemNoun} ${index + 1} down`}
+              onClick={() => move(index, index + 1)}
+            >
+              ↓
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              className="min-h-9 px-2 text-xs text-red-600 hover:bg-red-50"
+              aria-label={`Remove ${itemNoun} ${index + 1}`}
+              onClick={() => onChange(rows.filter((_, at) => at !== index))}
+            >
+              ✕
+            </Button>
+          </div>
+        </div>
+      ))}
+
+      <Button
+        type="button"
+        variant="secondary"
+        className="min-h-9 text-xs"
+        onClick={() => onChange([...rows, { ...blank }])}
+      >
+        {addLabel}
+      </Button>
+    </fieldset>
+  );
+}
+
 type Stat = { mediaKey: string; value: string; label: string };
 
 /**
@@ -640,63 +782,22 @@ function StatsEditor({
   onChange: (next: Stat[]) => void;
   idPrefix: string;
 }) {
-  const update = (index: number, patch: Partial<Stat>) =>
-    onChange(stats.map((row, at) => (at === index ? { ...row, ...patch } : row)));
-
   return (
-    <fieldset className="space-y-2">
-      <legend className="text-sm font-medium text-slate-800">Stats</legend>
-      <p className="text-xs text-slate-500">
-        The row of counts under the hero. Nothing here is measured — you write both
-        halves, and the glyph comes from the media library.
-      </p>
-
-      {stats.map((stat, index) => (
-        <div key={index} className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-2">
-          <MarkSelect
-            id={`${idPrefix}-stat-${index}`}
-            value={stat.mediaKey}
-            onChange={(mediaKey) => update(index, { mediaKey })}
-            kinds={['stat']}
-            emptyLabel="No glyph"
-          />
-          <div className="flex items-center gap-2">
-            <input
-              aria-label={`Stat ${index + 1} value`}
-              className={inputClasses}
-              value={stat.value}
-              placeholder="10+"
-              onChange={(event) => update(index, { value: event.target.value })}
-            />
-            <input
-              aria-label={`Stat ${index + 1} label`}
-              className={inputClasses}
-              value={stat.label}
-              placeholder="Happy clients"
-              onChange={(event) => update(index, { label: event.target.value })}
-            />
-            <Button
-              type="button"
-              variant="ghost"
-              className="min-h-9 shrink-0 px-2 text-xs text-red-600 hover:bg-red-50"
-              aria-label={`Remove stat ${index + 1}`}
-              onClick={() => onChange(stats.filter((_, at) => at !== index))}
-            >
-              ✕
-            </Button>
-          </div>
-        </div>
-      ))}
-
-      <Button
-        type="button"
-        variant="secondary"
-        className="min-h-9 text-xs"
-        onClick={() => onChange([...stats, { mediaKey: '', value: '', label: '' }])}
-      >
-        Add a stat
-      </Button>
-    </fieldset>
+    <RowsEditor
+      rows={stats}
+      onChange={onChange}
+      idPrefix={`${idPrefix}-stat`}
+      legend="Stats"
+      hint="The row of counts. Nothing here is measured — you write both halves, and the glyph comes from the media library."
+      addLabel="Add a stat"
+      itemNoun="Stat"
+      glyph={{ kinds: ['stat'], emptyLabel: 'No glyph' }}
+      fields={[
+        { key: 'value', label: 'value', placeholder: '10+' },
+        { key: 'label', label: 'label', placeholder: 'Happy clients' },
+      ]}
+      blank={{ mediaKey: '', value: '', label: '' }}
+    />
   );
 }
 
@@ -1050,6 +1151,15 @@ export function LandingDataForm({
   );
 }
 
+/**
+ * The about page's structured half.
+ *
+ * Long, because the page is: every heading, tile, glyph, count and timeline
+ * entry on it is written here rather than in the portfolio's source, which is
+ * what stops a sentence on a public page needing a deploy to change (§13.6).
+ *
+ * The narrative itself is not here — it is the body below, where prose belongs.
+ */
 export function AboutDataForm({
   data,
   onChange,
@@ -1065,15 +1175,255 @@ export function AboutDataForm({
         label="Headline"
         htmlFor="ab-headline"
         error={errors['data.headline']}
-        hint="The narrative itself is the body below — this is just the line above it."
+        hint="The line at the top of the page."
       >
         <input
           id="ab-headline"
           className={inputClasses}
           value={data.headline}
           onChange={(event) => onChange({ ...data, headline: event.target.value })}
+          placeholder="About Me"
         />
       </Field>
+
+      <Field
+        label="Subtitle"
+        htmlFor="ab-subtitle"
+        error={errors['data.subtitle']}
+        hint="The line under the headline. The paragraph after it is the body below."
+      >
+        <input
+          id="ab-subtitle"
+          className={inputClasses}
+          value={data.subtitle}
+          onChange={(event) => onChange({ ...data, subtitle: event.target.value })}
+          placeholder="Developer. Builder. Problem Solver."
+        />
+      </Field>
+
+      <RowsEditor
+        rows={data.infoCards}
+        onChange={(infoCards) => onChange({ ...data, infoCards })}
+        idPrefix="ab-info"
+        legend="Info tiles"
+        hint="The small boxes under the intro — experience, location, role, focus. The glyph is optional."
+        addLabel="Add a tile"
+        itemNoun="Info tile"
+        glyph={{ kinds: ['stat'], emptyLabel: 'No glyph' }}
+        fields={[
+          { key: 'label', label: 'label', placeholder: 'Experience' },
+          { key: 'value', label: 'value', placeholder: '6+ Years' },
+        ]}
+        blank={{ mediaKey: '', label: '', value: '' }}
+      />
+
+      <StringListEditor
+        label="Terminal lines"
+        hint="The screen beside the intro. Decoration — it is hidden on a phone and on a tablet."
+        idPrefix="ab-terminal"
+        values={data.terminalLines}
+        onChange={(terminalLines) => onChange({ ...data, terminalLines })}
+        placeholder="developer@teczo:~$ whoami"
+      />
+
+      <Field
+        label="Terminal title"
+        htmlFor="ab-terminal-title"
+        error={errors['data.terminalTitle']}
+        hint="The caption in its window bar. Empty leaves the bar with just the lights."
+      >
+        <input
+          id="ab-terminal-title"
+          className={inputClasses}
+          value={data.terminalTitle}
+          onChange={(event) => onChange({ ...data, terminalTitle: event.target.value })}
+          placeholder="developer@teczo ~"
+        />
+      </Field>
+
+      <Field
+        label="Philosophy heading"
+        htmlFor="ab-philosophy-label"
+        error={errors['data.philosophy.label']}
+        hint="Left empty, the panel shows its words without a heading."
+      >
+        <input
+          id="ab-philosophy-label"
+          className={inputClasses}
+          value={data.philosophy.label}
+          onChange={(event) =>
+            onChange({ ...data, philosophy: { ...data.philosophy, label: event.target.value } })
+          }
+          placeholder="My Philosophy"
+        />
+      </Field>
+
+      <Field label="Philosophy" htmlFor="ab-philosophy-body" error={errors['data.philosophy.body']}>
+        <textarea
+          id="ab-philosophy-body"
+          className={`${inputClasses} min-h-24`}
+          value={data.philosophy.body}
+          onChange={(event) =>
+            onChange({ ...data, philosophy: { ...data.philosophy, body: event.target.value } })
+          }
+        />
+      </Field>
+
+      <Field
+        label="Tech heading"
+        htmlFor="ab-tech-label"
+        error={errors['data.techLabel']}
+        hint="The line above the row of marks."
+      >
+        <input
+          id="ab-tech-label"
+          className={inputClasses}
+          value={data.techLabel}
+          onChange={(event) => onChange({ ...data, techLabel: event.target.value })}
+          placeholder="Tech I Love"
+        />
+      </Field>
+
+      <TechMarksEditor
+        keys={data.techMarks}
+        onChange={(techMarks) => onChange({ ...data, techMarks })}
+        idPrefix="ab"
+      />
+
+      <Field
+        label="Exploring heading"
+        htmlFor="ab-exploring-label"
+        error={errors['data.exploring.label']}
+      >
+        <input
+          id="ab-exploring-label"
+          className={inputClasses}
+          value={data.exploring.label}
+          onChange={(event) =>
+            onChange({ ...data, exploring: { ...data.exploring, label: event.target.value } })
+          }
+          placeholder="Currently Exploring"
+        />
+      </Field>
+
+      <StringListEditor
+        label="Exploring"
+        hint="What you are learning at the moment, one line each."
+        idPrefix="ab-exploring"
+        values={data.exploring.items}
+        onChange={(items) => onChange({ ...data, exploring: { ...data.exploring, items } })}
+        placeholder="Agentic development workflows"
+      />
+
+      <StatsEditor
+        stats={data.stats}
+        onChange={(stats) => onChange({ ...data, stats })}
+        idPrefix="ab"
+      />
+
+      <Field
+        label="Drivers heading"
+        htmlFor="ab-drivers-label"
+        error={errors['data.driversLabel']}
+      >
+        <input
+          id="ab-drivers-label"
+          className={inputClasses}
+          value={data.driversLabel}
+          onChange={(event) => onChange({ ...data, driversLabel: event.target.value })}
+          placeholder="What Drives Me"
+        />
+      </Field>
+
+      <RowsEditor
+        rows={data.drivers}
+        onChange={(drivers) => onChange({ ...data, drivers })}
+        idPrefix="ab-driver"
+        legend="Drivers"
+        hint="The cards under the counts. The glyph is optional; a card without one keeps its words."
+        addLabel="Add a driver"
+        itemNoun="Driver"
+        glyph={{ kinds: ['stat'], emptyLabel: 'No glyph' }}
+        fields={[
+          { key: 'title', label: 'title', placeholder: 'Shipping' },
+          { key: 'body', label: 'body', placeholder: 'Software only counts when real people use it.', multiline: true },
+        ]}
+        blank={{ mediaKey: '', title: '', body: '' }}
+      />
+
+      <Field
+        label="Journey heading"
+        htmlFor="ab-journey-label"
+        error={errors['data.journeyLabel']}
+      >
+        <input
+          id="ab-journey-label"
+          className={inputClasses}
+          value={data.journeyLabel}
+          onChange={(event) => onChange({ ...data, journeyLabel: event.target.value })}
+          placeholder="My Journey"
+        />
+      </Field>
+
+      <RowsEditor
+        rows={data.journey}
+        onChange={(journey) => onChange({ ...data, journey })}
+        idPrefix="ab-journey"
+        legend="Journey"
+        hint="The timeline, in the order you set here — nothing sorts it by year."
+        addLabel="Add an entry"
+        itemNoun="Journey entry"
+        fields={[
+          { key: 'year', label: 'year', placeholder: '2019' },
+          { key: 'event', label: 'event', placeholder: 'Graduated in Mechanical Engineering', multiline: true },
+        ]}
+        blank={{ year: '', event: '' }}
+      />
+
+      <Field
+        label="Closing headline"
+        htmlFor="ab-cta-headline"
+        error={errors['data.ctaHeadline']}
+        hint="The bar across the foot of the page."
+      >
+        <input
+          id="ab-cta-headline"
+          className={inputClasses}
+          value={data.ctaHeadline}
+          onChange={(event) => onChange({ ...data, ctaHeadline: event.target.value })}
+          placeholder="Let's build something that ships."
+        />
+      </Field>
+
+      <Field label="Closing paragraph" htmlFor="ab-cta-body" error={errors['data.ctaBody']}>
+        <textarea
+          id="ab-cta-body"
+          className={`${inputClasses} min-h-20`}
+          value={data.ctaBody}
+          onChange={(event) => onChange({ ...data, ctaBody: event.target.value })}
+        />
+      </Field>
+
+      <Field
+        label="Closing button"
+        htmlFor="ab-cta-label"
+        error={errors['data.ctaLabel']}
+        hint="Its words only — the button goes to the contact page."
+      >
+        <input
+          id="ab-cta-label"
+          className={inputClasses}
+          value={data.ctaLabel}
+          onChange={(event) => onChange({ ...data, ctaLabel: event.target.value })}
+          placeholder="Get In Touch"
+        />
+      </Field>
+
+      <SocialsEditor
+        socials={data.socials}
+        onChange={(socials) => onChange({ ...data, socials })}
+        idPrefix="ab"
+      />
 
       <PortraitField
         idPrefix="ab"
