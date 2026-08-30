@@ -13,6 +13,7 @@ const KIND_HINTS: Record<MediaKind, string> = {
   client: "A client's own mark. Only approve one you have permission to show.",
   social: 'A link mark — GitHub, LinkedIn, email.',
   app: "A project's own icon, as it would look on a phone's home screen.",
+  stat: 'A glyph for one of the landing page counts — a rocket, a trophy.',
 };
 
 /**

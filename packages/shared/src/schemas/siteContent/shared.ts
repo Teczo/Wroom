@@ -49,6 +49,26 @@ export function optionalEmail(): Validator<string> {
 }
 
 /**
+ * A `mediaLibrary` key, or nothing yet.
+ *
+ * The same tolerance `optionalUrl` and `optionalEmail` have, for the same
+ * reason: a stat row is typed before its glyph is drawn, and refusing to save
+ * the page until somebody has been to the library and back makes the editor
+ * unusable for the ten minutes in between. An empty key resolves to no mark,
+ * which the row renders as no icon (CLAUDE.md §7.4).
+ */
+export function optionalSlug(): Validator<string> {
+  const inner = slug();
+
+  return {
+    run(input, path, issues) {
+      if (typeof input === 'string' && input.trim() === '') return '';
+      return inner.run(input, path, issues);
+    },
+  };
+}
+
+/**
  * One social row: which mark to draw, and where it points.
  *
  * `mediaKey` is a `mediaLibrary.key` — a key, not a label, and not an icon
@@ -122,4 +142,28 @@ export type SiteContentImage = Infer<typeof publishedImageShape>;
 
 export function portraitField(): Validator<SiteContentImage | null> {
   return withDefault(nullable(strictObject(publishedImageShape)), null);
+}
+
+/**
+ * `data.cv` — the file the hero's second button hands to a visitor.
+ *
+ * Server-owned in exactly the way `portrait` is, and for the same reason: the
+ * draft names `cvAssetId`, an id into `assets`, which the portfolio may never
+ * read. Publishing runs the site asset gate, copies the blob into the public
+ * container and writes the resulting URL here, so a public page can only ever
+ * point at bytes a gate let through (§6, §8).
+ *
+ * It carries no `variants`. `sharp` makes variants of images, and this is a
+ * document — the one file is the whole of it. `filename` is what the browser
+ * saves it as, so a download does not land as a content-addressed blob name.
+ */
+export const publishedFileShape = {
+  url: string({ min: 1, max: 600 }),
+  filename: withDefault(string({ max: 260, allowEmpty: true }), ''),
+};
+
+export type SiteContentFile = Infer<typeof publishedFileShape>;
+
+export function cvField(): Validator<SiteContentFile | null> {
+  return withDefault(nullable(strictObject(publishedFileShape)), null);
 }

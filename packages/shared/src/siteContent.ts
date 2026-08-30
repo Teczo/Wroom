@@ -33,11 +33,12 @@ export function siteContentDiffers(
 /**
  * A page's `data` without the half nobody edits.
  *
- * `marks` and `portrait` are resolved by the publish action, so they are on
- * every published record and on no draft. Comparing them would make every page
- * permanently "ahead of what is live", which is the opposite of what the badge
- * is for. `portraitAssetId` is not stripped: choosing a different image *is* an
- * edit, and the badge should say so.
+ * `marks`, `portrait` and `cv` are resolved by the publish action, so they are
+ * on every published record and on no draft. Comparing them would make every
+ * page permanently "ahead of what is live", which is the opposite of what the
+ * badge is for. `portraitAssetId` and `cvAssetId` are not stripped: choosing a
+ * different image or a different file *is* an edit, and the badge should say
+ * so.
  *
  * It also means the badge tracks the words, not the library or the container:
  * re-approving a mark, or replacing the bytes behind an image, changes what a
@@ -45,6 +46,6 @@ export function siteContentDiffers(
  * not notice. Publishing again is what picks it up.
  */
 function editable(data: Record<string, unknown> | undefined): Record<string, unknown> {
-  const { marks: _marks, portrait: _portrait, ...rest } = data ?? {};
+  const { marks: _marks, portrait: _portrait, cv: _cv, ...rest } = data ?? {};
   return rest;
 }

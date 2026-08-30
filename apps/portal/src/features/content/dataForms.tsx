@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 import {
   aboutDataSchema,
   contactDataSchema,
@@ -10,10 +12,12 @@ import {
 
 import { UPLOAD_LIMITS } from '@wroom/shared';
 
+import { ApiRequestError } from '../../lib/api';
 import { Button } from '../../components/Button';
 import { Field, inputClasses } from '../../components/Field';
 import {
   useCreateSiteAsset,
+  useDeleteSiteAsset,
   useRequestSiteUploadUrl,
   useSiteAssets,
   useUpdateSiteAsset,
@@ -272,24 +276,110 @@ function SocialsEditor({
 }
 
 /**
- * The portrait a page shows: pick one of the site's images, or add one.
+ * Deleting one of the site's files for good.
+ *
+ * Two steps, the same shape the media library's mark rows use: a Delete button
+ * that opens a confirmation rather than acting, and a refusal panel when the
+ * API says the file is still in use.
+ *
+ * The API refuses while any page names it — a saved draft as much as a
+ * published one. So the way to delete the file a page is using is to clear it
+ * on that page, save, and come back. The refusal says which page; this says
+ * what to do about it.
+ */
+function DeleteFileButton({ assetId, filename }: { assetId: string; filename: string }) {
+  const remove = useDeleteSiteAsset();
+  const [confirming, setConfirming] = useState(false);
+
+  const blocked =
+    remove.error instanceof ApiRequestError && remove.error.status === 409 ? remove.error : null;
+  const otherError =
+    remove.error instanceof ApiRequestError && remove.error.status !== 409 ? remove.error : null;
+
+  if (!confirming) {
+    return (
+      <Button
+        type="button"
+        variant="ghost"
+        className="min-h-9 px-2 text-xs text-red-600 hover:bg-red-50"
+        onClick={() => setConfirming(true)}
+      >
+        Delete file
+      </Button>
+    );
+  }
+
+  return (
+    <div className="w-full rounded-lg border border-red-200 bg-red-50 p-3">
+      <p className="text-sm text-red-900">
+        Delete {filename} for good? This removes the file itself, not just its place on
+        this page.
+      </p>
+
+      <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+        <Button
+          type="button"
+          variant="danger"
+          disabled={remove.isPending}
+          onClick={() => remove.mutate(assetId, { onSuccess: () => setConfirming(false) })}
+        >
+          {remove.isPending ? 'Deleting…' : 'Delete it'}
+        </Button>
+        <Button type="button" variant="secondary" onClick={() => setConfirming(false)}>
+          Keep it
+        </Button>
+      </div>
+
+      {blocked ? (
+        <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
+          <p className="text-sm font-medium text-amber-900">Still in use</p>
+          <p className="mt-1 text-sm text-amber-800">{blocked.message}</p>
+          <p className="mt-2 text-xs text-amber-700">
+            Clear it on that page and save. A page that has been published has to be
+            published again before the file is free.
+          </p>
+        </div>
+      ) : null}
+
+      {otherError ? <p className="mt-3 text-sm text-red-700">{otherError.message}</p> : null}
+    </div>
+  );
+}
+
+/**
+ * A file a page points at: pick one of the site's uploads, or add one.
+ *
+ * Two slots use it — the portrait on the landing and about pages, and the CV
+ * behind the landing hero's second button. They differ in which files are worth
+ * listing and what the slot is called; everything else about choosing one,
+ * uploading one and getting it public is the same errand.
  *
  * No thumbnail. The private container allows no anonymous read, so a blob URL
  * in an `<img>` renders broken — the media panel makes the same call, and a
  * filename with its state beside it is honest where a broken image is not.
  *
- * Marking it public is part of the job rather than a separate errand: an image
+ * Marking it public is part of the job rather than a separate errand: a file
  * that is still private stops the page publishing, and the button that fixes it
  * belongs where that is discovered.
  */
-function PortraitField({
+function SiteAssetField({
   value,
   onChange,
   idPrefix,
+  slot,
+  legend,
+  hint,
+  accept,
+  accepts,
 }: {
   value: string | null;
   onChange: (assetId: string | null) => void;
   idPrefix: string;
+  slot: string;
+  legend: string;
+  hint: string;
+  accept: readonly string[];
+  accepts: (mimeType: string) => boolean;
 }) {
   const assets = useSiteAssets();
   const requestUrl = useRequestSiteUploadUrl();
@@ -304,16 +394,17 @@ function PortraitField({
     onCreated: (asset) => onChange(asset._id),
   });
 
-  const items = assets.data?.items ?? [];
-  const chosen = items.find((asset) => asset._id === value) ?? null;
+  // The chosen one is looked up in the whole list rather than the filtered one,
+  // so a slot still shows what it points at after the rule for this slot
+  // changes — and the mismatch is visible instead of reading as "gone".
+  const all = assets.data?.items ?? [];
+  const items = all.filter((asset) => accepts(asset.mimeType));
+  const chosen = all.find((asset) => asset._id === value) ?? null;
 
   return (
     <fieldset className="space-y-2">
-      <legend className="text-sm font-medium text-slate-800">Portrait</legend>
-      <p className="text-xs text-slate-500">
-        Shown on the page once it is published. It has to be marked public first —
-        nothing reaches the public site until it is.
-      </p>
+      <legend className="text-sm font-medium text-slate-800">{legend}</legend>
+      <p className="text-xs text-slate-500">{hint}</p>
 
       {items.length > 0 ? (
         <div className="flex flex-wrap gap-1.5">
@@ -337,8 +428,15 @@ function PortraitField({
 
       {value !== null && !chosen && assets.isSuccess ? (
         <p className="text-xs text-amber-700">
-          This page points at an image that is no longer here. Choose another, or clear it —
+          This page points at a file that is no longer here. Choose another, or clear it —
           publishing will refuse until you do.
+        </p>
+      ) : null}
+
+      {chosen && !accepts(chosen.mimeType) ? (
+        <p className="text-xs text-amber-700">
+          {chosen.filename} is a {chosen.mimeType}, which is not something this slot can
+          show. Choose another, or clear it — publishing will refuse until you do.
         </p>
       ) : null}
 
@@ -359,12 +457,24 @@ function PortraitField({
         </div>
       ) : null}
 
+      {/*
+       * Deleting is offered on the chosen file only. Every file in the list
+       * belongs to some page or to none, and a row of delete buttons over a
+       * picker is a mis-click waiting to happen — this way the file has been
+       * selected deliberately before it can be removed.
+       */}
+      {chosen ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <DeleteFileButton assetId={chosen._id} filename={chosen.filename} />
+        </div>
+      ) : null}
+
       <label className="inline-flex">
-        <span className="sr-only">Choose a portrait to upload</span>
+        <span className="sr-only">Choose a {slot} to upload</span>
         <input
-          id={`${idPrefix}-portrait-file`}
+          id={`${idPrefix}-${slot}-file`}
           type="file"
-          accept={UPLOAD_LIMITS.allowedMimeTypes.join(',')}
+          accept={accept.join(',')}
           disabled={busy}
           className="block w-full text-xs text-slate-600 file:mr-3 file:min-h-11 file:rounded-lg file:border-0 file:bg-slate-900 file:px-4 file:text-sm file:font-medium file:text-white disabled:opacity-50"
           onChange={(event) => {
@@ -391,6 +501,54 @@ function PortraitField({
         <p className="text-xs text-red-700">{phase.message}</p>
       ) : null}
     </fieldset>
+  );
+}
+
+/**
+ * The two slots, as the pages ask for them.
+ *
+ * The mime lists come off `UPLOAD_LIMITS` rather than being typed again here,
+ * so a type added to what the uploader accepts appears in the picker that wants
+ * it without a second edit — and the CV's rule matches what the API enforces at
+ * publish, rather than being a looser copy of it.
+ */
+const IMAGE_MIME_TYPES = UPLOAD_LIMITS.allowedMimeTypes.filter((type) =>
+  type.startsWith('image/'),
+);
+
+const CV_MIME_TYPES = ['application/pdf'] as const;
+
+function PortraitField(props: {
+  value: string | null;
+  onChange: (assetId: string | null) => void;
+  idPrefix: string;
+}) {
+  return (
+    <SiteAssetField
+      {...props}
+      slot="portrait"
+      legend="Portrait"
+      hint="Shown on the page once it is published. It has to be marked public first — nothing reaches the public site until it is."
+      accept={IMAGE_MIME_TYPES}
+      accepts={(mimeType) => mimeType.startsWith('image/')}
+    />
+  );
+}
+
+function CvField(props: {
+  value: string | null;
+  onChange: (assetId: string | null) => void;
+  idPrefix: string;
+}) {
+  return (
+    <SiteAssetField
+      {...props}
+      slot="cv"
+      legend="CV"
+      hint="The file the second hero button hands over. A PDF, marked public — the hero shows that button only once both are true."
+      accept={CV_MIME_TYPES}
+      accepts={(mimeType) => mimeType === 'application/pdf'}
+    />
   );
 }
 
@@ -461,6 +619,145 @@ function StatusRowsEditor({
   );
 }
 
+type Stat = { mediaKey: string; value: string; label: string };
+
+/**
+ * The band of counts under the hero: a glyph, a number and what it counts.
+ *
+ * Written, not measured. Wroom counts no clients and times no career, and the
+ * public site is the wrong place for it to start — these say what you type
+ * until you type something else, the same as the status readout above.
+ *
+ * The glyph is optional. A row can be written before its mark is drawn, and
+ * until it is, that count appears without an icon rather than not at all.
+ */
+function StatsEditor({
+  stats,
+  onChange,
+  idPrefix,
+}: {
+  stats: Stat[];
+  onChange: (next: Stat[]) => void;
+  idPrefix: string;
+}) {
+  const update = (index: number, patch: Partial<Stat>) =>
+    onChange(stats.map((row, at) => (at === index ? { ...row, ...patch } : row)));
+
+  return (
+    <fieldset className="space-y-2">
+      <legend className="text-sm font-medium text-slate-800">Stats</legend>
+      <p className="text-xs text-slate-500">
+        The row of counts under the hero. Nothing here is measured — you write both
+        halves, and the glyph comes from the media library.
+      </p>
+
+      {stats.map((stat, index) => (
+        <div key={index} className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-2">
+          <MarkSelect
+            id={`${idPrefix}-stat-${index}`}
+            value={stat.mediaKey}
+            onChange={(mediaKey) => update(index, { mediaKey })}
+            kinds={['stat']}
+            emptyLabel="No glyph"
+          />
+          <div className="flex items-center gap-2">
+            <input
+              aria-label={`Stat ${index + 1} value`}
+              className={inputClasses}
+              value={stat.value}
+              placeholder="10+"
+              onChange={(event) => update(index, { value: event.target.value })}
+            />
+            <input
+              aria-label={`Stat ${index + 1} label`}
+              className={inputClasses}
+              value={stat.label}
+              placeholder="Happy clients"
+              onChange={(event) => update(index, { label: event.target.value })}
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              className="min-h-9 shrink-0 px-2 text-xs text-red-600 hover:bg-red-50"
+              aria-label={`Remove stat ${index + 1}`}
+              onClick={() => onChange(stats.filter((_, at) => at !== index))}
+            >
+              ✕
+            </Button>
+          </div>
+        </div>
+      ))}
+
+      <Button
+        type="button"
+        variant="secondary"
+        className="min-h-9 text-xs"
+        onClick={() => onChange([...stats, { mediaKey: '', value: '', label: '' }])}
+      >
+        Add a stat
+      </Button>
+    </fieldset>
+  );
+}
+
+/**
+ * The row of marks under the hero buttons.
+ *
+ * Keys and nothing else: what is drawn and what it is called both live on the
+ * `mediaLibrary` record, so a logo is corrected in one place rather than
+ * everywhere it appears.
+ */
+function TechMarksEditor({
+  keys,
+  onChange,
+  idPrefix,
+}: {
+  keys: string[];
+  onChange: (next: string[]) => void;
+  idPrefix: string;
+}) {
+  return (
+    <fieldset className="space-y-2">
+      <legend className="text-sm font-medium text-slate-800">Tech row</legend>
+      <p className="text-xs text-slate-500">
+        The marks under the hero buttons, in the order you set here.
+      </p>
+
+      {keys.map((key, index) => (
+        <div key={index} className="flex items-center gap-2">
+          <div className="grow">
+            <MarkSelect
+              id={`${idPrefix}-tech-${index}`}
+              value={key}
+              onChange={(next) => onChange(keys.map((entry, at) => (at === index ? next : entry)))}
+              kinds={['tech']}
+              emptyLabel="Choose a mark…"
+            />
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            className="min-h-9 shrink-0 px-2 text-xs text-red-600 hover:bg-red-50"
+            aria-label={`Remove tech mark ${index + 1}`}
+            onClick={() => onChange(keys.filter((_, at) => at !== index))}
+          >
+            ✕
+          </Button>
+        </div>
+      ))}
+
+      <Button
+        type="button"
+        variant="secondary"
+        className="min-h-9 text-xs"
+        onClick={() => onChange([...keys, ''])}
+      >
+        Add a mark
+      </Button>
+    </fieldset>
+  );
+}
+
 // --- the four forms --------------------------------------------------------
 
 export function LandingDataForm({
@@ -474,6 +771,21 @@ export function LandingDataForm({
 }) {
   return (
     <div className="space-y-4">
+      <Field
+        label="Role"
+        htmlFor="ld-role"
+        error={errors['data.role']}
+        hint="The pill above the headline — what you are, where the disciplines are what you do."
+      >
+        <input
+          id="ld-role"
+          className={inputClasses}
+          value={data.role}
+          onChange={(event) => onChange({ ...data, role: event.target.value })}
+          placeholder="Full stack developer"
+        />
+      </Field>
+
       <Field label="Greeting" htmlFor="ld-greeting" error={errors['data.greeting']}>
         <input
           id="ld-greeting"
@@ -518,6 +830,46 @@ export function LandingDataForm({
       />
 
       <fieldset className="space-y-2">
+        <legend className="text-sm font-medium text-slate-800">Hero buttons</legend>
+        <p className="text-xs text-slate-500">
+          Labels only. The first goes to the work index and the second downloads the CV
+          below — leave either empty and that button is not drawn.
+        </p>
+        <Field
+          label="First button"
+          htmlFor="ld-hero-primary"
+          error={errors['data.heroPrimaryLabel']}
+        >
+          <input
+            id="ld-hero-primary"
+            className={inputClasses}
+            value={data.heroPrimaryLabel}
+            onChange={(event) => onChange({ ...data, heroPrimaryLabel: event.target.value })}
+            placeholder="View my work"
+          />
+        </Field>
+        <Field
+          label="Second button"
+          htmlFor="ld-hero-secondary"
+          error={errors['data.heroSecondaryLabel']}
+        >
+          <input
+            id="ld-hero-secondary"
+            className={inputClasses}
+            value={data.heroSecondaryLabel}
+            onChange={(event) => onChange({ ...data, heroSecondaryLabel: event.target.value })}
+            placeholder="Download CV"
+          />
+        </Field>
+      </fieldset>
+
+      <CvField
+        idPrefix="ld"
+        value={data.cvAssetId}
+        onChange={(cvAssetId) => onChange({ ...data, cvAssetId })}
+      />
+
+      <fieldset className="space-y-2">
         <legend className="text-sm font-medium text-slate-800">Badge</legend>
         <Field label="Title" htmlFor="ld-badge-title" error={errors['data.badge.title']}>
           <input
@@ -541,6 +893,21 @@ export function LandingDataForm({
           />
         </Field>
       </fieldset>
+
+      <Field
+        label="Terminal title"
+        htmlFor="ld-terminal-title"
+        error={errors['data.terminalTitle']}
+        hint="The caption in the terminal's window bar. Decorative, and hidden on a phone."
+      >
+        <input
+          id="ld-terminal-title"
+          className={inputClasses}
+          value={data.terminalTitle}
+          onChange={(event) => onChange({ ...data, terminalTitle: event.target.value })}
+          placeholder="developer@teczo ~"
+        />
+      </Field>
 
       <StringListEditor
         label="Terminal lines"
@@ -587,11 +954,53 @@ export function LandingDataForm({
         onChange={(statusRows) => onChange({ ...data, statusRows })}
       />
 
+      <Field
+        label="Tech row label"
+        htmlFor="ld-tech-label"
+        error={errors['data.techLabel']}
+        hint="The small line above the marks. Empty and the row is drawn without it."
+      >
+        <input
+          id="ld-tech-label"
+          className={inputClasses}
+          value={data.techLabel}
+          onChange={(event) => onChange({ ...data, techLabel: event.target.value })}
+          placeholder="Tech I work with"
+        />
+      </Field>
+
+      <TechMarksEditor
+        idPrefix="ld"
+        keys={data.techMarks}
+        onChange={(techMarks) => onChange({ ...data, techMarks })}
+      />
+
+      <StatsEditor
+        idPrefix="ld"
+        stats={data.stats}
+        onChange={(stats) => onChange({ ...data, stats })}
+      />
+
       <SocialsEditor
         socials={data.socials}
         onChange={(socials) => onChange({ ...data, socials })}
         idPrefix="ld"
       />
+
+      <Field
+        label="Header button"
+        htmlFor="ld-header-cta"
+        error={errors['data.headerCtaLabel']}
+        hint="The pill on the right of the site header. It goes to the contact page."
+      >
+        <input
+          id="ld-header-cta"
+          className={inputClasses}
+          value={data.headerCtaLabel}
+          onChange={(event) => onChange({ ...data, headerCtaLabel: event.target.value })}
+          placeholder="Let's connect"
+        />
+      </Field>
 
       <Field label="Call to action" htmlFor="ld-cta" error={errors['data.ctaLabel']}>
         <input

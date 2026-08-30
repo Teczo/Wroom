@@ -240,7 +240,7 @@ Reusable marks, managed once in the portal instead of re-uploaded per project.
 ```js
 {
   _id,
-  kind,                         // "tech" | "platform" | "client" | "social" | "app"
+  kind,                         // "tech" | "platform" | "client" | "social" | "app" | "stat"
   key: "react",                 // stable, lowercase, referenced from projects and siteContent
   label: "React",
   svg: "<svg viewBox=…>…</svg>",// inline markup, sanitised server-side on write
@@ -260,6 +260,8 @@ Reusable marks, managed once in the portal instead of re-uploaded per project.
 Seed `kind: "platform"` with `web`, `desktop`, `vr`, `mobile`, `tablet`. Seed `kind: "social"` with `github`, `linkedin`, `email`.
 
 `kind: "app"` is a project's own icon, as it appears on a phone's home screen. A project points at one through `portfolio.appIconMediaKey`, and it is what the landing page's app shelf draws.
+
+`kind: "stat"` is a glyph for one of the landing page's counts — a rocket, a trophy. It is a kind of its own because those marks are neither a logo, a platform nor anybody's trademark, and grouping them anywhere else makes the portal's picker harder to use. Nothing in the render path treats them differently. None are seeded.
 
 ---
 
@@ -522,19 +524,28 @@ The portfolio's own copy. Draft/published split so changing a sentence never req
 ```js
 // landing
 {
+  role: "Full stack developer",    // the pill above the headline
   greeting: "Hi, I'm",
   name: "Jayagaren",
   statement: "I build apps that solve real-world problems",
   disciplines: ["Mobile", "Web", "XR", "AI"],
+  heroPrimaryLabel: "View my work",   // → /work
+  heroSecondaryLabel: "Download CV",  // → the resolved cv below
   badge: { title: "CODE. BUILD. SOLVE.", body: "Shipping digital solutions that matter." },
   terminalLines: ["developer@teczo:~$ whoami", "jayagaren"],
+  terminalTitle: "developer@teczo ~",
   codePanel: { tabs: ["App.jsx", "Scene.tsx"], code: "" },
   statusRows: [{ label: "BUILD", value: "READY" }],
+  techLabel: "Tech I work with",
+  techMarks: ["react", "typescript"],           // → mediaLibrary.key, kind "tech"
+  stats: [{ mediaKey: "rocket", value: "5+", label: "Projects delivered" }],
   socials: [{ mediaKey: "github", url: "" }],
+  headerCtaLabel: "Let's connect",  // the header pill; → /contact
   ctaLabel: "Let's build something great",
   featuredIntro: "Selected products and platforms I've built.",
   featuredLimit: 6,
-  portraitAssetId: null            // → assets._id, a site asset (projectId: null)
+  portraitAssetId: null,           // → assets._id, a site asset (projectId: null)
+  cvAssetId: null                  // → assets._id, a site asset; PDF only
 }
 
 // about
@@ -558,9 +569,20 @@ are the rail beside it — also decorative, and hidden below `lg`.
 
 `statusRows` is written, not measured. Nothing in Wroom watches a build or a
 machine, and the public site is the wrong place for it to start: the rows say
-whatever was typed until somebody types something else.
+whatever was typed until somebody types something else. `stats` is the same
+thing said louder — Wroom counts no clients and times no career, so those
+figures are typed and maintained by hand.
 
-**`published.data` carries fields the draft does not: `marks`, and `portrait`.**
+`heroPrimaryLabel` and `heroSecondaryLabel` are labels only. Where each button
+goes is fixed in the page — the work index and the CV — because an authored href
+on a public page is a link nobody reviews. The second button needs both a label
+and a published CV; either missing and it is not drawn.
+
+`headerCtaLabel` is its own field rather than a second use of `ctaLabel`: one
+has to fit in a pill and the other is a sentence across the foot of the page.
+Both go to `/contact`.
+
+**`published.data` carries fields the draft does not: `marks`, `portrait`, and `cv`.**
 
 ```js
 // siteContent.published.data, on landing / contact / skills
@@ -568,6 +590,9 @@ marks: [{ key: "github", label: "GitHub", svg: "<svg …>" }]
 
 // siteContent.published.data, on landing / about
 portrait: { url, alt, variants: { thumb, card, hero } } | null
+
+// siteContent.published.data, on landing
+cv: { url, filename } | null
 ```
 
 The portfolio may not read `mediaLibrary`, so a `mediaKey` has to arrive already
@@ -583,17 +608,28 @@ writes the resulting public URLs here. A portrait that is missing or still
 private stops the publish and says which — a page is not published with a hole
 where a picture was meant to be.
 
+`cv` is the same again for the file behind the hero's second button, from
+`cvAssetId`. It has no variants — `sharp` resizes images and this is a document
+— and it carries `filename` instead of `alt`, because the public blob name is
+content-addressed and meaningless as something to save. It has to be a PDF:
+every other non-image type the uploader accepts is a video, and a button
+labelled "Download CV" that hands over an mp4 is not something to let through
+quietly. A CV that is missing, still private or the wrong type stops the publish
+and says which.
+
 Unpublishing deletes those copies before clearing the record, unless another
-published page still shows the same portrait. So does swapping one portrait for
-another: the blob delete is what revokes access, and a snapshot removed while
-its blobs remain leaves a permanently cacheable public URL.
+published page still shows the same file. So does swapping one for another: the
+blob delete is what revokes access, and a snapshot removed while its blobs
+remain leaves a permanently cacheable public URL. The "still shown" check looks
+at every published page's `portrait` and `cv` together, not just the field being
+revoked — a URL pointed at from anywhere live is a URL whose bytes have to stay.
 
-`GET /public/content/:key` strips `portraitAssetId` on the way out: the resolved
-`portrait` is what a page renders, and a public payload has no business naming a
-record in an operational collection.
+`GET /public/content/:key` strips `portraitAssetId` and `cvAssetId` on the way
+out: the resolved `portrait` and `cv` are what a page renders, and a public
+payload has no business naming a record in an operational collection.
 
-Both are server-owned: `PATCH /api/content/:key` strips `marks` and `portrait`
-from the body, so the only markup that reaches a published page comes from a
+All three are server-owned: `PATCH /api/content/:key` strips `marks`, `portrait`
+and `cv` from the body, so the only markup that reaches a published page comes from a
 `mediaLibrary` record the API sanitised on write, and the only image URLs come
 from blobs the gate let through. Resolution is frozen at publish — editing a
 mark or replacing an image changes the live page only when the page is published

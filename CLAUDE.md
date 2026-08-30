@@ -331,7 +331,11 @@ Design references are desktop. These are the confirmed 390px behaviours — impl
 | Surface | At 390px |
 |---|---|
 | Nav | Hamburger to a full-screen overlay. State toggle and a fixed panel — no drawer library. |
-| Landing hero | Composite image dropped. Headline, disciplines, badge and CTA over the background only. |
+| Landing hero | Composite image dropped. Role pill, headline, disciplines, badge and CTA over the background only. |
+| Landing hero buttons | Stacked, each full width. |
+| Landing tech row | Wraps; the marks keep their size rather than shrinking to one line. |
+| Landing stats | Two per row, not four. |
+| Header CTA | Out of the bar and into the foot of the nav overlay, full width. |
 | Landing terminal | Hidden below `md`. Decorative. |
 | Featured projects | Carousel, one card per viewport, swipe, dot indicators, arrows hidden. |
 | Product header | Chip, title, tagline, paragraph and buttons stack. Buttons full width. |

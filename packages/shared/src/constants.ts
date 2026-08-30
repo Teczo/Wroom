@@ -206,8 +206,13 @@ export type NoteKind = (typeof NOTE_KINDS)[number];
 /**
  * `mediaLibrary.kind`. Icons are data, not code — every mark on the public site
  * is one of these records rather than a file in a components folder.
+ *
+ * `stat` is the odd one: the glyphs beside the landing page's counts are
+ * decoration rather than a logo, a platform or anybody's trademark. It is a
+ * kind of its own so the portal's picker has a group to show for them, not
+ * because the render path treats them differently — it does not.
  */
-export const MEDIA_KINDS = ['tech', 'platform', 'client', 'social', 'app'] as const;
+export const MEDIA_KINDS = ['tech', 'platform', 'client', 'social', 'app', 'stat'] as const;
 export type MediaKind = (typeof MEDIA_KINDS)[number];
 
 /**

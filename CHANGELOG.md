@@ -1,5 +1,77 @@
 # Changelog
 
+## 2026-08-30
+
+- The landing page is tighter at the top. The space between the header and the
+  hero, and between the tech row and the counts, were both 96 pixels and are now
+  48 — they came from the same setting, so they moved together.
+- Your portrait is bigger. It was being held back by the width of its column
+  rather than by any height limit, so the column is wider and the gutters either
+  side are narrower; the picture is about a fifth larger.
+- The tech marks stay on one line at desktop width. Narrowing that column by a
+  few pixels had tipped the seventh onto a second row.
+- The rules between the counts are short lines floating between them now, rather
+  than full-height lines dividing the panel into boxes.
+
+- The green buttons carry their glow all the time now, not only when the pointer
+  is over them, which is how the design draws them. It is a painted shadow, so
+  it is there the moment the page appears and there is nothing in it for reduced
+  motion to switch off.
+- A file you have uploaded for the site — a portrait, a CV — can now be deleted
+  from the portal, from the same box you pick it in. It asks first.
+- A file a page is still using cannot be deleted. It says which page, and whether
+  it is the draft or the live version, rather than deleting the file and leaving
+  that page pointing at nothing. Clear it on the page, save, and then it will go.
+
+- The landing page is laid out the way the new design draws it. The words are on
+  the left, your portrait stands in the middle, and the terminal sits on the
+  right with the Currently Building note pinned under it. On a phone the picture
+  and the terminal both go, as they did before, and the words carry the page.
+- Home is in the navigation now, and the current page is marked with a lit dot
+  under its name rather than a line. Home lights only on the front page — a
+  project page lights Work.
+- The wordmark has its `</>` mark beside it, in the bar and at the top of the
+  phone menu.
+- The featured work has a proper heading — a My Work label, the title at full
+  size, your intro line under it, and a View all projects button that goes to the
+  full list. On a phone the button sits under the heading at full width.
+- The project cards keep their screenshot across the top of the card, and now
+  carry the project's icon beside its name. A project with no icon simply starts
+  at its name.
+- Three things the new design has no place for are gone from the page: the code
+  pane, the BUILD / READY readout and the phone of app icons. Nothing you wrote
+  has been deleted — all of it is still on the landing record, so any of them can
+  come back.
+
+- The landing page can now say the things the new design shows and the portal
+  had nowhere to write. All of it is edited on the landing tab and published the
+  usual way — none of it is typed into the site.
+- There is a pill above the headline for what you are, separate from the
+  disciplines list, which is what you do.
+- Two buttons under the statement. The first goes to the work list. The second
+  hands over your CV: upload a PDF on the same tab, mark it public, and the
+  button appears. Without both a label and a published file there is no second
+  button, because a download that downloads nothing is worse than none.
+- A row of tech marks under the buttons, with a line above it you write, drawn
+  from the media library in the order you set.
+- A band of counts between the hero and the work — a glyph, a number and what it
+  counts, up to six of them. Nothing here is measured: Wroom counts no clients
+  and times no career, so these say what you type until you type something else.
+  Two per row on a phone.
+- The terminal has a window bar now, with three lights and the session name you
+  write beside them.
+- The site header has a button on the right whose words you write, going to the
+  contact page. On a phone it sits at the foot of the menu rather than squeezing
+  into the bar beside the hamburger.
+- Every one of these disappears completely when it has nothing written in it —
+  no empty heading, no placeholder.
+- The media library has a new group, stat glyphs, for the icons beside those
+  counts. Nothing is seeded into it; add the marks you want in the portal.
+- Swapping the CV or the portrait for a different file, or unpublishing the page,
+  now takes the old file out of public storage — and checks every published page
+  before it does, so a picture two pages share does not vanish from one because
+  the other stopped using it.
+
 ## 2026-08-29
 
 - The portrait on the landing page is much larger and now sits as part of the

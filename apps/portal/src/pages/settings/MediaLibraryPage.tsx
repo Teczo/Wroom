@@ -23,6 +23,7 @@ const KIND_TITLES: Record<MediaKind, string> = {
   client: 'Clients',
   social: 'Social',
   app: 'App icons',
+  stat: 'Stat glyphs',
 };
 
 /** The counts a 409 comes back with, spelled out. */

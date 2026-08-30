@@ -2,6 +2,7 @@ import type { PublishedProject } from '@wroom/shared';
 import { Link } from 'react-router-dom';
 
 import { Carousel } from '../../components/Carousel';
+import { Mark } from '../../components/Mark';
 import { EmptyState, ErrorState, LoadingState } from '../../components/StateViews';
 import { useFeaturedProjects } from './api';
 
@@ -36,12 +37,17 @@ function ProjectCard({ project }: { project: PublishedProject }) {
        * own aspect, so a row of cards lines up whatever shape the screenshots
        * are. A project with no hero keeps the band as a lit panel — a card that
        * suddenly starts at its title breaks the row.
+       *
+       * `aria-hidden` and empty alt: the link is named by the heading below it,
+       * and a screen reader reading a screenshot's alt text here would announce
+       * the project twice.
        */}
-      <div className="h-40 w-full border-b border-border bg-surface-deep">
+      <div className="h-40 w-full shrink-0 border-b border-border bg-surface-deep">
         {image ? (
           <img
             src={image}
-            alt={project.heroImage?.alt ?? ''}
+            alt=""
+            aria-hidden
             loading="lazy"
             className="size-full object-cover"
           />
@@ -49,7 +55,18 @@ function ProjectCard({ project }: { project: PublishedProject }) {
       </div>
 
       <div className="flex flex-1 flex-col p-4">
-        <h3 className="font-heading text-base font-semibold text-fg">{project.name}</h3>
+        <div className="flex items-center gap-2.5">
+          {/*
+           * The project's own icon, resolved into the snapshot at publish. A
+           * project without one is not drawn as a blank square — the name
+           * simply starts the row (§7.4).
+           */}
+          {project.appIcon?.svg ? (
+            <Mark mark={project.appIcon} className="size-6 shrink-0 text-accent" />
+          ) : null}
+
+          <h3 className="font-heading text-base font-semibold text-fg">{project.name}</h3>
+        </div>
 
         {project.shortDescription ? (
           <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-muted">
@@ -80,8 +97,33 @@ export function FeaturedProjects({
 
   return (
     <section className="mx-auto max-w-6xl px-5 pb-20">
-      <h2 className="font-heading text-xl font-semibold text-accent">Featured Projects</h2>
-      {intro ? <p className="mt-1 text-sm text-muted">{intro}</p> : null}
+      {/*
+       * The heading and the link to the whole list sit on one line at desktop
+       * width and stack on a phone, where a link floated beside a heading is a
+       * tap target crowding the thing it belongs to.
+       */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="flex items-center gap-2.5 font-heading text-xs font-medium uppercase tracking-[0.18em] text-accent">
+            <span aria-hidden className="size-2 rounded-full bg-accent" />
+            My work
+          </p>
+
+          <h2 className="mt-3 text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
+            Featured Projects
+          </h2>
+
+          {intro ? <p className="mt-2 text-sm text-muted">{intro}</p> : null}
+        </div>
+
+        <Link
+          to="/work"
+          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-border bg-surface/40 px-5 font-heading text-sm font-medium text-fg transition-colors hover:border-accent hover:text-accent sm:w-auto"
+        >
+          View all projects
+          <span aria-hidden>↗</span>
+        </Link>
+      </div>
 
       {projects.isPending ? <LoadingState label="Loading work…" /> : null}
 
@@ -99,11 +141,11 @@ export function FeaturedProjects({
       {projects.isSuccess && projects.data.items.length > 0 ? (
         <Carousel
           label="Featured projects"
-          className="mt-6"
+          className="mt-8"
           controls="side"
-          // One card per viewport on a phone; the design's 270px card from md
-          // up, where three or four of them fill the row.
-          slideClassName="w-full md:w-[17rem]"
+          // One card per viewport on a phone; from `sm` up a wider card, three
+          // of which fill the row at desktop width as the design draws them.
+          slideClassName="w-full sm:w-[21rem]"
         >
           {projects.data.items.map((project) => (
             <ProjectCard key={project._id} project={project} />
