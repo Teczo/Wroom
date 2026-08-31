@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { TypeOut } from './TypeOut';
+import { usePointerTilt } from '../lib/usePointerTilt';
 import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion';
 
 /**
@@ -41,11 +42,35 @@ const LINE_PAUSE_MS = 320;
 export interface TerminalProps {
   lines: string[];
   title?: string;
+  /**
+   * How long to hold before the first character, so a panel that is still
+   * arriving is settled before anything inside it starts moving. Ignored under
+   * reduced motion, where every line is present from the first frame.
+   */
+  startDelayMs?: number;
   className?: string;
 }
 
-export function Terminal({ lines, title = '', className = '' }: TerminalProps) {
+export function Terminal({
+  lines,
+  title = '',
+  startDelayMs = 0,
+  className = '',
+}: TerminalProps) {
   const reduced = usePrefersReducedMotion();
+
+  /*
+   * The panel leans a degree and a half towards the pointer and drifts about
+   * four pixels with it — the §6 ceiling, and the reason the numbers are stated
+   * there rather than felt for. It reads as a screen sitting slightly off the
+   * page rather than printed on it, and it exists only on a mouse: the hook
+   * attaches nothing to a coarse pointer or under reduced motion.
+   */
+  const tilt = usePointerTilt<HTMLDivElement>({
+    maxRotateDeg: 1.5,
+    maxShiftPx: 4,
+    settleMs: 500,
+  });
 
   // The copy itself, as one value. The array arrives fresh from the parsed
   // record on every render, so it is the words that have to drive the effects
@@ -55,26 +80,31 @@ export function Terminal({ lines, title = '', className = '' }: TerminalProps) {
 
   // How many lines have begun. The last of them is the one being typed;
   // everything before it is finished text and everything after it is a row
-  // holding its space.
-  const [started, setStarted] = useState(reduced ? lines.length : 1);
+  // holding its space. Zero is the hold before the first line, which is what
+  // `startDelayMs` buys — every row is already drawn at its final height, so
+  // the panel waiting is a panel that is simply empty.
+  const first = startDelayMs > 0 ? 0 : 1;
+  const [started, setStarted] = useState(reduced ? lines.length : first);
 
   // Start over when the copy changes — the record arrives after the first
   // render — or land on the finished state at once if the preference is set.
   useEffect(() => {
-    setStarted(reduced ? lines.length : 1);
-  }, [script, reduced]);
+    setStarted(reduced ? lines.length : first);
+  }, [script, reduced, first]);
 
   useEffect(() => {
     if (reduced || started >= lines.length) return;
 
-    const current = lines[started - 1] ?? '';
-    const id = window.setTimeout(
-      () => setStarted((count) => count + 1),
-      current.length * SPEED_MS + LINE_PAUSE_MS,
-    );
+    // Before the first line there is only the hold; after it, the wait is the
+    // length of the line being typed plus a beat.
+    const current = started === 0 ? '' : (lines[started - 1] ?? '');
+    const wait =
+      started === 0 ? startDelayMs : current.length * SPEED_MS + LINE_PAUSE_MS;
+
+    const id = window.setTimeout(() => setStarted((count) => count + 1), wait);
 
     return () => window.clearTimeout(id);
-  }, [started, script, reduced]);
+  }, [started, script, reduced, startDelayMs]);
 
   if (lines.length === 0) return null;
 
@@ -84,6 +114,8 @@ export function Terminal({ lines, title = '', className = '' }: TerminalProps) {
      * `index.css`, and this is the same value the lit borders elsewhere use.
      */
     <div
+      ref={tilt.ref}
+      style={tilt.style}
       className={`overflow-hidden rounded-2xl border border-border sm:rounded-[1.75rem] bg-surface-deep/70 shadow-[0_0_100px_var(--color-accent-glow)] ${className}`}
     >
       {/*

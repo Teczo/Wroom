@@ -2,6 +2,35 @@
 
 ## 2026-08-31
 
+- The landing page now moves. Nothing on it has been redrawn — the layout, the
+  words, the colours and the spacing are exactly what they were — but the page
+  now assembles itself rather than simply appearing. The header drops in, then
+  the role pill, the greeting, your name uncovering itself from behind its own
+  baseline, the sentence, the disciplines and the buttons, one after another,
+  finished inside about a second and a half. The portrait settles into place a
+  beat later and then floats, very slightly, with the light behind it breathing
+  on a different rhythm. The terminal slides in from the right and only starts
+  typing once it has arrived, and the tech marks come in one at a time.
+- Scrolling away from the hero now has depth: the words drift up faster than
+  the page, the portrait slower, the terminal the other way, and the background
+  grid slowest of all. Nothing travels more than about seventy pixels — it is
+  meant to be felt rather than watched.
+- Every section below the hero reveals as you reach it, each a little
+  differently: the Featured Projects label, then the heading, then the line
+  under it, then `View all` from the right, then the cards one after another.
+  The counts in the band now count up to their numbers the first time you
+  reach them, once, and never again.
+- Things you can touch now answer. The buttons lift and brighten, and their
+  arrows lean towards where they go. Project cards rise, lean a degree or two
+  towards the pointer, and their screenshots close in slightly. The active nav
+  dot slides between links instead of jumping, and the header frosts over as
+  the page moves under it.
+- Scrolling with a mouse wheel is weighted now rather than jumping a notch at a
+  time, and moving between pages fades one out and lifts the next in.
+- All of it is off for anyone whose device asks for reduced motion: no
+  entrance, no parallax, no floating, no counting, no smooth scrolling — the
+  page is simply there, complete, on the first frame.
+
 - The landing page is laid out for a phone rather than stripped back for one.
   The portrait is no longer dropped: it sits behind the right of the greeting
   and fades into the page. The terminal, which a phone never saw, now sits at
