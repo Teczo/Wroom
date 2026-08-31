@@ -2,6 +2,13 @@
 
 ## 2026-08-31
 
+- Publishing the about page now puts it on the public site. Every page was
+  published carrying a CV slot and a portrait slot whether or not that page has
+  one, and the public site rejects a page with a field it does not recognise —
+  so the about, skills and contact pages came out blank however much was
+  written in them. Publish each of those pages once more and the writing
+  appears.
+
 - The about page can be written again. Adding a tile, a count, a driver, a
   timeline entry, an exploring line or a social link made a blank row, and
   saving that row was rejected — so the page could not be filled in at all.
