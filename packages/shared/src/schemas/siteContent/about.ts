@@ -1,4 +1,4 @@
-import { arrayOf, nullable, objectId, slug, strictObject, string, withDefault } from '../../validate.js';
+import { arrayOf, nullable, objectId, strictObject, string, withDefault } from '../../validate.js';
 import { marksField, optionalSlug, portraitField, socialShape } from './shared.js';
 
 /**
@@ -21,6 +21,13 @@ import { marksField, optionalSlug, portraitField, socialShape } from './shared.j
  *
  * Strict, for the same reason the landing schema is: a key this page has no
  * field for is a 400 naming it, not a silent drop.
+ *
+ * **Every field here tolerates the empty string**, including the halves of a
+ * tile, a count, a driver and a timeline entry. A draft is half-written by
+ * nature: a row is added before it is typed, and a schema that refused to save
+ * the page until every row was finished would make the editor unusable for the
+ * ten minutes in between — the same reasoning `shared.ts` gives for its own
+ * fields. A row still empty at publish is one the page does not draw (§7.4).
  */
 
 /**
@@ -60,8 +67,8 @@ export const aboutDataSchema = strictObject({
     arrayOf(
       strictObject({
         mediaKey: glyphKey(),
-        label: string({ min: 1, max: 40 }),
-        value: string({ min: 1, max: 80 }),
+        label: withDefault(string({ max: 40, allowEmpty: true }), ''),
+        value: withDefault(string({ max: 80, allowEmpty: true }), ''),
       }),
       { max: 6 },
     ),
@@ -78,12 +85,12 @@ export const aboutDataSchema = strictObject({
 
   /** The same pair the landing hero carries, for the same row of marks. */
   techLabel: withDefault(string({ max: 60, allowEmpty: true }), ''),
-  techMarks: withDefault(arrayOf(slug(), { max: 12 }), []),
+  techMarks: withDefault(arrayOf(optionalSlug(), { max: 12 }), []),
 
   exploring: withDefault(
     strictObject({
       label: withDefault(string({ max: 80, allowEmpty: true }), ''),
-      items: withDefault(arrayOf(string({ min: 1, max: 160 }), { max: 10 }), []),
+      items: withDefault(arrayOf(string({ max: 160, allowEmpty: true }), { max: 10 }), []),
     }),
     { label: '', items: [] },
   ),
@@ -96,8 +103,8 @@ export const aboutDataSchema = strictObject({
     arrayOf(
       strictObject({
         mediaKey: glyphKey(),
-        value: string({ min: 1, max: 12 }),
-        label: string({ min: 1, max: 40 }),
+        value: withDefault(string({ max: 12, allowEmpty: true }), ''),
+        label: withDefault(string({ max: 40, allowEmpty: true }), ''),
       }),
       { max: 6 },
     ),
@@ -109,7 +116,7 @@ export const aboutDataSchema = strictObject({
     arrayOf(
       strictObject({
         mediaKey: glyphKey(),
-        title: string({ min: 1, max: 60 }),
+        title: withDefault(string({ max: 60, allowEmpty: true }), ''),
         body: withDefault(string({ max: 400, allowEmpty: true }), ''),
       }),
       { max: 8 },
@@ -126,8 +133,8 @@ export const aboutDataSchema = strictObject({
   journey: withDefault(
     arrayOf(
       strictObject({
-        year: string({ min: 1, max: 12 }),
-        event: string({ min: 1, max: 300 }),
+        year: withDefault(string({ max: 12, allowEmpty: true }), ''),
+        event: withDefault(string({ max: 300, allowEmpty: true }), ''),
       }),
       { max: 24 },
     ),

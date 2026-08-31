@@ -322,7 +322,7 @@ function ContactForm({ relatedProjectId }: { relatedProjectId: string }) {
  * glyph in front of its name.
  */
 function ContactChannels({ data }: { data: ContactData }) {
-  const socials = data.socials.filter((social) => social.url !== '');
+  const socials = data.socials.filter((social) => social.mediaKey !== '' && social.url !== '');
 
   if (data.email === '' && socials.length === 0) return null;
 

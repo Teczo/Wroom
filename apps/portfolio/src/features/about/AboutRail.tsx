@@ -22,6 +22,9 @@ const headingClass =
 export function AboutRail({ data }: { data: AboutData }) {
   const { philosophy, techLabel, techMarks, exploring } = data;
 
+  // A line added in the portal and not yet typed is not a line.
+  const exploringItems = exploring.items.filter((item) => item !== '');
+
   // A key that resolved to nothing is dropped rather than drawn as a gap: a
   // withheld mark costs the row one logo, not its shape.
   const tech = techMarks
@@ -30,7 +33,7 @@ export function AboutRail({ data }: { data: AboutData }) {
 
   const hasPhilosophy = philosophy.label !== '' || philosophy.body !== '';
   const hasTech = tech.length > 0;
-  const hasExploring = exploring.items.length > 0;
+  const hasExploring = exploringItems.length > 0;
 
   if (!hasPhilosophy && !hasTech && !hasExploring) return null;
 
@@ -91,8 +94,8 @@ export function AboutRail({ data }: { data: AboutData }) {
               {exploring.label ? <h2 className={headingClass}>{exploring.label}</h2> : null}
 
               <ul className="mt-4 space-y-2.5">
-                {exploring.items.map((item) => (
-                  <li key={item} className="flex gap-2.5 text-sm leading-relaxed text-muted">
+                {exploringItems.map((item, index) => (
+                  <li key={index} className="flex gap-2.5 text-sm leading-relaxed text-muted">
                     <span aria-hidden className="text-accent">
                       ›
                     </span>

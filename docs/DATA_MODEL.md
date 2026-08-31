@@ -619,6 +619,13 @@ renders the content without a heading.
 location, role and focus: which four facts belong in those tiles is editorial,
 and a schema that named them would need a migration to say a fifth thing.
 
+**Every field on the about page tolerates being empty, rows included.** A tile,
+a count, a driver or a timeline entry is added in the portal before it is typed,
+so a half-written row saves rather than rejecting the page. The page then draws
+only the rows that say something: a driver needs its title, a timeline entry
+needs one half or the other, a tile needs either, and a social row needs both
+its mark and its address. A row still blank at publish renders as nothing (§7.4).
+
 The glyph on an `infoCards`, `stats` or `drivers` row is a `mediaLibrary` key of
 kind `stat` — the kind exists for marks that are neither a logo, a platform nor
 anybody's trademark, which is exactly what these are. All three tolerate an

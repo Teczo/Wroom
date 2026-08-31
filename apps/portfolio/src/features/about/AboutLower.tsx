@@ -20,7 +20,13 @@ const headingClass =
   'font-heading text-sm font-semibold uppercase tracking-[0.14em] text-accent';
 
 export function AboutLower({ data }: { data: AboutData }) {
-  const { driversLabel, drivers, journeyLabel, journey } = data;
+  const { driversLabel, journeyLabel } = data;
+
+  // Rows added in the portal and not yet typed are not content. A driver needs
+  // its title — the card is the title — and a timeline entry needs one half or
+  // the other (§7.4).
+  const drivers = data.drivers.filter((driver) => driver.title !== '');
+  const journey = data.journey.filter((entry) => entry.year !== '' || entry.event !== '');
 
   const hasDrivers = drivers.length > 0;
   const hasJourney = journey.length > 0;
@@ -48,7 +54,7 @@ export function AboutLower({ data }: { data: AboutData }) {
                 const mark = findMark(data.marks, driver.mediaKey);
 
                 return (
-                  <Reveal key={driver.title} delayMs={index * 70} className="h-full">
+                  <Reveal key={index} delayMs={index * 70} className="h-full">
                     <article className={`${panelClass} flex h-full flex-col p-6`}>
                       {mark ? (
                         <span className="mb-5 flex size-11 items-center justify-center rounded-lg border border-border-strong text-accent">
@@ -89,14 +95,18 @@ export function AboutLower({ data }: { data: AboutData }) {
                  * sorts them: `year` is a caption, not a number.
                  */}
                 <ol className="space-y-5 border-l border-border pl-6">
-                  {journey.map((entry) => (
-                    <li key={`${entry.year}-${entry.event}`} className="relative">
+                  {journey.map((entry, index) => (
+                    <li key={index} className="relative">
                       <span
                         aria-hidden
                         className="absolute -left-[1.9375rem] top-1.5 size-2 rounded-full bg-accent shadow-[0_0_10px_var(--color-accent-halo)]"
                       />
-                      <p className="font-heading text-xs font-semibold text-accent">{entry.year}</p>
-                      <p className="mt-1 text-sm leading-relaxed text-muted">{entry.event}</p>
+                      {entry.year ? (
+                        <p className="font-heading text-xs font-semibold text-accent">{entry.year}</p>
+                      ) : null}
+                      {entry.event ? (
+                        <p className="mt-1 text-sm leading-relaxed text-muted">{entry.event}</p>
+                      ) : null}
                     </li>
                   ))}
                 </ol>

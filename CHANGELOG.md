@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-08-31
+
+- The about page can be written again. Adding a tile, a count, a driver, a
+  timeline entry, an exploring line or a social link made a blank row, and
+  saving that row was rejected — so the page could not be filled in at all.
+  Rows can now be added empty and typed at your own pace; a row still blank
+  when you publish simply does not appear on the public page.
+- The same is true of a social link on the landing and contact pages: it can be
+  added before you pick its mark, and a link with no mark chosen is not drawn.
+
 ## 2026-08-30
 
 - The about page is now the full page from the design, and every word on it is

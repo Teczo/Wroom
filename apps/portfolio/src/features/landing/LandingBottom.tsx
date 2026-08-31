@@ -19,7 +19,7 @@ import type { LandingData } from './landingData';
  * At 390px the two halves stack and the bar goes full width (§7.7).
  */
 export function LandingBottom({ data }: { data: LandingData }) {
-  const socials = data.socials.filter((social) => social.url !== '');
+  const socials = data.socials.filter((social) => social.mediaKey !== '' && social.url !== '');
   const hasCta = data.ctaLabel !== '';
 
   if (socials.length === 0 && !hasCta) return null;
