@@ -2,6 +2,15 @@
 
 ## 2026-08-31
 
+- Pages now arrive the same way however you got to them. The entrance was
+  only ever playing for someone who clicked a link in the top bar: open a page
+  from a pasted or bookmarked URL, refresh it, or come back to it with the
+  back button, and it simply appeared, fully formed, with none of the movement
+  everyone else sees. The animation is now tied to the page arriving rather
+  than to the click that asked for it, so a direct link, a refresh, back,
+  forward and a link in the bar all look alike. Clicking the link for the page
+  you are already on no longer replays it at you.
+
 - The name in the top bar and at the foot of the public site now reads
   Jayagaren instead of Teczo, including the copyright line in the footer.
 - The black panel down the left of the hero portrait is gone. On a phone and
