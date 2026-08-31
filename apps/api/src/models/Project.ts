@@ -203,7 +203,19 @@ const projectSchema = new Schema(
 
     archivedAt: { type: Date, default: null },
   },
-  { timestamps: true, collection: 'projects' },
+  {
+    timestamps: true,
+    collection: 'projects',
+    /**
+     * Mongoose minimizes empty objects by default, which drops `details` from
+     * both the stored document and `toJSON()` whenever a project has no type
+     * fields filled in. The shared `Project` type declares `details` as always
+     * present, so the response was lying about its own shape and every reader
+     * had to guard. A project created through the bootstrap import leaves
+     * `details` empty by design, so that was every one of them.
+     */
+    minimize: false,
+  },
 );
 
 projectSchema.index({ productId: 1 });

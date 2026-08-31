@@ -2,6 +2,13 @@
 
 ## 2026-08-31
 
+- Clicking a project created through the MCP server now opens it instead of
+  showing a blank screen. Those projects have no per-type details filled in —
+  the MCP tools deliberately leave that to the portal — and the API was
+  dropping the empty details entirely from its answer rather than sending back
+  an empty set, so the project page had nothing to read and gave up. The API
+  now always sends the details, empty or not, and the page copes either way.
+
 - The scroll reveals now work on a page opened from its own URL or refreshed,
   not only on one reached from the top bar. A page reached by a link renders in
   one go, because everything it needs is already in hand; a page loaded from
