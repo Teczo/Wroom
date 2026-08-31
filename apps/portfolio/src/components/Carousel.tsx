@@ -4,6 +4,8 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  type KeyboardEvent,
+  type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from 'react';
 
@@ -75,8 +77,14 @@ function Chevron({ direction }: { direction: 'left' | 'right' }) {
 
 const arrowClass =
   'hidden size-11 items-center justify-center rounded-full border border-border bg-surface ' +
-  'text-fg transition-colors hover:bg-surface-hover disabled:pointer-events-none ' +
-  'disabled:opacity-40 md:inline-flex';
+  'text-fg [transition-property:color,background-color,border-color,box-shadow,transform] ' +
+  'duration-300 ease-out-expo hover:-translate-y-0.5 hover:border-border-strong ' +
+  'hover:bg-surface-hover hover:text-accent hover:shadow-[0_8px_24px_var(--color-accent-glow)] ' +
+  'active:translate-y-0 active:scale-95 active:duration-100 ' +
+  'disabled:pointer-events-none disabled:opacity-40 md:inline-flex';
+
+/** How far a mouse has to travel before a press counts as a drag, not a click. */
+const DRAG_THRESHOLD_PX = 6;
 
 export function Carousel({
   label,
@@ -87,6 +95,14 @@ export function Carousel({
 }: CarouselProps) {
   const trackRef = useRef<HTMLUListElement | null>(null);
   const reduced = usePrefersReducedMotion();
+
+  /** The mouse drag in progress, if any. A ref because no render depends on it. */
+  const drag = useRef<{
+    pointerId: number;
+    startX: number;
+    startScroll: number;
+    moved: boolean;
+  } | null>(null);
 
   const slides = Children.toArray(children);
   const count = slides.length;
@@ -193,6 +209,100 @@ export function Carousel({
     track.scrollTo({ left: slide.offsetLeft, behavior });
   };
 
+  /*
+   * The arrow keys step a whole slide rather than the handful of pixels a
+   * focused scroll container moves by default, so the keyboard reaches the same
+   * positions the arrows and the dots do. Home and End go to the ends.
+   *
+   * Only the keys that are handled are taken; everything else — Tab, Page Up,
+   * the space bar — is left to the browser.
+   */
+  const onKeyDown = (event: KeyboardEvent<HTMLUListElement>) => {
+    const handled: Record<string, () => void> = {
+      ArrowLeft: () => nudge(-1),
+      ArrowRight: () => nudge(1),
+      Home: () => goTo(0),
+      End: () => goTo(count - 1),
+    };
+
+    const action = handled[event.key];
+    if (!action) return;
+
+    event.preventDefault();
+    action();
+  };
+
+  /*
+   * Dragging the row with a mouse.
+   *
+   * A finger already does this — the track is a native scroller — and a mouse
+   * has the arrows. This is for the people who try to throw the row anyway, and
+   * it is written to be invisible when they do not: nothing happens until the
+   * pointer has travelled six pixels, so an ordinary click on a card is still
+   * an ordinary click.
+   *
+   * Snapping is switched off for the duration and restored on release, which is
+   * what makes the row follow the pointer exactly and then settle onto a slide
+   * when let go. Leaving `mandatory` on would have the browser pulling the track
+   * back to the nearest slide during the drag.
+   *
+   * Once it *is* a drag, the click that the browser sends after the release is
+   * swallowed — the cards are links, and letting go of a drag over one must not
+   * navigate.
+   */
+  const onPointerDown = (event: ReactPointerEvent<HTMLUListElement>) => {
+    if (event.pointerType !== 'mouse' || event.button !== 0) return;
+    const track = trackRef.current;
+    if (!track || !scrollable) return;
+
+    drag.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startScroll: track.scrollLeft,
+      moved: false,
+    };
+  };
+
+  const onPointerMove = (event: ReactPointerEvent<HTMLUListElement>) => {
+    const state = drag.current;
+    const track = trackRef.current;
+    if (!state || !track || event.pointerId !== state.pointerId) return;
+
+    const travelled = event.clientX - state.startX;
+    if (!state.moved) {
+      if (Math.abs(travelled) < DRAG_THRESHOLD_PX) return;
+      state.moved = true;
+      track.style.scrollSnapType = 'none';
+      track.setPointerCapture(state.pointerId);
+    }
+
+    track.scrollLeft = state.startScroll - travelled;
+  };
+
+  const endDrag = (event: ReactPointerEvent<HTMLUListElement>) => {
+    const state = drag.current;
+    const track = trackRef.current;
+    if (!state || !track || event.pointerId !== state.pointerId) return;
+
+    drag.current = null;
+
+    if (!state.moved) return;
+
+    track.style.removeProperty('scroll-snap-type');
+    if (track.hasPointerCapture(state.pointerId)) {
+      track.releasePointerCapture(state.pointerId);
+    }
+
+    const swallow = (click: MouseEvent) => {
+      click.preventDefault();
+      click.stopPropagation();
+    };
+    window.addEventListener('click', swallow, { capture: true, once: true });
+    // If no click follows — the release landed on the track itself rather than
+    // on a card — the listener would sit there waiting for the next one.
+    window.setTimeout(() => window.removeEventListener('click', swallow, true), 0);
+  };
+
   if (count === 0) return null;
 
   const showControls = count > 1 && scrollable;
@@ -248,6 +358,11 @@ export function Carousel({
           aria-label={label}
           role="group"
           tabIndex={0}
+          onKeyDown={onKeyDown}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
         >
           {slides.map((slide, index) => (
             <li key={index} className={`shrink-0 snap-start ${slideClassName}`}>

@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState, type RefCallback } from 'react';
 
+import { useAttachedNode } from './useAttachedNode';
 import { usePrefersReducedMotion } from './usePrefersReducedMotion';
 
 /**
@@ -10,6 +11,11 @@ import { usePrefersReducedMotion } from './usePrefersReducedMotion';
  * watching at that point — a reveal is a one-way door, and an observer left
  * running is a callback firing on every scroll for an element whose answer can
  * no longer change.
+ *
+ * `ref` is a callback ref rather than a ref object, and that matters more than
+ * it looks: several callers render nothing at all until their content arrives,
+ * and an effect that read `ref.current` would read it before the element
+ * existed and never look again. `useAttachedNode` explains the failure in full.
  *
  * Under reduced motion the observer is never created at all: `inView` is true
  * from the first render, so whatever the caller wraps is on screen immediately
@@ -31,8 +37,8 @@ export interface UseInViewOptions {
 export function useInView<T extends Element = HTMLDivElement>({
   rootMargin = '0px 0px -10% 0px',
   threshold = 0.15,
-}: UseInViewOptions = {}) {
-  const ref = useRef<T | null>(null);
+}: UseInViewOptions = {}): { ref: RefCallback<T>; inView: boolean } {
+  const [node, ref] = useAttachedNode<T>();
   const reduced = usePrefersReducedMotion();
   const [inView, setInView] = useState(false);
 
@@ -42,8 +48,7 @@ export function useInView<T extends Element = HTMLDivElement>({
       return;
     }
 
-    const element = ref.current;
-    if (!element) return;
+    if (!node) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -56,10 +61,10 @@ export function useInView<T extends Element = HTMLDivElement>({
       { rootMargin, threshold },
     );
 
-    observer.observe(element);
+    observer.observe(node);
 
     return () => observer.disconnect();
-  }, [reduced, rootMargin, threshold]);
+  }, [node, reduced, rootMargin, threshold]);
 
   return { ref, inView };
 }
