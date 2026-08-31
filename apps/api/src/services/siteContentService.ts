@@ -340,15 +340,29 @@ export async function publishSiteContent(
   const previousPortrait = publicUrlAt(record.published?.data, 'portrait');
   const previousCv = publicUrlAt(record.published?.data, 'cv');
 
+  /*
+   * Deep-copied so the two halves stay independent documents. A shared
+   * reference would mean editing the draft afterwards silently changed what is
+   * published, which is the one thing the split exists to prevent.
+   *
+   * `marks` belongs to every page. `portrait` and `cv` belong only to the
+   * pages whose schema declares the id they are resolved from — portrait on
+   * landing and about, cv on landing alone (docs/DATA_MODEL.md). Writing all
+   * three onto every page put a `cv` on about, and a `portrait` and a `cv` on
+   * contact and skills. Those schemas are strict, so the portfolio failed to
+   * parse the record it had just been served, on a key that page has no field
+   * for, and drew the page as though nothing had been written.
+   */
+  const publishedData: Record<string, unknown> = { ...structuredClone(draftData), marks };
+  if ('portraitAssetId' in draftData) publishedData.portrait = portrait;
+  if ('cvAssetId' in draftData) publishedData.cv = cv;
+
   record.set({
     published: {
       title: draft.title,
       body: draft.body,
       meta: { title: draft.meta.title, description: draft.meta.description },
-      // Deep-copied so the two halves stay independent documents. A shared
-      // reference would mean editing the draft afterwards silently changed what
-      // is published, which is the one thing the split exists to prevent.
-      data: { ...structuredClone(draftData), marks, portrait, cv },
+      data: publishedData,
     },
     publishedAt: new Date(),
     publishedByUserId,
