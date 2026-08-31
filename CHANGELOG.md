@@ -2,6 +2,14 @@
 
 ## 2026-08-31
 
+- The landing page is laid out for a phone rather than stripped back for one.
+  The portrait is no longer dropped: it sits behind the right of the greeting
+  and fades into the page. The terminal, which a phone never saw, now sits at
+  full width under the two buttons. The tech marks are in tiles you swipe
+  along instead of a wrapped row of bare logos. `View all` keeps its place
+  beside the Featured Projects heading instead of dropping below it. Desktop
+  is unchanged apart from the tech marks, which are now tiles there too.
+
 - Publishing the about page now puts it on the public site. Every page was
   published carrying a CV slot and a portrait slot whether or not that page has
   one, and the public site rejects a page with a field it does not recognise —

@@ -98,12 +98,14 @@ export function FeaturedProjects({
   return (
     <section className="mx-auto max-w-6xl px-5 pb-20">
       {/*
-       * The heading and the link to the whole list sit on one line at desktop
-       * width and stack on a phone, where a link floated beside a heading is a
-       * tap target crowding the thing it belongs to.
+       * The heading and the link to the whole list sit on one line at every
+       * width, the link aligned to the foot of the heading block (§7.7). It
+       * keeps its 44px of height on a phone rather than shrinking to fit — the
+       * words on it are what shorten, and the full name is still there for a
+       * screen reader.
        */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
+      <div className="flex items-end justify-between gap-4">
+        <div className="min-w-0">
           <p className="flex items-center gap-2.5 font-heading text-xs font-medium uppercase tracking-[0.18em] text-accent">
             <span aria-hidden className="size-2 rounded-full bg-accent" />
             My work
@@ -118,9 +120,9 @@ export function FeaturedProjects({
 
         <Link
           to="/work"
-          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-border bg-surface/40 px-5 font-heading text-sm font-medium text-fg transition-colors hover:border-accent hover:text-accent sm:w-auto"
+          className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-lg border border-border bg-surface/40 px-4 font-heading text-sm font-medium text-fg transition-colors hover:border-accent hover:text-accent sm:px-5"
         >
-          View all projects
+          View all<span className="sr-only"> projects</span>
           <span aria-hidden>↗</span>
         </Link>
       </div>

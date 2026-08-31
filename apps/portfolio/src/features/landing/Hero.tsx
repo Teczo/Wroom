@@ -18,17 +18,26 @@ import type { LandingData } from "./landingData";
  * and there is no button, because a download that downloads nothing is worse
  * than no download.
  *
- * Three columns at `lg`, as the design draws them: the words, the portrait, and
- * the rail with the terminal and the purpose panel on it. Below `lg` the rail
- * and the portrait both go and the words carry the page on their own, which is
- * the 390px hero in §7.7 — the composite image dropped, the terminal gone, the
- * headline and the buttons over the background.
+ * Three columns at `lg`, as the design draws them: the words with the tech row
+ * beneath them, the portrait, and the rail with the terminal and the purpose
+ * panel on it.
+ *
+ * Below `lg` it is one column and the pieces are re-ordered rather than
+ * dropped, which is the 390px hero in §7.7: the words, then the terminal at
+ * full width, then the tech row. The portrait comes out of the flow and is
+ * pinned to the right of the words, fading into the page on its left and at its
+ * foot so the headline stays the thing you read. The purpose panel is the one
+ * piece that does go — it is a note pinned to a rail that no longer exists.
+ *
+ * The order is grid placement rather than duplicated markup: there is one
+ * terminal and one tech row in the document at every width, and the columns are
+ * assigned explicitly so the source can stack the way a phone reads.
  *
  * Nothing in here animates on first paint. There is no `Reveal` above the fold
  * and no entrance transition: the headline is the largest thing on the page and
  * therefore what Lighthouse measures, so it has to be painted rather than
- * arriving. The terminal beside it types, and is decoration that a phone never
- * sees (§7.7).
+ * arriving. The terminal beside it types, and does so without ever changing its
+ * own height, so it cannot push the words about.
  */
 export function Hero({ data }: { data: LandingData }) {
   const {
@@ -90,10 +99,46 @@ export function Hero({ data }: { data: LandingData }) {
       ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]"
       : "";
 
+  /*
+   * Which column each ornament lands in at `lg`, given which of them exist.
+   * Both span the two rows the words occupy, so the grid's `items-center` lines
+   * them up against the whole of the left column rather than against its first
+   * row.
+   *
+   * Stated here rather than left to source order because the source order is
+   * the phone's, and the two disagree: the terminal is written before the tech
+   * row so it stacks above it, but sits to the right of both at desktop width.
+   */
+  /*
+   * The copy of the portrait a phone fetches.
+   *
+   * This was one slot and one variant while the picture was desktop-only. It is
+   * now a ~200px slot below `lg` and a ~30rem one above it, and the `hero`
+   * variant on a phone is the thing §10 is about — so below `lg` the `card`
+   * variant is offered instead, which is still four times the pixels that slot
+   * can show on a 2× screen.
+   *
+   * A `media` query rather than `srcset` widths, because the widths would be a
+   * guess: `sharp` resizes *towards* `ASSET_VARIANT_WIDTHS` and never upscales,
+   * so an upload narrower than 1600px has a `hero` that is not 1600px wide and
+   * the snapshot does not carry what it actually is. A breakpoint is something
+   * this file knows for certain.
+   */
+  const portraitCard = portrait?.variants?.card ?? null;
+
+  const spanRows = "lg:row-start-1 lg:row-span-2";
+  const portraitPlacement = `lg:col-start-2 ${spanRows}`;
+  const railPlacement = `${portrait ? "lg:col-start-3" : "lg:col-start-2"} ${spanRows}`;
+
   return (
     <section className="mx-auto max-w-6xl px-5 py-8 sm:py-10 lg:py-12">
-      <div className={`grid items-center gap-10 lg:gap-10 ${columns}`}>
-        <div>
+      {/* `relative`, because below `lg` the portrait is pinned to this box. */}
+      <div className={`relative grid items-center gap-10 lg:gap-10 ${columns}`}>
+        {/*
+         * The words. `z-10` so they sit in front of the portrait on a phone,
+         * where the two share the same space rather than taking a column each.
+         */}
+        <div className="relative z-10 min-w-0 lg:col-start-1 lg:row-start-1">
           {/*
            * The pill above the headline. A dot and a word — the dot is painted
            * geometry rather than a mark, because there is nothing behind it to
@@ -124,8 +169,14 @@ export function Hero({ data }: { data: LandingData }) {
             </h1>
           ) : null}
 
+          {/*
+           * Held short of the portrait on a phone rather than run under it: the
+           * headline is one or two words a line and clears the figure on its
+           * own, but a sentence set to the full width would run behind a
+           * shoulder.
+           */}
           {statement ? (
-            <p className="mt-6 max-w-md text-lg text-muted sm:text-xl">
+            <p className="mt-6 max-w-[60%] text-lg text-muted sm:text-xl lg:max-w-md">
               {statement}
             </p>
           ) : null}
@@ -156,9 +207,12 @@ export function Hero({ data }: { data: LandingData }) {
            * the blob container, a different origin, and `download` is ignored
            * across origins. Saying so here so nobody later reads the attribute
            * as a promise it keeps.
+           *
+           * Held to the words' half of the phone like the statement above: a
+           * full-width button under a portrait would run beneath it.
            */}
           {hasActions ? (
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="mt-8 flex max-w-[85%] flex-col gap-3 sm:max-w-none sm:flex-row sm:items-center">
               {showPrimary ? (
                 <Link to="/work" className={buttonClasses("primary", "w-full sm:w-auto")}>
                   {heroPrimaryLabel}
@@ -180,92 +234,21 @@ export function Hero({ data }: { data: LandingData }) {
               ) : null}
             </div>
           ) : null}
-
-          {/*
-           * The tech row. Marks only, at the size the design draws them, with
-           * each one's label carried for a screen reader — `Mark` is
-           * `aria-hidden`, so without this the row announces as nothing at all.
-           */}
-          {tech.length > 0 ? (
-            <div className="mt-10">
-              {techLabel ? (
-                <p className="font-heading text-[0.625rem] font-medium uppercase tracking-[0.18em] text-muted">
-                  {techLabel}
-                </p>
-              ) : null}
-
-              {/*
-               * `gap-4` rather than `gap-5`: seven marks at `size-8` need 320px
-               * of the 333px this column gets at desktop width, and the wider
-               * gutter tipped the last one onto a second line. It still wraps
-               * when there are more of them — that is the row working, not
-               * failing.
-               */}
-              <ul className="mt-4 flex flex-wrap items-center gap-4">
-                {tech.map((mark) => (
-                  // `flex`, because `Mark` renders a span and a bare inline
-                  // element ignores a width — it only takes its size as a flex
-                  // item, which is how every other caller happens to use it.
-                  <li key={mark.key} className="flex items-center">
-                    <Mark mark={mark} className="size-8" />
-                    <span className="sr-only">{mark.label || mark.key}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
         </div>
 
         {/*
-         * The portrait, as its own column between the words and the rail.
+         * The rail: the terminal, and the purpose panel under it.
          *
-         * Bounded on both axes, and the column is the one that usually binds:
-         * the upload is taller than it is wide, so widening this column is what
-         * makes the picture bigger — raising the height cap alone does nothing
-         * until the cap is the smaller of the two. The element box stays the
-         * picture and nothing else — the glow behind it and the fade at its
-         * foot both measure against the image itself, which letterboxing inside
-         * a wider box would throw out. It takes the `hero` variant for the
-         * largest slot on the page, never the original upload (§10), and its
-         * alt text is whatever was written on the asset — usually nothing,
-         * which is the right answer for a picture beside your own name.
-         *
-         * Nothing here animates, on first paint or at all. The glow and the
-         * fade are painted values, so the composition is complete the moment it
-         * is drawn and there is nothing for reduced motion to turn off (§7.5).
-         */}
-        {portrait ? (
-          <div className="relative hidden lg:block">
-            {/*
-             * The light behind the figure, so it stands in the room rather than
-             * on top of it. The colour is the same token the lit panels use —
-             * §7.1 admits no hex outside `index.css`.
-             */}
-            <div
-              aria-hidden
-              className="pointer-events-none absolute inset-x-0 bottom-10 top-6 mx-auto max-w-xs rounded-full bg-[radial-gradient(circle,var(--color-accent-glow),transparent_70%)] blur-3xl"
-            />
-
-            {/*
-             * The fade at the foot. The upload is a crop, and a crop ends in a
-             * straight line across the page unless the last of it is masked
-             * away.
-             */}
-            <img
-              src={portrait.variants?.hero ?? portrait.url}
-              alt={portrait.alt}
-              className="relative mx-auto max-h-[34rem] w-auto max-w-full object-contain [-webkit-mask-image:linear-gradient(to_bottom,black_78%,transparent)] [mask-image:linear-gradient(to_bottom,black_78%,transparent)]"
-            />
-          </div>
-        ) : null}
-
-        {/*
-         * The rail: the terminal, and the purpose panel under it. Both are
-         * decoration for a wide screen and are gone below `lg` — a phone gets
-         * the words (§7.7).
+         * The terminal is here at every width — full width under the buttons on
+         * a phone, on the rail beside the words at desktop width (§7.7). The
+         * purpose panel is a note pinned to that rail and goes with it, so it is
+         * `lg` and up only; a record with nothing but a badge in it has no rail
+         * on a phone at all rather than a lone card.
          */}
         {hasRail ? (
-          <div className="hidden flex-col gap-5 lg:flex">
+          <div
+            className={`${hasTerminal ? "flex" : "hidden lg:flex"} relative z-10 min-w-0 flex-col gap-5 ${railPlacement}`}
+          >
             {hasTerminal ? (
               <Terminal lines={terminalLines} title={terminalTitle} />
             ) : null}
@@ -277,7 +260,7 @@ export function Hero({ data }: { data: LandingData }) {
              * geometry, not a mark — there is nothing behind it to look up.
              */}
             {hasBadge ? (
-              <div className="rounded-r-lg border-y border-r border-border border-l-2 border-l-accent bg-surface/70 p-5">
+              <div className="hidden rounded-r-lg border-y border-r border-border border-l-2 border-l-accent bg-surface/70 p-5 lg:block">
                 <div className="flex items-start justify-between gap-4">
                   {badge.title ? (
                     <p className="font-heading text-sm font-bold text-accent">
@@ -298,6 +281,116 @@ export function Hero({ data }: { data: LandingData }) {
                 ) : null}
               </div>
             ) : null}
+          </div>
+        ) : null}
+
+        {/*
+         * The tech row. Marks only, each in a tile of its own at the size the
+         * design draws them, with the mark's label carried for a screen reader —
+         * `Mark` is `aria-hidden`, so without this the row announces as nothing
+         * at all.
+         *
+         * Below `lg` it is a single snapping line that runs off the right edge
+         * and is swiped, which is the same CSS the carousels use and no library
+         * (§7.5). The scrollbar is hidden: the row is plainly cut off at the
+         * edge, which is the affordance.
+         *
+         * `min-w-0` on the block around it is load-bearing rather than tidy. A
+         * grid item will not shrink below its own min-content, and a row of
+         * seven tiles that cannot wrap has a min-content of seven tiles — so
+         * without it the row does not scroll, it widens the column, and takes
+         * the hero and the page's horizontal scrollbar with it.
+         *
+         * From `lg` it wraps instead, because the column it sits in is narrower
+         * than a phone and a scrolling strip inside a 330px column reads as
+         * broken rather than as a row.
+         */}
+        {tech.length > 0 ? (
+          <div className="relative z-10 min-w-0 lg:col-start-1 lg:row-start-2">
+            {techLabel ? (
+              <p className="font-heading text-[0.625rem] font-medium uppercase tracking-[0.18em] text-muted">
+                {techLabel}
+              </p>
+            ) : null}
+
+            <ul className="mt-4 flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] lg:flex-wrap lg:overflow-x-visible [&::-webkit-scrollbar]:hidden">
+              {tech.map((mark) => (
+                <li key={mark.key} className="shrink-0 snap-start">
+                  <span className="flex size-14 items-center justify-center rounded-xl border border-border bg-surface-deep">
+                    <Mark mark={mark} className="size-8" />
+                  </span>
+                  <span className="sr-only">{mark.label || mark.key}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+
+        {/*
+         * The portrait.
+         *
+         * At `lg` it is a column of its own between the words and the rail,
+         * bounded on both axes, and the column is the one that usually binds:
+         * the upload is taller than it is wide, so widening this column is what
+         * makes the picture bigger — raising the height cap alone does nothing
+         * until the cap is the smaller of the two. The element box stays the
+         * picture and nothing else — the glow behind it and the fade at its
+         * foot both measure against the image itself, which letterboxing inside
+         * a wider box would throw out. It takes the `hero` variant for the
+         * largest slot on the page, never the original upload (§10), and its
+         * alt text is whatever was written on the asset — usually nothing,
+         * which is the right answer for a picture beside your own name.
+         *
+         * Below `lg` there is no column to give it, so it comes out of the flow
+         * and is pinned to the top right of the hero with the words in front of
+         * it (§7.7). It takes no pointer events there: at that width it is
+         * behind the statement and the buttons, and a picture must not be what
+         * swallows a tap meant for the CTA.
+         *
+         * Nothing here animates, on first paint or at all. The glow and the
+         * fades are painted values, so the composition is complete the moment it
+         * is drawn and there is nothing for reduced motion to turn off (§7.5).
+         */}
+        {portrait ? (
+          <div
+            className={`pointer-events-none absolute right-0 top-0 w-[58%] max-w-[15rem] lg:pointer-events-auto lg:relative lg:right-auto lg:top-auto lg:w-auto lg:max-w-none ${portraitPlacement}`}
+          >
+            {/*
+             * The light behind the figure, so it stands in the room rather than
+             * on top of it. The colour is the same token the lit panels use —
+             * §7.1 admits no hex outside `index.css`.
+             */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 bottom-10 top-6 mx-auto max-w-xs rounded-full bg-[radial-gradient(circle,var(--color-accent-glow),transparent_70%)] blur-3xl"
+            />
+
+            {/*
+             * The fade at the foot. The upload is a crop, and a crop ends in a
+             * straight line across the page unless the last of it is masked
+             * away.
+             */}
+            <picture>
+              {portraitCard ? (
+                <source media="(max-width: 1023px)" srcSet={portraitCard} />
+              ) : null}
+              <img
+                src={portrait.variants?.hero ?? portrait.url}
+                alt={portrait.alt}
+                className="relative mx-auto max-h-[22rem] w-auto max-w-full object-contain [-webkit-mask-image:linear-gradient(to_bottom,black_78%,transparent)] [mask-image:linear-gradient(to_bottom,black_78%,transparent)] lg:max-h-[34rem]"
+              />
+            </picture>
+
+            {/*
+             * The fade on the left, below `lg` only. At that width the words
+             * are over the picture rather than beside it, and the edge of a
+             * shoulder running behind a line of text is what makes the line
+             * hard to read.
+             */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-y-0 left-0 w-2/3 bg-gradient-to-r from-canvas via-canvas/60 to-transparent lg:hidden"
+            />
           </div>
         ) : null}
       </div>
