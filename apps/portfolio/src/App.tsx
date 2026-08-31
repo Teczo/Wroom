@@ -57,19 +57,21 @@ function SiteRoutes({ location }: { location: Location }) {
 /**
  * One page, arriving.
  *
- * Keyed on the location it renders, so a navigation remounts it and the
- * entrance runs again — which is the whole mechanism, and why there is no
- * animation library here to hold an outgoing tree alive.
+ * Keyed on the path it renders, so a navigation remounts it and the entrance
+ * runs again — which is the whole mechanism, and why there is no animation
+ * library here to hold an outgoing tree alive.
  *
- * `animate` is false for the very first page of a visit. The landing hero has
- * an entrance of its own that starts the moment its content arrives, and
- * wrapping that in a second one would delay the headline twice over for no
- * additional effect. A page reached by clicking a link has no such entrance and
- * this is the whole of its arrival.
+ * There is no flag for *how* the page was reached, and there deliberately
+ * isn't one. The entrance belongs to the mount, not to the click that caused
+ * it: a page opened from a pasted URL, restored by a refresh, or arrived at
+ * with the back button mounts exactly as a page reached from the nav does, and
+ * gating on the click meant the entrance only ever played for the one visitor
+ * who came in through the front door. Mount is the event every one of those
+ * routes has in common, so mount is what this listens to.
  */
-function PageFrame({ location, animate }: { location: Location; animate: boolean }) {
+function PageFrame({ location }: { location: Location }) {
   const entered = useEntered();
-  const enter = entering(animate ? entered : true, 'up', 0, ENTER_MS);
+  const enter = entering(entered, 'up', 0, ENTER_MS);
 
   return (
     <div style={enter.style} className={enter.className}>
@@ -102,18 +104,28 @@ export function App() {
    *
    * Under reduced motion the swap is immediate and neither half runs.
    */
-  const [frame, setFrame] = useState({ location, animate: false });
-  const leaving = frame.location.key !== location.key;
+  const [frame, setFrame] = useState(location);
+
+  /*
+   * Compared by path, not by `location.key`. A key is unique per history entry
+   * and React Router mints a fresh one even when the path did not change — a
+   * link to the page you are already on resolves to a replace, and a replace
+   * still gets a new key. Keyed on that, clicking the lit nav link tore the
+   * page down and played the entrance at a visitor who had not gone anywhere.
+   * Comparing paths also leaves a query-string change alone, so the contact
+   * form keeps what has been typed into it when `?project=` is set.
+   */
+  const leaving = frame.pathname !== location.pathname;
 
   useEffect(() => {
     if (!leaving) return;
 
     if (reduced) {
-      setFrame({ location, animate: false });
+      setFrame(location);
       return;
     }
 
-    const id = window.setTimeout(() => setFrame({ location, animate: true }), EXIT_MS);
+    const id = window.setTimeout(() => setFrame(location), EXIT_MS);
     return () => window.clearTimeout(id);
   }, [leaving, location, reduced]);
 
@@ -137,7 +149,7 @@ export function App() {
         }`}
         style={{ transitionDuration: `${EXIT_MS}ms` }}
       >
-        <PageFrame key={frame.location.key} location={frame.location} animate={frame.animate} />
+        <PageFrame key={frame.pathname} location={frame} />
       </main>
       <SiteFooter />
     </div>
