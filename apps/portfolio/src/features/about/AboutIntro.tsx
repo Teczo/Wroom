@@ -32,7 +32,12 @@ export function AboutIntro({
   headline: string;
   body: string;
 }) {
-  const { subtitle, terminalLines, terminalTitle, infoCards } = data;
+  const { subtitle, terminalLines, terminalTitle } = data;
+
+  // A tile added in the portal and not yet typed is not a tile. Nothing here
+  // demands both halves — a value with no label still says something — but a
+  // row with neither is a draft in progress, not content (§7.4).
+  const infoCards = data.infoCards.filter((card) => card.label !== '' || card.value !== '');
   const portrait = data.portrait;
 
   const hasTerminal = terminalLines.length > 0;
@@ -78,12 +83,12 @@ export function AboutIntro({
              */}
             {infoCards.length > 0 ? (
               <dl className="mt-8 grid gap-3 sm:grid-cols-2">
-                {infoCards.map((card) => {
+                {infoCards.map((card, index) => {
                   const mark = findMark(data.marks, card.mediaKey);
 
                   return (
                     <div
-                      key={`${card.label}-${card.value}`}
+                      key={index}
                       className={`${panelClass} flex items-center gap-3.5 px-4 py-3`}
                     >
                       {mark ? (
@@ -93,10 +98,14 @@ export function AboutIntro({
                       ) : null}
 
                       <div className="min-w-0">
-                        <dt className="font-heading text-[0.625rem] font-medium uppercase tracking-[0.16em] text-muted">
-                          {card.label}
-                        </dt>
-                        <dd className="mt-1 text-sm leading-snug text-fg">{card.value}</dd>
+                        {card.label ? (
+                          <dt className="font-heading text-[0.625rem] font-medium uppercase tracking-[0.16em] text-muted">
+                            {card.label}
+                          </dt>
+                        ) : null}
+                        {card.value ? (
+                          <dd className="mt-1 text-sm leading-snug text-fg">{card.value}</dd>
+                        ) : null}
                       </div>
                     </div>
                   );

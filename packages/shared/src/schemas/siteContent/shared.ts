@@ -75,7 +75,13 @@ export function optionalSlug(): Validator<string> {
  * pasted into a component (CLAUDE.md §7.3).
  */
 export const socialShape = {
-  mediaKey: slug(),
+  /**
+   * Empty until a mark is chosen, like every other key in a draft: the row is
+   * added from the editor before it is filled in, and rejecting the save in
+   * between is what made adding one impossible. A row with no mark chosen is
+   * one the page does not draw.
+   */
+  mediaKey: withDefault(optionalSlug(), ''),
   url: withDefault(optionalUrl(), ''),
 };
 

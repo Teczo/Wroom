@@ -23,7 +23,7 @@ export function AboutBottom({ data }: { data: AboutData }) {
 
   // A row with no address is not a link. The mark alone would be a tile that
   // does nothing, so the row is dropped rather than drawn dead.
-  const socials = data.socials.filter((social) => social.url !== '');
+  const socials = data.socials.filter((social) => social.mediaKey !== '' && social.url !== '');
 
   const hasWords = ctaHeadline !== '' || ctaBody !== '';
   const hasButton = ctaLabel !== '';
