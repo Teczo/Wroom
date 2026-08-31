@@ -562,9 +562,28 @@ export function Hero({ data }: { data: LandingData }) {
                 }`}
               >
                 {/*
-                 * The fade at the foot. The upload is a crop, and a crop ends in
+                 * The fades, both of them cut out of the picture itself rather
+                 * than painted over it.
+                 *
+                 * At the foot, because the upload is a crop and a crop ends in
                  * a straight line across the page unless the last of it is
                  * masked away.
+                 *
+                 * On the left below `lg`, because at that width the words are
+                 * over the picture rather than beside it and the edge of a
+                 * shoulder running behind a line of text is what makes the line
+                 * hard to read (§7.7). It has to be a mask: a panel of canvas
+                 * laid over the picture is opaque, and the page behind it is
+                 * canvas plus the two glows in `index.css`, so such a panel
+                 * reads as a black rectangle with a hard edge down the side of
+                 * the portrait instead of a fade. Masking takes the picture
+                 * away and lets the real background through, which is the only
+                 * thing that leaves no edge.
+                 *
+                 * The two layers intersect, so each fade is independent of the
+                 * other; the prefixed keyword is the same operation for older
+                 * WebKit. At `lg` the picture has a column to itself and the
+                 * left mask is dropped.
                  */}
                 <picture>
                   {portraitCard ? (
@@ -573,22 +592,11 @@ export function Hero({ data }: { data: LandingData }) {
                   <img
                     src={portrait.variants?.hero ?? portrait.url}
                     alt={portrait.alt}
-                    className="relative mx-auto max-h-[22rem] w-auto max-w-full object-contain [-webkit-mask-image:linear-gradient(to_bottom,black_78%,transparent)] [mask-image:linear-gradient(to_bottom,black_78%,transparent)] lg:max-h-[34rem]"
+                    className="relative mx-auto max-h-[22rem] w-auto max-w-full object-contain [-webkit-mask-composite:source-in] [mask-composite:intersect] [-webkit-mask-image:linear-gradient(to_bottom,black_78%,transparent),linear-gradient(to_right,transparent,black_58%)] [mask-image:linear-gradient(to_bottom,black_78%,transparent),linear-gradient(to_right,transparent,black_58%)] lg:max-h-[34rem] lg:[-webkit-mask-image:linear-gradient(to_bottom,black_78%,transparent)] lg:[mask-image:linear-gradient(to_bottom,black_78%,transparent)]"
                   />
                 </picture>
               </div>
             </div>
-
-            {/*
-             * The fade on the left, below `lg` only. At that width the words
-             * are over the picture rather than beside it, and the edge of a
-             * shoulder running behind a line of text is what makes the line
-             * hard to read.
-             */}
-            <div
-              aria-hidden
-              className="pointer-events-none absolute inset-y-0 left-0 w-2/3 bg-gradient-to-r from-canvas via-canvas/60 to-transparent lg:hidden"
-            />
           </div>
         ) : null}
       </div>

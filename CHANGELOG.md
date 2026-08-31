@@ -2,6 +2,13 @@
 
 ## 2026-08-31
 
+- The black panel down the left of the hero portrait is gone. On a phone and
+  a tablet the picture used to have a slab of flat background painted over
+  its left side to keep the words in front of it readable, and because the
+  page behind is lit rather than flat that slab showed up as a black
+  rectangle with a hard edge running down the portrait. The picture now
+  fades out on that side instead, the same way it already fades out at its
+  foot, so the words stay readable and there is no edge.
 - The landing page now moves. Nothing on it has been redrawn — the layout, the
   words, the colours and the spacing are exactly what they were — but the page
   now assembles itself rather than simply appearing. The header drops in, then
