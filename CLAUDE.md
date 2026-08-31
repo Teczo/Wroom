@@ -331,13 +331,13 @@ Design references are desktop. These are the confirmed 390px behaviours — impl
 | Surface | At 390px |
 |---|---|
 | Nav | Hamburger to a full-screen overlay. State toggle and a fixed panel — no drawer library. |
-| Landing hero | Composite image dropped. Role pill, headline, disciplines, badge and CTA over the background only. |
-| Landing hero buttons | Stacked, each full width. |
-| Landing tech row | Wraps; the marks keep their size rather than shrinking to one line. |
+| Landing hero | Portrait kept, out of the flow and pinned to the top right, fading into the page on its left and at its foot. Role pill, headline, disciplines and CTA in front of it. The purpose badge is dropped. |
+| Landing hero buttons | Stacked, each full width of the copy column — which is now the left of the hero, the portrait having the right. |
+| Landing tech row | Each mark in a tile of its own, in one scroll-snap line that runs off the right edge and is swiped. The marks keep their size. It wraps instead from `lg`, where the column is narrower than a phone. |
 | Landing stats | Two per row, not four. |
 | Header CTA | Out of the bar and into the foot of the nav overlay, full width. |
-| Landing terminal | Hidden below `md`. Decorative. |
-| Featured projects | Carousel, one card per viewport, swipe, dot indicators, arrows hidden. |
+| Landing terminal | Full width, under the CTAs and above the tech row. |
+| Featured projects | Carousel, one card per viewport, swipe, dot indicators, arrows hidden. `View all` stays beside the heading at its own width rather than dropping under it full width. |
 | Product header | Chip, title, tagline, paragraph and buttons stack. Buttons full width. |
 | Product hero image | Full-bleed, aspect preserved. Thumbnail strip becomes a scroll-snap row. |
 | Feature cards | Single column. Not a two-column grid. |

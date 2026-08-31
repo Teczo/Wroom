@@ -84,14 +84,14 @@ export function Terminal({ lines, title = '', className = '' }: TerminalProps) {
      * `index.css`, and this is the same value the lit borders elsewhere use.
      */
     <div
-      className={`overflow-hidden rounded-[1.75rem] border border-border bg-surface-deep/70 shadow-[0_0_100px_var(--color-accent-glow)] ${className}`}
+      className={`overflow-hidden rounded-2xl border border-border sm:rounded-[1.75rem] bg-surface-deep/70 shadow-[0_0_100px_var(--color-accent-glow)] ${className}`}
     >
       {/*
        * The window bar. The lights are three painted circles in the token
        * colours and carry no meaning — `aria-hidden`, because "red, amber,
        * green" read aloud is noise in front of the session below.
        */}
-      <div className="flex items-center gap-3 border-b border-border px-6 py-3.5">
+      <div className="flex items-center gap-3 border-b border-border px-5 py-3.5 sm:px-6">
         <span aria-hidden className="flex gap-2">
           <span className="size-3 rounded-full bg-light-red" />
           <span className="size-3 rounded-full bg-light-amber" />
@@ -103,7 +103,7 @@ export function Terminal({ lines, title = '', className = '' }: TerminalProps) {
         ) : null}
       </div>
 
-      <div className="min-h-64 p-8 font-mono text-xs leading-[1.75] text-accent/70 lg:p-10">
+      <div className="min-h-56 p-5 font-mono text-xs leading-[1.75] text-accent/70 sm:min-h-64 sm:p-8 lg:p-10">
         {lines.map((line, index) => (
           // The index is the key on purpose: these are lines of a fixed script,
           // and two identical lines in one terminal is ordinary.
