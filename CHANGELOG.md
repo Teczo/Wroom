@@ -2,6 +2,18 @@
 
 ## 2026-08-31
 
+- The scroll reveals now work on a page opened from its own URL or refreshed,
+  not only on one reached from the top bar. A page reached by a link renders in
+  one go, because everything it needs is already in hand; a page loaded from
+  scratch arrives in pieces as each request lands, and the landing page grows
+  from 760 to 1,825 pixels tall in three steps inside half a second. Sections
+  that appeared partway through that were briefly sitting on screen — the six
+  project cards among them — and counted themselves as scrolled to, then got
+  pushed a thousand pixels down the page still marked as seen. Scrolling to
+  them afterwards showed them already sitting there, doing nothing. A section
+  now waits for the page to stop growing before deciding whether it is on
+  screen, so the reveals play on the way down however the page was opened.
+
 - Pages now arrive the same way however you got to them. The entrance was
   only ever playing for someone who clicked a link in the top bar: open a page
   from a pasted or bookmarked URL, refresh it, or come back to it with the
