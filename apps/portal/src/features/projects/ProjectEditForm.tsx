@@ -69,7 +69,7 @@ export function ProjectEditForm({ project }: { project: Project }) {
   const [backend, setBackend] = useState(commaList(project.techStack.backend));
   const [database, setDatabase] = useState(commaList(project.techStack.database));
   const [other, setOther] = useState(commaList(project.techStack.other));
-  const [details, setDetails] = useState<Record<string, unknown>>(project.details);
+  const [details, setDetails] = useState<Record<string, unknown>>(project.details ?? {});
   const [saved, setSaved] = useState(false);
 
   if (projectTypes.isPending || products.isPending) {

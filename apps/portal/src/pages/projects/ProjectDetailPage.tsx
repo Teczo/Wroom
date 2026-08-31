@@ -37,7 +37,9 @@ function Overview({ project }: { project: Project }) {
     ...project.techStack.other,
   ];
 
-  const details = Object.entries(project.details);
+  // A project with no type fields filled in has no details to show, and an API
+  // older than this build omits the key entirely rather than sending `{}`.
+  const details = Object.entries(project.details ?? {});
 
   return (
     <div className="space-y-6">
