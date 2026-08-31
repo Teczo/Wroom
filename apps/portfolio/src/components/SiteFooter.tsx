@@ -35,9 +35,9 @@ export function SiteFooter() {
           page and the brand at the foot of it sit on the same line. */}
       <div className="mx-auto flex max-w-6xl flex-col gap-6 px-5 py-10 sm:flex-row sm:items-center sm:justify-between">
         <div style={brand.style} className={brand.className}>
-          <p className="font-heading text-base font-bold tracking-tight text-fg">Teczo</p>
+          <p className="font-heading text-base font-bold tracking-tight text-fg">Jayagaren</p>
           <p className="mt-1 text-sm text-muted">
-            © {new Date().getFullYear()} Teczo. Built and run in-house.
+            © {new Date().getFullYear()} Jayagaren. Built and run in-house.
           </p>
         </div>
 

@@ -2,6 +2,8 @@
 
 ## 2026-08-31
 
+- The name in the top bar and at the foot of the public site now reads
+  Jayagaren instead of Teczo, including the copyright line in the footer.
 - The black panel down the left of the hero portrait is gone. On a phone and
   a tablet the picture used to have a slab of flat background painted over
   its left side to keep the words in front of it readable, and because the

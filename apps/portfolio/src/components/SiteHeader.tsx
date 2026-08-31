@@ -95,7 +95,7 @@ function Wordmark() {
       <span aria-hidden className="font-mono text-sm font-bold text-accent">
         &lt;/&gt;
       </span>
-      <span className="font-heading text-base font-bold tracking-tight">Teczo</span>
+      <span className="font-heading text-base font-bold tracking-tight">Jayagaren</span>
     </span>
   );
 }
