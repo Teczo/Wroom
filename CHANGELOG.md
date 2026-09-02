@@ -1,5 +1,40 @@
 # Changelog
 
+## 2026-09-02
+
+- Claude can now write a project's public page copy from a chat. Until now the
+  Wroom connector could create a product, a project and its features, but not a
+  word of what the public site shows — the portfolio fields were left out of the
+  bootstrap payload on purpose, so a project made this way arrived with an empty
+  Portfolio tab and had to be filled in by hand. Two new tools change that. One
+  works out what the copy would change, field by field, and writes nothing; the
+  other writes it once you have read that plan and asked for it. Between them
+  they cover the chip, the tagline, the overview, the platform link, the
+  capability cards, the key modules, the headline number, the quote, the case
+  studies, and the technology and platform marks.
+
+- The connector cannot publish anything, and that is deliberate. It cannot mark
+  a project public, cannot attach a hero or social image, cannot set the demo
+  video, and cannot copy a file into the public container. Every answer it gives
+  ends by saying where the project stands with the three publish gates and that
+  images and publishing are still done in the portal. A project drafted from a
+  chat is private when the call returns and stays private until you publish it
+  yourself.
+
+- The connector now lists the media library when you ask what exists in Wroom.
+  Icons on the public site are data, not code, so a capability card, a
+  technology mark and a platform mark are each named by a key from that library.
+  A key that names nothing is dropped when the project is published, without an
+  error, so a draft written from a guessed key would have quietly lost its
+  icons. The list shows every key by kind, and marks the ones not approved for
+  use so they are not picked. The marks themselves are never sent — only their
+  names.
+
+- The portal's portfolio save can now be asked what it would do before it does
+  it. This is what the plan above is built on, and it reports only the fields
+  that would actually differ: sending a page the same words it already has now
+  comes back saying nothing would change.
+
 ## 2026-08-31
 
 - Clicking a project created through the MCP server now opens it instead of

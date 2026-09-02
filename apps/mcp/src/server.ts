@@ -13,19 +13,33 @@ import {
   BOOTSTRAP_COMMIT,
   BOOTSTRAP_PREVIEW,
   LIST_CONTEXT,
+  PORTFOLIO_COMMIT,
+  PORTFOLIO_PREVIEW,
   tools,
 } from './tools/definitions.js';
 import { listContext, renderContext } from './tools/listContext.js';
-import { renderPlan, renderResult } from './tools/renderPlan.js';
+import { commitDraft, findProject, previewDraft, splitDraft } from './tools/portfolio.js';
+import {
+  renderPlan,
+  renderPortfolioPlan,
+  renderPortfolioResult,
+  renderResult,
+} from './tools/renderPlan.js';
 import { WroomApiError, post } from './wroom/client.js';
 
 /**
  * The MCP server, and the Express app that fronts it.
  *
- * Three tools and no more. There is no authorization layer inside the Wroom
+ * Five tools and no more. There is no authorization layer inside the Wroom
  * API — a valid token there reads and writes every collection — so this list is
  * the boundary that decides what the connector can reach at all. Adding to it
  * is a ticket, not a convenience.
+ *
+ * Two of them create records, two draft a project's public page, and one reads
+ * what already exists. **None of them publishes.** Nothing here can set a
+ * project's visibility, copy a blob into the public container or write
+ * `publishedProjects` — that stays an explicit action taken in the portal
+ * (CLAUDE.md §8).
  */
 
 function text(body: string, isError = false) {
@@ -74,6 +88,45 @@ function createMcpServer(): Server {
           args ?? {},
         );
         return text(renderResult(data));
+      }
+
+      // The portfolio pair addresses a project by slug, because that is what a
+      // person has in front of them and what `wroom_list_context` prints. The
+      // API's routes take an id, so the slug is resolved here and everything
+      // else is passed through untouched, as above.
+      if (name === PORTFOLIO_PREVIEW || name === PORTFOLIO_COMMIT) {
+        const { slug, fields } = splitDraft(args ?? {});
+
+        if (slug === '') {
+          return text(
+            'Name the project with `projectSlug`. `wroom_list_context` lists the slugs.',
+            true,
+          );
+        }
+
+        const target = await findProject(slug);
+
+        if (!target) {
+          return text(
+            `There is no project with the slug "${slug}". \`wroom_list_context\` lists the slugs that exist.`,
+            true,
+          );
+        }
+
+        if (name === PORTFOLIO_PREVIEW) {
+          return text(renderPortfolioPlan(target, await previewDraft(target, fields)));
+        }
+
+        const meta = await commitDraft(target, fields);
+
+        return text(
+          renderPortfolioResult(
+            target,
+            Object.keys(fields),
+            meta?.publishState ?? null,
+            meta?.blockingProductName ?? null,
+          ),
+        );
       }
 
       return text(`There is no tool called ${name}.`, true);

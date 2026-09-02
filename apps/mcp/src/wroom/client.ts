@@ -8,8 +8,17 @@ import { clearCachedToken, wroomAccessToken } from './token.js';
  * and importing the services would walk straight past both.
  */
 
-/** The envelope every `/api` route answers with. */
-type Envelope<T> = { data: T; meta?: { total: number; page: number; limit: number } };
+/** The `meta` a paginated list route answers with. */
+type ListMeta = { total: number; page: number; limit: number };
+
+/**
+ * The envelope every `/api` route answers with.
+ *
+ * `meta` is the list shape on a list route and something route-specific
+ * elsewhere — the portfolio save puts the publish-gate verdict there — so it is
+ * a parameter with the list shape as its default.
+ */
+type Envelope<T, M = ListMeta> = { data: T; meta?: M };
 
 type ApiErrorBody = { error?: { code?: string; message?: string } };
 
@@ -25,27 +34,33 @@ export class WroomApiError extends Error {
   }
 }
 
-async function call<T>(
-  path: string,
-  init: { method: 'GET' } | { method: 'POST'; body: unknown },
-  retryOnUnauthorized = true,
-): Promise<Envelope<T>> {
-  const token = await wroomAccessToken();
+/** A read carries no body; a write always carries one. */
+type Call = { method: 'GET' } | { method: 'POST' | 'PATCH'; body: unknown };
 
-  const response = await fetch(`${env.wroom.apiUrl}${path}`, {
-    method: init.method,
-    headers: {
-      authorization: `Bearer ${token}`,
-      ...(init.method === 'POST' ? { 'content-type': 'application/json' } : {}),
-    },
-    ...(init.method === 'POST' ? { body: JSON.stringify(init.body) } : {}),
-  });
+async function call<T, M>(
+  path: string,
+  init: Call,
+  retryOnUnauthorized = true,
+): Promise<Envelope<T, M>> {
+  const token = await wroomAccessToken();
+  const authorization = `Bearer ${token}`;
+
+  const response = await fetch(
+    `${env.wroom.apiUrl}${path}`,
+    init.method === 'GET'
+      ? { method: 'GET', headers: { authorization } }
+      : {
+          method: init.method,
+          headers: { authorization, 'content-type': 'application/json' },
+          body: JSON.stringify(init.body),
+        },
+  );
 
   // A token that expired between the cache check and the call. Drop it and go
   // once more, rather than surfacing an auth error the caller cannot act on.
   if (response.status === 401 && retryOnUnauthorized) {
     clearCachedToken();
-    return call<T>(path, init, false);
+    return call<T, M>(path, init, false);
   }
 
   if (!response.ok) {
@@ -57,15 +72,25 @@ async function call<T>(
     );
   }
 
-  return (await response.json()) as Envelope<T>;
+  return (await response.json()) as Envelope<T, M>;
 }
 
-export async function get<T>(path: string): Promise<Envelope<T>> {
-  return call<T>(path, { method: 'GET' });
+export async function get<T, M = ListMeta>(path: string): Promise<Envelope<T, M>> {
+  return call<T, M>(path, { method: 'GET' });
 }
 
-export async function post<T>(path: string, body: unknown): Promise<Envelope<T>> {
-  return call<T>(path, { method: 'POST', body });
+export async function post<T, M = ListMeta>(
+  path: string,
+  body: unknown,
+): Promise<Envelope<T, M>> {
+  return call<T, M>(path, { method: 'POST', body });
+}
+
+export async function patch<T, M = ListMeta>(
+  path: string,
+  body: unknown,
+): Promise<Envelope<T, M>> {
+  return call<T, M>(path, { method: 'PATCH', body });
 }
 
 /** The API's own ceiling. Asking for more is clamped, so this is the fewest round trips. */

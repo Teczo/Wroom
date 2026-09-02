@@ -5,7 +5,10 @@ import type { ProjectListQuery } from '@wroom/shared';
 
 import { validated, validatedQuery } from '../middleware/validate.js';
 import * as projectService from '../services/projectService.js';
-import { updateProjectPortfolio } from '../services/portfolioEditService.js';
+import {
+  previewPortfolioUpdate,
+  updateProjectPortfolio,
+} from '../services/portfolioEditService.js';
 import * as publishService from '../services/publishService.js';
 import { sendData, sendList } from '../utils/http.js';
 
@@ -80,4 +83,14 @@ export const updatePortfolio: RequestHandler = async (req, res) => {
   );
 
   sendData(res, project, 200, { publishState, blockingProductName });
+};
+
+/**
+ * The same edit, worked out and described rather than saved.
+ *
+ * It validates against the schema the save uses, so a payload that previews
+ * cleanly is one the save will accept. Nothing is written.
+ */
+export const previewPortfolio: RequestHandler = async (req, res) => {
+  sendData(res, await previewPortfolioUpdate(req.params.id as string, validated(req)));
 };
