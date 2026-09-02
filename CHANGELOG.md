@@ -2,6 +2,14 @@
 
 ## 2026-09-02
 
+- Choosing an app icon for a project now sticks. The Portfolio tab has a picker
+  for the project's own icon — the one that would sit on a phone's home screen —
+  and picking one and saving appeared to work, but the icon was never stored.
+  The save path writes the portfolio fields from a fixed list and this one had
+  been left off it, so the field passed every check and was then quietly
+  dropped on the way to the database. It is on the list now, and clearing the
+  icon removes it as you would expect.
+
 - Claude can now write a project's public page copy from a chat. Until now the
   Wroom connector could create a product, a project and its features, but not a
   word of what the public site shows — the portfolio fields were left out of the

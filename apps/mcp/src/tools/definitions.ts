@@ -123,7 +123,7 @@ const bootstrapInputSchema = {
 /**
  * The portfolio half: the public page's copy, and only the copy.
  *
- * This mirrors `projectPortfolioUpdateShape` in `packages/shared`, minus six
+ * This mirrors `projectPortfolioUpdateShape` in `packages/shared`, minus seven
  * keys that are deliberately not settable from a chat window:
  *
  * - `visibility`, `featured` and `sortOrder` are publish decisions. Making a
@@ -132,8 +132,10 @@ const bootstrapInputSchema = {
  * - `heroAssetId`, `ogAssetId` and `demoVideo` need real uploaded files. A
  *   demo video requires a poster asset whatever its provider, so none of the
  *   three can be filled by anything that has no bytes to give.
- * - `appIconMediaKey` validates but is not written by the save path today, so
- *   offering it here would be offering a field that quietly does nothing.
+ * - `appIconMediaKey` is a `mediaLibrary` key like the two below it and saves
+ *   correctly, but it is the project's icon rather than a line of its copy.
+ *   These tools write copy. Adding it is a one-line change and a decision
+ *   about what the connector may reach, so it waits for someone to ask.
  *
  * Case study heroes are left out for the same reason as the project's own.
  */

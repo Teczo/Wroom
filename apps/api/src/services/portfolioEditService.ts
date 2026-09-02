@@ -51,6 +51,7 @@ export type PortfolioInput = {
   caseStudies?: unknown[];
   techStackKeys?: string[];
   platformKeys?: string[];
+  appIconMediaKey?: string | null;
   heroAssetId?: string | null;
   ogAssetId?: string | null;
 };
@@ -72,6 +73,7 @@ const WRITABLE_FIELDS = [
   'caseStudies',
   'techStackKeys',
   'platformKeys',
+  'appIconMediaKey',
   'heroAssetId',
   'ogAssetId',
 ] as const satisfies ReadonlyArray<keyof PortfolioInput>;
