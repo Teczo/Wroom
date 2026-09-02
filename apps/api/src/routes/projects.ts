@@ -42,6 +42,16 @@ projectsRouter.patch(
   controller.updatePortfolio,
 );
 
+/**
+ * What that save would change, without changing it. A POST because it carries
+ * the payload as a body — the same shape the bootstrap importer's preview has.
+ */
+projectsRouter.post(
+  '/:id/portfolio/preview',
+  validateBody(projectPortfolioUpdateSchema),
+  controller.previewPortfolio,
+);
+
 projectsRouter.post('/:id/publish', controller.publish);
 projectsRouter.delete('/:id/publish', controller.unpublish);
 

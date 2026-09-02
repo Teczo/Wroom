@@ -18,24 +18,28 @@ import { getAll } from '../wroom/client.js';
 type ApiProduct = { _id: string; name: string; slug: string };
 type ApiProjectType = { key: string; label: string };
 type ApiProject = { name: string; slug: string };
+type ApiMark = { key: string; kind: string; label: string; usageApproved: boolean };
 
 export type ContextProduct = { _id: string; name: string; slug: string };
 export type ContextProjectType = { key: string; label: string };
 export type ContextProject = { name: string; slug: string };
+export type ContextMark = { key: string; kind: string; label: string; usageApproved: boolean };
 
 export type WroomContext = {
   products: ContextProduct[];
   projectTypes: ContextProjectType[];
   projects: ContextProject[];
+  marks: ContextMark[];
 };
 
 export async function listContext(): Promise<WroomContext> {
-  const [products, projectTypes, projects] = await Promise.all([
+  const [products, projectTypes, projects, marks] = await Promise.all([
     getAll<ApiProduct>('/api/products'),
     getAll<ApiProjectType>('/api/project-types'),
     // Archived projects still own their slugs, so they belong in a list whose
     // job is to say what is taken.
     getAll<ApiProject>('/api/projects?includeArchived=true'),
+    getAll<ApiMark>('/api/media-library'),
   ]);
 
   return {
@@ -49,6 +53,16 @@ export async function listContext(): Promise<WroomContext> {
       label: projectType.label,
     })),
     projects: projects.map((project) => ({ name: project.name, slug: project.slug })),
+    // `svg` and `blobUrl` are deliberately not read. They are the mark itself —
+    // markup sanitised on write for a render path that wraps it (CLAUDE.md
+    // §7.3). A chat window is not that path, and a portfolio payload names a
+    // mark by key, never by its contents.
+    marks: marks.map((mark) => ({
+      key: mark.key,
+      kind: mark.kind,
+      label: mark.label,
+      usageApproved: mark.usageApproved,
+    })),
   };
 }
 
@@ -74,11 +88,42 @@ export function renderContext(context: WroomContext): string {
     lines.push(`  ${project.slug}  —  ${project.name}`);
   }
 
+  lines.push('', `MEDIA LIBRARY KEYS (${context.marks.length})`);
+  if (context.marks.length === 0) lines.push('  none yet');
+  for (const [kind, marks] of groupByKind(context.marks)) {
+    lines.push(`  ${kind}`);
+    for (const mark of marks) {
+      // Not usage-approved is the trademark gate, and the publish action drops
+      // such a mark silently. Saying so here is the difference between a key
+      // that does nothing and one somebody notices is missing months later.
+      const approved = mark.usageApproved ? '' : '   [not usage-approved — do not use]';
+      lines.push(`    ${mark.key}  —  ${mark.label}${approved}`);
+    }
+  }
+
   lines.push(
     '',
     'A product or project slug listed above already exists. Reusing one updates',
     'that record rather than creating a new one.',
+    '',
+    'Media library keys are the only values accepted by techStackKeys,',
+    'platformKeys and a feature card\'s iconKey. A key that is not on this list',
+    'is dropped at publish without an error, so never invent one — if a mark is',
+    'missing, it has to be added in the portal first.',
   );
 
   return lines.join('\n');
+}
+
+/** Marks grouped by kind, kinds in the order they first appear. */
+function groupByKind(marks: ContextMark[]): [string, ContextMark[]][] {
+  const groups = new Map<string, ContextMark[]>();
+
+  for (const mark of marks) {
+    const group = groups.get(mark.kind);
+    if (group) group.push(mark);
+    else groups.set(mark.kind, [mark]);
+  }
+
+  return [...groups.entries()];
 }

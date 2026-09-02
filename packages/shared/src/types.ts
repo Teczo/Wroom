@@ -35,6 +35,7 @@ import type {
   VendorAuthType,
   Visibility,
 } from './constants.js';
+import type { PublishGateResult } from './publish.js';
 
 export type Id = string;
 export type IsoDate = string;
@@ -464,6 +465,23 @@ export type FeatureImportResult = {
   inserted: number;
   updated: number;
   skipped: number;
+};
+
+/**
+ * What saving a portfolio payload would change, worked out without saving it.
+ *
+ * `changes` lists only the fields that would actually differ — a field sent
+ * with the value it already holds is not a change and is not reported. The
+ * gate verdict rides along because the answer to "what would this do" has to
+ * include "and it would still be private": editing the case study never
+ * publishes anything (CLAUDE.md §8).
+ */
+export type PortfolioUpdateDiff = {
+  changes: ImportFieldChange[];
+  /** The project's gate verdict as it stands now — a preview writes nothing. */
+  publishState: PublishGateResult;
+  /** Named when the product's NDA flag is what blocks it. */
+  blockingProductName: string | null;
 };
 
 /** Which of the three collections a bootstrap plan entry is about. */

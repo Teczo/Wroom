@@ -1,4 +1,12 @@
-import type { BootstrapImportDiff, BootstrapImportResult } from '@wroom/shared';
+import {
+  PUBLISH_GATE_MESSAGES,
+  type BootstrapImportDiff,
+  type BootstrapImportResult,
+  type PortfolioUpdateDiff,
+  type PublishGateResult,
+} from '@wroom/shared';
+
+import type { PortfolioTarget } from './portfolio.js';
 
 /**
  * The plan, as something a person reads before approving it.
@@ -72,4 +80,104 @@ export function renderResult(result: BootstrapImportResult): string {
     'The project rollup has been recomputed.',
     'Fill in the per-type details, environments and services in the portal.',
   ].join('\n');
+}
+
+/**
+ * Where a project stands with the three gates, in words.
+ *
+ * Every portfolio answer carries this. Writing the copy is the part that looks
+ * like publishing and is not it, and the one thing a person must not have to
+ * infer is whether what they just approved is now on the public internet.
+ */
+function publishLines(
+  publishState: PublishGateResult | null,
+  blockingProductName: string | null,
+): string[] {
+  if (!publishState) {
+    return ['PUBLISH STATE', '  Not reported. Check the project in the portal.'];
+  }
+
+  if (publishState.publishable) {
+    return [
+      'PUBLISH STATE',
+      '  This project is marked public, so it is eligible.',
+      '  Nothing here reaches the site until somebody publishes it in the portal.',
+    ];
+  }
+
+  const lines = ['PUBLISH STATE', '  This project is not on the public site.'];
+
+  for (const reason of publishState.blockedBy) {
+    // The gate's own wording (CLAUDE.md §8) — never a sentence written here.
+    lines.push(`    ${PUBLISH_GATE_MESSAGES[reason]}`);
+  }
+
+  if (blockingProductName) lines.push(`    The blocking product is ${blockingProductName}.`);
+
+  return lines;
+}
+
+/** The project a portfolio answer is about. */
+function targetLine(label: string, target: PortfolioTarget): string {
+  return `${label}  ${target.slug}  —  ${target.name}`;
+}
+
+/**
+ * The portfolio plan, as something a person reads before approving it.
+ *
+ * The same reasoning as `renderPlan`: raw tool arguments say what was sent, and
+ * what a payload would *do* is a different thing the moment the project already
+ * has copy on it. A field already holding the value being sent does not appear
+ * here at all — the API leaves it out of the diff.
+ */
+export function renderPortfolioPlan(
+  target: PortfolioTarget,
+  diff: PortfolioUpdateDiff,
+): string {
+  const lines: string[] = [targetLine('PROJECT', target), '', 'WOULD CHANGE'];
+
+  if (diff.changes.length === 0) {
+    lines.push('  nothing — the page already says all of this');
+  }
+
+  const width = Math.max(0, ...diff.changes.map((change) => change.field.length));
+
+  // Unquoted, unlike the bootstrap plan: a value here may be a summary of a
+  // list rather than the literal string being written, and quoting a summary
+  // reads as though those characters are what would be saved.
+  for (const change of diff.changes) {
+    lines.push(`  ${change.field.padEnd(width)}  ${change.from}  ->  ${change.to}`);
+  }
+
+  lines.push('', ...publishLines(diff.publishState, diff.blockingProductName));
+
+  lines.push(
+    '',
+    diff.changes.length === 0
+      ? 'Nothing has been written, and committing this would change nothing.'
+      : 'Nothing has been written yet. Committing applies exactly the above.',
+  );
+
+  return lines.join('\n');
+}
+
+/** What the commit wrote, and the reminder that writing is not publishing. */
+export function renderPortfolioResult(
+  target: PortfolioTarget,
+  fields: string[],
+  publishState: PublishGateResult | null,
+  blockingProductName: string | null,
+): string {
+  const lines: string[] = [
+    'WRITTEN',
+    `  ${targetLine('project', target)}`,
+    `  fields   ${fields.length === 0 ? 'none' : fields.join(', ')}`,
+    '',
+    ...publishLines(publishState, blockingProductName),
+    '',
+    'Nothing has been published. Images, visibility and the publish itself are',
+    'done in the portal.',
+  ];
+
+  return lines.join('\n');
 }
