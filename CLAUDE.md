@@ -345,7 +345,7 @@ Design references are desktop. These are the confirmed 390px behaviours — impl
 | Metric / testimonial | Full width, below modules. |
 | Case studies | Carousel, one card per viewport, swipe. |
 | Tech stack / platforms | Three icons per row. |
-| Work index | One column, cards keep their screenshot aspect ratio. |
+| Work index | A section per category, first open and the rest shut. Inside an open one, a carousel: one card per viewport, swipe, dot indicators, arrows hidden. |
 | CTA footer | Stacked, button full width. |
 | About intro | Single column. The tiles go full width, one per row. |
 | About portrait | Kept, static and centred — on this page the picture is content, not ornament. |
