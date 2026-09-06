@@ -1,13 +1,24 @@
-import { Link } from 'react-router-dom';
-
 import { EmptyState, ErrorState, LoadingState } from '../components/StateViews';
+import { CategorySections } from '../features/work/CategorySections';
 import { usePublishedProjects } from '../features/work/api';
 
+/**
+ * The work index — everything published, filed under the chip each project
+ * carries.
+ *
+ * The grouping, the sections and the rows inside them live in
+ * `features/work/CategorySections.tsx`; this page is the header, the four
+ * states (§7) and the container.
+ *
+ * The heading and the line under it are still written here rather than read
+ * from `siteContent`, which has no `work` key to read them from. That is a
+ * standing gap, not a new one.
+ */
 export function WorkPage() {
   const projects = usePublishedProjects();
 
   return (
-    <div className="mx-auto max-w-4xl px-5 py-14 sm:py-20">
+    <div className="mx-auto w-full max-w-6xl px-5 py-14 sm:py-20">
       <header className="max-w-2xl">
         <h1 className="text-3xl font-semibold tracking-tight text-fg sm:text-4xl">
           Selected work
@@ -31,39 +42,9 @@ export function WorkPage() {
       ) : null}
 
       {projects.isSuccess && projects.data.items.length > 0 ? (
-        <ul className="mt-12 grid gap-6 sm:grid-cols-2">
-          {projects.data.items.map((project) => (
-            <li key={project._id}>
-              <Link
-                to={`/work/${project.slug}`}
-                className="group block h-full overflow-hidden rounded-2xl border border-border transition-colors hover:border-border"
-              >
-                {project.heroImage ? (
-                  <img
-                    src={project.heroImage.url}
-                    alt={project.heroImage.alt}
-                    loading="lazy"
-                    className="aspect-video w-full object-cover"
-                  />
-                ) : (
-                  <div className="aspect-video w-full bg-surface" />
-                )}
-
-                <div className="p-5">
-                  <p className="text-xs uppercase tracking-wide text-muted">
-                    {project.productName}
-                  </p>
-                  <h2 className="mt-1 text-lg font-semibold text-fg">{project.name}</h2>
-                  {project.shortDescription ? (
-                    <p className="mt-2 line-clamp-3 text-sm text-muted">
-                      {project.shortDescription}
-                    </p>
-                  ) : null}
-                </div>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <div className="mt-12">
+          <CategorySections projects={projects.data.items} />
+        </div>
       ) : null}
     </div>
   );

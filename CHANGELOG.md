@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-09-06
+
+- The work page now files projects under the chip each one carries, instead of
+  listing them all in one grid. Every distinct chip becomes a section with the
+  number of projects behind it. The first section is open and the rest are shut;
+  pressing one opens it. Inside a section the projects are a swipeable row —
+  one card per screen on a phone, several at desk width — and each card now
+  names the product the project belongs to and carries its chip on the picture.
+  The order of the sections is the order the projects were published in,
+  featured first.
+
+- A project published without a chip is not filed under an invented heading. It
+  is shown in a plain grid above the sections instead. There is nowhere in Wroom
+  to write a category's icon, its description or its position, so a section
+  header is the words the projects already carry and nothing more.
+
 ## 2026-09-02
 
 - Choosing an app icon for a project now sticks. The Portfolio tab has a picker
