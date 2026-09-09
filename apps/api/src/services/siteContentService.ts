@@ -32,10 +32,11 @@ type DraftInput = Infer<typeof siteContentDraftShape> & { data: Record<string, u
  *
  * - it resolves the page's `mediaLibrary` keys into `published.data.marks`, the
  *   same `resolveMarks` call a project's tech stack goes through;
- * - it copies the page's portrait and its CV into the public container and
- *   writes the resulting URLs into `published.data.portrait` and
- *   `published.data.cv`, the same order a project publish uses — gate, copy,
- *   then write (docs/DATA_MODEL.md, "Publishing").
+ * - it copies the page's portrait, its CV and the landing hero's background
+ *   plate into the public container and writes the resulting URLs into
+ *   `published.data.portrait`, `published.data.cv` and
+ *   `published.data.heroBackground`, the same order a project publish uses —
+ *   gate, copy, then write (docs/DATA_MODEL.md, "Publishing").
  *
  * Unpublishing reverses the copy before clearing the record, because deleting
  * the blob is what revokes access; removing the row only stops it being linked.
@@ -98,13 +99,32 @@ function collectMediaKeys(data: Record<string, unknown>): string[] {
  * both always came from the publish action (§8).
  */
 function withoutResolvedFields(data: Record<string, unknown>): Record<string, unknown> {
-  const { marks: _marks, portrait: _portrait, cv: _cv, ...rest } = data;
+  const {
+    marks: _marks,
+    portrait: _portrait,
+    cv: _cv,
+    heroBackground: _heroBackground,
+    ...rest
+  } = data;
   return rest;
 }
 
-/** The URL a stored `data.portrait` or `data.cv` points at, if it has one. */
-function publicUrlAt(data: unknown, field: 'portrait' | 'cv'): string | null {
+/** The URL a stored `data.portrait`, `data.cv` or `data.heroBackground` holds. */
+function publicUrlAt(data: unknown, field: 'portrait' | 'cv' | 'heroBackground'): string | null {
   const held = (data as Record<string, { url?: unknown } | undefined> | undefined)?.[field];
+  return typeof held?.url === 'string' && held.url !== '' ? held.url : null;
+}
+
+/**
+ * The URL a stored `data.heroBackground.poster` holds.
+ *
+ * Its own reader rather than a path passed to the one above, because the poster
+ * is a second file nested inside the first and it is revoked on its own account
+ * — a page that swaps a clip for a still leaves the poster behind otherwise.
+ */
+function posterUrlAt(data: unknown): string | null {
+  const held = (data as Record<string, { poster?: { url?: unknown } | null } | undefined> | undefined)
+    ?.heroBackground?.poster;
   return typeof held?.url === 'string' && held.url !== '' ? held.url : null;
 }
 
@@ -198,6 +218,122 @@ async function resolveCv(assetId: unknown): Promise<Record<string, unknown> | nu
 }
 
 /**
+ * Copies the hero's background plate — and its poster, if it has one — into the
+ * public container and describes them.
+ *
+ * The same gate, the same copy and the same refusal to publish a page around a
+ * hole that the portrait above uses. Two things are its own.
+ *
+ * `kind` is decided here, off the asset's mime type, so the portfolio is told
+ * what it is holding rather than guessing from a URL it must not parse. A still
+ * and a clip are the same field because they are the same slot: swapping one
+ * for the other is an upload and a publish.
+ *
+ * A video carries no variants — `sharp` resizes images and there is nothing for
+ * it to do with an mp4 — so the page has the one file and the poster to work
+ * with. The poster is only resolved for a video: an image background is already
+ * its own first frame, and copying a second still nobody shows would leave a
+ * public blob with no page behind it.
+ *
+ * A background that is neither an image nor a video stops the publish. Every
+ * other type the uploader accepts is a document, and a hero plate that is a PDF
+ * is a mistake to catch here rather than a blank rectangle to ship.
+ */
+async function resolveHeroBackground(
+  assetId: unknown,
+  posterAssetId: unknown,
+): Promise<Record<string, unknown> | null> {
+  if (typeof assetId !== 'string' || assetId === '') return null;
+
+  const asset = await AssetModel.findOne({ _id: assetId, projectId: null });
+
+  if (!asset) {
+    throw new UnprocessableError(
+      'The hero background this page points at is no longer in the library. Clear it on the page, or upload it again.',
+      { heroBackgroundAssetId: 'No site asset with that id.' },
+    );
+  }
+
+  const isImage = asset.mimeType.startsWith('image/');
+  const isVideo = asset.mimeType.startsWith('video/');
+
+  if (!isImage && !isVideo) {
+    throw new UnprocessableError('The hero background has to be an image or a video.', {
+      heroBackgroundAssetId: `${asset.filename} is a ${asset.mimeType}, which is not something the hero can show.`,
+    });
+  }
+
+  const gate = checkSiteAssetGates({ assetVisibility: asset.visibility as Visibility });
+
+  if (!gate.publishable) {
+    throw new UnprocessableError('The hero background on this page cannot be published yet.', {
+      reasons: gate.blockedBy.map((reason) => PUBLISH_GATE_MESSAGES[reason]),
+    });
+  }
+
+  const copied = await copyToPublic(String(asset._id));
+  if (!copied.publicBlobUrl) return null;
+
+  const image = publicImageOf(copied);
+  const poster = isVideo ? await resolveHeroBackgroundPoster(posterAssetId) : null;
+
+  return {
+    url: copied.publicBlobUrl,
+    kind: isVideo ? 'video' : 'image',
+    alt: copied.altText,
+    // Videos have none. `publicImageOf` reports that as null already, and the
+    // check is not repeated here so the two can never disagree.
+    variants: image?.variants ?? null,
+    poster,
+  };
+}
+
+/**
+ * The still behind a background clip, copied the same way.
+ *
+ * It has to be an image: this is the frame shown while the video loads and the
+ * whole of what a visitor who asked for no motion ever sees (§7.5), so a poster
+ * that is itself a video would defeat both.
+ *
+ * Nothing chosen is not a failure. A clip with no poster loads to the canvas
+ * colour rather than to a picture, which is a worse hero and not a broken one.
+ */
+async function resolveHeroBackgroundPoster(
+  assetId: unknown,
+): Promise<Record<string, unknown> | null> {
+  if (typeof assetId !== 'string' || assetId === '') return null;
+
+  const asset = await AssetModel.findOne({ _id: assetId, projectId: null });
+
+  if (!asset) {
+    throw new UnprocessableError(
+      'The hero background poster this page points at is no longer in the library. Clear it on the page, or upload it again.',
+      { heroBackgroundPosterAssetId: 'No site asset with that id.' },
+    );
+  }
+
+  if (!asset.mimeType.startsWith('image/')) {
+    throw new UnprocessableError('The hero background poster has to be an image.', {
+      heroBackgroundPosterAssetId: `${asset.filename} is a ${asset.mimeType}, which is not something to show while a video loads.`,
+    });
+  }
+
+  const gate = checkSiteAssetGates({ assetVisibility: asset.visibility as Visibility });
+
+  if (!gate.publishable) {
+    throw new UnprocessableError(
+      'The hero background poster on this page cannot be published yet.',
+      { reasons: gate.blockedBy.map((reason) => PUBLISH_GATE_MESSAGES[reason]) },
+    );
+  }
+
+  const copied = await copyToPublic(String(asset._id));
+  const image = publicImageOf(copied);
+
+  return image ? { ...image } : null;
+}
+
+/**
  * Takes a portrait's or a CV's public copies away, unless another live page
  * still shows the same one.
  *
@@ -229,7 +365,12 @@ async function revokeSiteFile(url: string | null, exceptKey: string): Promise<vo
    */
   const stillShown = await SiteContentModel.collection.countDocuments({
     key: { $ne: exceptKey },
-    $or: [{ 'published.data.portrait.url': url }, { 'published.data.cv.url': url }],
+    $or: [
+      { 'published.data.portrait.url': url },
+      { 'published.data.cv.url': url },
+      { 'published.data.heroBackground.url': url },
+      { 'published.data.heroBackground.poster.url': url },
+    ],
   });
 
   if (stillShown > 0) return;
@@ -337,8 +478,14 @@ export async function publishSiteContent(
   // changed anywhere.
   const portrait = await resolvePortrait(draftData.portraitAssetId);
   const cv = await resolveCv(draftData.cvAssetId);
+  const heroBackground = await resolveHeroBackground(
+    draftData.heroBackgroundAssetId,
+    draftData.heroBackgroundPosterAssetId,
+  );
   const previousPortrait = publicUrlAt(record.published?.data, 'portrait');
   const previousCv = publicUrlAt(record.published?.data, 'cv');
+  const previousBackground = publicUrlAt(record.published?.data, 'heroBackground');
+  const previousPoster = posterUrlAt(record.published?.data);
 
   /*
    * Deep-copied so the two halves stay independent documents. A shared
@@ -356,6 +503,7 @@ export async function publishSiteContent(
   const publishedData: Record<string, unknown> = { ...structuredClone(draftData), marks };
   if ('portraitAssetId' in draftData) publishedData.portrait = portrait;
   if ('cvAssetId' in draftData) publishedData.cv = cv;
+  if ('heroBackgroundAssetId' in draftData) publishedData.heroBackground = heroBackground;
 
   record.set({
     published: {
@@ -381,6 +529,20 @@ export async function publishSiteContent(
     await revokeSiteFile(previousCv, record.key);
   }
 
+  // Two files rather than one, and the poster goes on its own account: turning
+  // a looping clip back into a still leaves the background URL changed and the
+  // poster simply gone, and only the second check notices that.
+  if (
+    previousBackground &&
+    previousBackground !== publicUrlAt(record.published?.data, 'heroBackground')
+  ) {
+    await revokeSiteFile(previousBackground, record.key);
+  }
+
+  if (previousPoster && previousPoster !== posterUrlAt(record.published?.data)) {
+    await revokeSiteFile(previousPoster, record.key);
+  }
+
   return record;
 }
 
@@ -401,6 +563,8 @@ export async function unpublishSiteContent(key: string): Promise<SiteContentDocu
   // more (§8).
   await revokeSiteFile(publicUrlAt(record.published?.data, 'portrait'), record.key);
   await revokeSiteFile(publicUrlAt(record.published?.data, 'cv'), record.key);
+  await revokeSiteFile(publicUrlAt(record.published?.data, 'heroBackground'), record.key);
+  await revokeSiteFile(posterUrlAt(record.published?.data), record.key);
 
   record.set({ published: null, publishedAt: null, publishedByUserId: null });
 

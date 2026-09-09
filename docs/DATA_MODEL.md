@@ -545,7 +545,9 @@ The portfolio's own copy. Draft/published split so changing a sentence never req
   featuredIntro: "Selected products and platforms I've built.",
   featuredLimit: 6,
   portraitAssetId: null,           // → assets._id, a site asset (projectId: null)
-  cvAssetId: null                  // → assets._id, a site asset; PDF only
+  cvAssetId: null,                 // → assets._id, a site asset; PDF only
+  heroBackgroundAssetId: null,     // → assets._id, a site asset; image or video
+  heroBackgroundPosterAssetId: null // → assets._id, a site asset; image, for a video background
 }
 
 // about
@@ -587,6 +589,13 @@ Skills carries no proficiency level, years, or per-item prose. It is icon and la
 
 `terminalLines` is decorative and hidden below `md`. `codePanel` and `statusRows`
 are the rail beside it — also decorative, and hidden below `lg`.
+
+**The landing page no longer draws a terminal, a code pane, a status readout or
+a badge.** Its hero is the words over the published `heroBackground`, and the
+portal's landing editor offers none of those four any more. The fields stay in
+the schema because it is strict: removing them would make every stored landing
+record fail to parse and take the live page's words down with the ornaments. The
+about page still has its terminal, and still edits it.
 
 `statusRows` is written, not measured. Nothing in Wroom watches a build or a
 machine, and the public site is the wrong place for it to start: the rows say
@@ -649,6 +658,13 @@ portrait: { url, alt, variants: { thumb, card, hero } } | null
 
 // siteContent.published.data, on landing
 cv: { url, filename } | null
+heroBackground: {
+  url,
+  kind: "image" | "video",
+  alt,
+  variants: { thumb, card, hero } | null,   // null for a video
+  poster: { url, alt, variants } | null     // only for a video
+} | null
 ```
 
 The portfolio may not read `mediaLibrary`, so a `mediaKey` has to arrive already
@@ -673,19 +689,31 @@ labelled "Download CV" that hands over an mp4 is not something to let through
 quietly. A CV that is missing, still private or the wrong type stops the publish
 and says which.
 
+`heroBackground` is the scene the landing hero is read over from `lg` up, and it
+follows the portrait exactly: an id in the draft, gate and copy at publish, a
+public URL here. `kind` is read off the asset's mime type at publish rather than
+chosen in the portal, so replacing a still with a looping clip is an upload and a
+publish rather than a deploy. A video has no `variants` — `sharp` resizes images
+— and carries `poster` instead, a second uploaded image resolved from
+`heroBackgroundPosterAssetId`. The poster is what a visitor sees while the clip
+loads, and the whole of what a visitor who asked for no motion sees (CLAUDE.md
+§7.5). A background that is neither an image nor a video stops the publish; a
+clip with no poster does not.
+
 Unpublishing deletes those copies before clearing the record, unless another
 published page still shows the same file. So does swapping one for another: the
 blob delete is what revokes access, and a snapshot removed while its blobs
 remain leaves a permanently cacheable public URL. The "still shown" check looks
-at every published page's `portrait` and `cv` together, not just the field being
-revoked — a URL pointed at from anywhere live is a URL whose bytes have to stay.
+at every published page's `portrait`, `cv`, `heroBackground` and that
+background's `poster` together, not just the field being revoked — a URL pointed at from anywhere live is a URL whose bytes have to stay.
 
-`GET /public/content/:key` strips `portraitAssetId` and `cvAssetId` on the way
-out: the resolved `portrait` and `cv` are what a page renders, and a public
-payload has no business naming a record in an operational collection.
+`GET /public/content/:key` strips `portraitAssetId`, `cvAssetId`,
+`heroBackgroundAssetId` and `heroBackgroundPosterAssetId` on the way out: the
+resolved `portrait`, `cv` and `heroBackground` are what a page renders, and a
+public payload has no business naming a record in an operational collection.
 
-All three are server-owned: `PATCH /api/content/:key` strips `marks`, `portrait`
-and `cv` from the body, so the only markup that reaches a published page comes from a
+All four are server-owned: `PATCH /api/content/:key` strips `marks`, `portrait`,
+`cv` and `heroBackground` from the body, so the only markup that reaches a published page comes from a
 `mediaLibrary` record the API sanitised on write, and the only image URLs come
 from blobs the gate let through. Resolution is frozen at publish — editing a
 mark or replacing an image changes the live page only when the page is published
@@ -841,7 +869,7 @@ The portfolio does **not** query `projects`. Publishing is an explicit action th
 3. **Resolves `techStackKeys`, `platformKeys` and `clientMediaKey`** against `mediaLibrary`, dropping anything with `usageApproved: false`.
 4. **Writes the flattened `publishedProjects` document** using public URLs only.
 
-**Content publishing does the same two things for a page.** `siteContent` resolves its `mediaLibrary` keys into `published.data.marks` and copies its portrait into the public container before writing `published.data.portrait` — gate, copy, then write, in that order, and unpublishing reverses the copy first.
+**Content publishing does the same two things for a page.** `siteContent` resolves its `mediaLibrary` keys into `published.data.marks` and copies its portrait, its CV and the landing hero's background into the public container before writing `published.data.portrait`, `published.data.cv` and `published.data.heroBackground` — gate, copy, then write, in that order, and unpublishing reverses the copy first.
 
 **Unpublishing reverses step 2 before step 4.** Deleting the snapshot row without deleting the blob copies leaves a public, permanently cacheable URL for content that is no longer published. The blob delete is the operation that actually revokes access.
 

@@ -140,6 +140,15 @@
   --color-glow: #081912;
   --color-shadow: #00000038;
 
+  /* --- measurements ---
+   * How far the landing hero's backdrop reaches above the hero itself: the
+   * height of the sticky header band it has to pass behind — the pill's own
+   * height plus the gap above it. Named here rather than written into the
+   * component, because it is a fact about the header and the component that
+   * needs it is not the header.
+   */
+  --hero-backdrop-rise: 5.25rem;
+
   /* --- type ---
    * Space Grotesk for headings, hero titles, project and product names,
    * navigation, eyebrow labels, and numerals in metric callouts. Inter for

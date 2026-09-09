@@ -1,5 +1,6 @@
 import { FeaturedProjects } from '../features/landing/FeaturedProjects';
 import { Hero } from '../features/landing/Hero';
+import { HeroBackdrop } from '../features/landing/HeroBackdrop';
 import { StatsBand } from '../components/StatsBand';
 import { LandingBottom } from '../features/landing/LandingBottom';
 import { FALLBACK_FEATURED_LIMIT, readLandingData } from '../features/landing/landingData';
@@ -46,11 +47,35 @@ export function LandingPage() {
 
   return (
     <>
-      {data ? (
-        <Hero data={data} />
+      {/*
+       * The hero and the counts share one box, because from `lg` up they share
+       * one picture: the published backdrop sits behind both and reaches up
+       * past the top of the hero to pass behind the header pill as well. That
+       * is why the plate is mounted here rather than inside the hero — the hero
+       * is not the only thing standing on it.
+       *
+       * `relative` is what the plate is positioned against. Below `lg` there is
+       * no plate and this box is two sections in a row, exactly as before.
+       */
+      data ? (
+        <div className="relative">
+          <HeroBackdrop background={data.heroBackground} />
+          <Hero data={data} />
+          {/* Over the plate, not under it. */}
+          <div className="relative z-10">
+            <StatsBand
+              stats={data.stats}
+              marks={data.marks}
+              /*
+               * Translucent from `lg`, where the backdrop is behind it and the
+               * reference shows the room through the panel. Below `lg` there is
+               * no backdrop, so it stays the opaque band the about page has.
+               */
+              panelClassName="bg-surface-deep lg:bg-surface-deep/80 lg:backdrop-blur-xl"
+            />
+          </div>
+        </div>
       ) : null}
-
-      {data ? <StatsBand stats={data.stats} marks={data.marks} /> : null}
 
       <FeaturedProjects
         limit={featuredLimit}

@@ -535,6 +535,58 @@ function PortraitField(props: {
   );
 }
 
+const BACKGROUND_MIME_TYPES = UPLOAD_LIMITS.allowedMimeTypes.filter(
+  (type) => type.startsWith('image/') || type.startsWith('video/'),
+);
+
+/**
+ * The plate behind the landing hero at desktop width.
+ *
+ * One slot for both a still and a looping clip, because it is one slot: the
+ * page reads which it got from the published record, so swapping a picture for
+ * a video is this picker and a publish rather than a deploy.
+ */
+function HeroBackgroundField(props: {
+  value: string | null;
+  onChange: (assetId: string | null) => void;
+  idPrefix: string;
+}) {
+  return (
+    <SiteAssetField
+      {...props}
+      slot="hero background"
+      legend="Hero background"
+      hint="The scene behind the hero on a desktop. An image or a looping video, marked public. A phone does not show it."
+      accept={BACKGROUND_MIME_TYPES}
+      accepts={(mimeType) =>
+        mimeType.startsWith('image/') || mimeType.startsWith('video/')
+      }
+    />
+  );
+}
+
+/**
+ * The still a background video shows while it loads, and the whole of what it
+ * shows to a visitor who asked for no motion. Ignored when the background is
+ * already an image.
+ */
+function HeroBackgroundPosterField(props: {
+  value: string | null;
+  onChange: (assetId: string | null) => void;
+  idPrefix: string;
+}) {
+  return (
+    <SiteAssetField
+      {...props}
+      slot="hero background poster"
+      legend="Hero background poster"
+      hint="Only used when the background is a video: the still it shows while loading, and the only thing shown if the visitor has asked for no motion."
+      accept={IMAGE_MIME_TYPES}
+      accepts={(mimeType) => mimeType.startsWith('image/')}
+    />
+  );
+}
+
 function CvField(props: {
   value: string | null;
   onChange: (assetId: string | null) => void;
@@ -970,59 +1022,34 @@ export function LandingDataForm({
         onChange={(cvAssetId) => onChange({ ...data, cvAssetId })}
       />
 
-      <fieldset className="space-y-2">
-        <legend className="text-sm font-medium text-slate-800">Badge</legend>
-        <Field label="Title" htmlFor="ld-badge-title" error={errors['data.badge.title']}>
-          <input
-            id="ld-badge-title"
-            className={inputClasses}
-            value={data.badge.title}
-            onChange={(event) =>
-              onChange({ ...data, badge: { ...data.badge, title: event.target.value } })
-            }
-            placeholder="CODE. BUILD. SOLVE."
-          />
-        </Field>
-        <Field label="Body" htmlFor="ld-badge-body" error={errors['data.badge.body']}>
-          <input
-            id="ld-badge-body"
-            className={inputClasses}
-            value={data.badge.body}
-            onChange={(event) =>
-              onChange({ ...data, badge: { ...data.badge, body: event.target.value } })
-            }
-          />
-        </Field>
-      </fieldset>
-
-      <Field
-        label="Terminal title"
-        htmlFor="ld-terminal-title"
-        error={errors['data.terminalTitle']}
-        hint="The caption in the terminal's window bar. Decorative, and hidden on a phone."
-      >
-        <input
-          id="ld-terminal-title"
-          className={inputClasses}
-          value={data.terminalTitle}
-          onChange={(event) => onChange({ ...data, terminalTitle: event.target.value })}
-          placeholder="developer@teczo ~"
-        />
-      </Field>
-
-      <StringListEditor
-        label="Terminal lines"
-        hint="Decorative, and hidden on a phone. One line each."
-        idPrefix="ld-terminal"
-        values={data.terminalLines}
-        onChange={(terminalLines) => onChange({ ...data, terminalLines })}
-        placeholder="developer@teczo:~$ whoami"
-      />
+      {/*
+       * No terminal and no badge here any more. The landing hero draws neither,
+       * so editing them would be typing into a page nobody sees — the about
+       * page keeps its own terminal and its own editor below.
+       *
+       * The fields themselves stay in the schema. It is strict, so removing
+       * them would make every stored landing record fail to parse, and the live
+       * page would go blank on the words rather than losing an ornament.
+       */}
 
       <PortraitField
         idPrefix="ld"
         value={data.portraitAssetId}
         onChange={(portraitAssetId) => onChange({ ...data, portraitAssetId })}
+      />
+
+      <HeroBackgroundField
+        idPrefix="ld"
+        value={data.heroBackgroundAssetId}
+        onChange={(heroBackgroundAssetId) => onChange({ ...data, heroBackgroundAssetId })}
+      />
+
+      <HeroBackgroundPosterField
+        idPrefix="ld"
+        value={data.heroBackgroundPosterAssetId}
+        onChange={(heroBackgroundPosterAssetId) =>
+          onChange({ ...data, heroBackgroundPosterAssetId })
+        }
       />
 
       <StringListEditor

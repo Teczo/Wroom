@@ -1,5 +1,12 @@
 import { arrayOf, nullable, number, objectId, slug, strictObject, string, withDefault } from '../../validate.js';
-import { cvField, marksField, optionalSlug, portraitField, socialShape } from './shared.js';
+import {
+  cvField,
+  heroBackgroundField,
+  marksField,
+  optionalSlug,
+  portraitField,
+  socialShape,
+} from './shared.js';
 
 /**
  * `siteContent.landing.data` — the hero of the public landing page.
@@ -135,8 +142,32 @@ export const landingDataSchema = strictObject({
    * same as the portrait, and resolved into `cv` below at publish.
    */
   cvAssetId: withDefault(nullable(objectId()), null),
-  /** All three written by the publish action, never by an editor. */
+  /**
+   * The plate behind the hero from `lg` up — the room the words are read in.
+   *
+   * An `assets` id like the two above, resolved into `heroBackground` at
+   * publish. It may be a still or a looping clip; which one it is comes off the
+   * asset's mime type at publish rather than being chosen here, so swapping one
+   * for the other is an upload and a publish rather than a deploy.
+   *
+   * A separate field from `portraitAssetId` rather than a second use of it.
+   * They are two pictures with two jobs at two widths: the portrait is the
+   * cut-out figure a phone shows beside the headline, and this is the full
+   * scene a desktop reads the hero over. Both have to exist at once.
+   */
+  heroBackgroundAssetId: withDefault(nullable(objectId()), null),
+  /**
+   * The still a background clip shows before its first frame arrives, and the
+   * whole of what it shows under reduced motion (§7.5).
+   *
+   * Its own upload rather than a frame taken from the video, because nothing in
+   * this API decodes one. Meaningless when the background is already an image,
+   * and ignored in that case rather than refused.
+   */
+  heroBackgroundPosterAssetId: withDefault(nullable(objectId()), null),
+  /** All four written by the publish action, never by an editor. */
   marks: marksField(),
   portrait: portraitField(),
   cv: cvField(),
+  heroBackground: heroBackgroundField(),
 });

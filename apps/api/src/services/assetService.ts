@@ -484,7 +484,8 @@ export async function deleteAsset(projectId: string | null, id: string): Promise
  * Every content page that names a site asset, and how.
  *
  * A page can name one in two ways and they are not the same lookup. A draft
- * holds the asset's id — `portraitAssetId`, `cvAssetId` — because that is what
+ * holds the asset's id — `portraitAssetId`, `cvAssetId`,
+ * `heroBackgroundAssetId`, `heroBackgroundPosterAssetId` — because that is what
  * an editor picked. A published page holds the public URL its blob was copied
  * to, because the portfolio may never read `assets` at all (§6, §8). Asking
  * only one of those questions misses half the references.
@@ -505,10 +506,17 @@ async function siteContentReferences(
   const conditions: Record<string, unknown>[] = [
     { 'draft.data.portraitAssetId': id },
     { 'draft.data.cvAssetId': id },
+    { 'draft.data.heroBackgroundAssetId': id },
+    { 'draft.data.heroBackgroundPosterAssetId': id },
   ];
 
   if (url) {
-    conditions.push({ 'published.data.portrait.url': url }, { 'published.data.cv.url': url });
+    conditions.push(
+      { 'published.data.portrait.url': url },
+      { 'published.data.cv.url': url },
+      { 'published.data.heroBackground.url': url },
+      { 'published.data.heroBackground.poster.url': url },
+    );
   }
 
   const rows = await SiteContentModel.collection
@@ -523,14 +531,32 @@ async function siteContentReferences(
     const published =
       (row.published as { data?: Record<string, unknown> } | undefined)?.data ?? {};
 
-    if (draft.portraitAssetId === id || draft.cvAssetId === id) {
+    if (
+      draft.portraitAssetId === id ||
+      draft.cvAssetId === id ||
+      draft.heroBackgroundAssetId === id ||
+      draft.heroBackgroundPosterAssetId === id
+    ) {
       found.push({ key: String(row.key), where: 'draft' });
     }
 
-    const urlAt = (field: 'portrait' | 'cv') =>
+    const urlAt = (field: 'portrait' | 'cv' | 'heroBackground') =>
       (published[field] as { url?: unknown } | undefined)?.url;
 
-    if (url && (urlAt('portrait') === url || urlAt('cv') === url)) {
+    // The poster hangs off the background rather than sitting beside it, so it
+    // needs a reader of its own — missing it would report a file nobody points
+    // at and delete a picture the live hero is showing.
+    const posterUrl = (
+      published.heroBackground as { poster?: { url?: unknown } | null } | undefined
+    )?.poster?.url;
+
+    if (
+      url &&
+      (urlAt('portrait') === url ||
+        urlAt('cv') === url ||
+        urlAt('heroBackground') === url ||
+        posterUrl === url)
+    ) {
       found.push({ key: String(row.key), where: 'published' });
     }
   }

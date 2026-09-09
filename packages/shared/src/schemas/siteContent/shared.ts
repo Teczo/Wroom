@@ -173,3 +173,38 @@ export type SiteContentFile = Infer<typeof publishedFileShape>;
 export function cvField(): Validator<SiteContentFile | null> {
   return withDefault(nullable(strictObject(publishedFileShape)), null);
 }
+
+/**
+ * `data.heroBackground` — the plate behind the landing hero at desktop width.
+ *
+ * Server-owned in the same way `portrait` and `cv` are, and resolved from the
+ * same kind of id: the draft names `heroBackgroundAssetId`, the publish action
+ * runs the site asset gate, copies the blob into the public container and
+ * writes what comes back here (§6, §8).
+ *
+ * `kind` is read off the asset's mime type at publish rather than chosen in the
+ * portal. Swapping the still for a looping clip is then an upload and a
+ * publish, not a deploy — which is the whole point of the field carrying its
+ * own kind instead of the page guessing from a file extension.
+ *
+ * `variants` is null for a video: `sharp` resizes images, and there is nothing
+ * for it to do with an mp4. `poster` is the still a video shows before its
+ * first frame arrives and under reduced motion, and it is a second uploaded
+ * image rather than a frame grabbed here — the API decodes no video.
+ *
+ * A still needs no poster and a clip without one is not refused; it simply has
+ * nothing to show while it loads.
+ */
+export const publishedBackgroundShape = {
+  url: string({ min: 1, max: 600 }),
+  kind: withDefault(string({ max: 8, pattern: /^(image|video)$/ }), 'image'),
+  alt: withDefault(string({ max: 500, allowEmpty: true }), ''),
+  variants: withDefault(nullable(strictObject(variantsShape)), null),
+  poster: withDefault(nullable(strictObject(publishedImageShape)), null),
+};
+
+export type SiteContentBackground = Infer<typeof publishedBackgroundShape>;
+
+export function heroBackgroundField(): Validator<SiteContentBackground | null> {
+  return withDefault(nullable(strictObject(publishedBackgroundShape)), null);
+}
