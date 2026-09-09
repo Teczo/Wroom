@@ -1,5 +1,27 @@
 # Changelog
 
+## 2026-09-09
+
+- The landing page has a new front door on a desktop. There is a picture behind
+  the whole top of the page — behind the nav bar, behind the greeting, and
+  behind the band of counts — and the words sit on the left of it. The picture
+  is uploaded and published from the portal like the portrait is, in a new
+  "Hero background" slot on the landing content page.
+
+- That background can be a looping video instead of a still, and it is the same
+  slot either way: upload an mp4 or a webm and publish, and the hero plays it,
+  muted and on a loop. There is a second slot for the still it shows while the
+  video loads. A visitor who has asked their device for less motion sees that
+  still and nothing moves.
+
+- The console panel is gone from the landing page, and so is the small purpose
+  card beside it. The about page keeps its own console. The landing content
+  editor no longer offers either of them.
+
+- Nothing changed on a phone. The picture is a desktop thing and a phone does
+  not download it. The cut-out portrait, the buttons, the tech row and the
+  counts are all where they were — only the console has gone.
+
 ## 2026-09-06
 
 - The work page now files projects under the chip each one carries, instead of

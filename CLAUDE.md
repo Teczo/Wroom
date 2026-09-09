@@ -294,6 +294,28 @@ Do not install an icon library. Do not paste an SVG into a component. If a mark 
 
 SVG from `mediaLibrary` is sanitised server-side on write (§8) and rendered with `dangerouslySetInnerHTML` on a wrapper element. This is the only permitted use of that API in either app, and it is safe **only** because the write-time sanitiser is the gate. Never render un-sanitised markup from any other source.
 
+### 7.3.1 The landing hero backdrop
+
+From `lg` up the landing hero is read over `heroBackground` from the published
+`landing` record — a still or a looping clip, whichever was uploaded. Which one
+it is comes from the record's `kind`, decided at publish from the asset's mime
+type. Never sniff a file extension in a component.
+
+It is desktop only, and the width is asked in JavaScript rather than left to
+`hidden lg:block`: a hidden `<img>` is still fetched and a `<video>` brings its
+poster with it, which is megabytes a phone downloads and never shows.
+
+A clip does not play under `prefers-reduced-motion: reduce` (§7.5). The poster
+is shown instead; with no poster the clip holds its first frame.
+
+Nothing published and there is no backdrop. The hero then falls back to the
+portrait column it had before, rather than showing a black band.
+
+**The landing page has no terminal, code pane, status readout or badge.** Those
+fields are still in the schema — it is strict, and removing them would make
+every stored landing record fail to parse — but nothing renders them and the
+portal no longer edits them on that page. The about page keeps its own terminal.
+
 ### 7.4 Sections are optional
 
 `featureCards`, `keyModules`, `headlineMetric`, `testimonial`, `demoVideo` and `caseStudies` are all optional on a published project. **When the array is empty or the object is null, the entire section — heading included — does not render.** A published project with nothing to say in a section must not show an empty heading or a placeholder card.
@@ -331,12 +353,11 @@ Design references are desktop. These are the confirmed 390px behaviours — impl
 | Surface | At 390px |
 |---|---|
 | Nav | Hamburger to a full-screen overlay. State toggle and a fixed panel — no drawer library. |
-| Landing hero | Portrait kept, out of the flow and pinned to the top right, fading into the page on its left and at its foot. Role pill, headline, disciplines and CTA in front of it. The purpose badge is dropped. |
+| Landing hero | Portrait kept, out of the flow and pinned to the top right, fading into the page on its left and at its foot. Role pill, headline, disciplines and CTA in front of it. No backdrop — the published `heroBackground` is `lg` and up only. |
 | Landing hero buttons | Stacked, each full width of the copy column — which is now the left of the hero, the portrait having the right. |
 | Landing tech row | Each mark in a tile of its own, in one scroll-snap line that runs off the right edge and is swiped. The marks keep their size. It wraps instead from `lg`, where the column is narrower than a phone. |
 | Landing stats | Two per row, not four. |
 | Header CTA | Out of the bar and into the foot of the nav overlay, full width. |
-| Landing terminal | Full width, under the CTAs and above the tech row. |
 | Featured projects | Carousel, one card per viewport, swipe, dot indicators, arrows hidden. `View all` stays beside the heading at its own width rather than dropping under it full width. |
 | Product header | Chip, title, tagline, paragraph and buttons stack. Buttons full width. |
 | Product hero image | Full-bleed, aspect preserved. Thumbnail strip becomes a scroll-snap row. |

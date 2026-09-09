@@ -113,10 +113,21 @@ export function StatsBand({
   stats: rows,
   marks,
   className = 'mx-auto max-w-6xl px-5 pb-14 sm:pb-20',
+  panelClassName = 'bg-surface-deep',
 }: {
   stats: readonly StatRow[];
   marks: SiteContentMark[];
   className?: string;
+  /**
+   * The fill behind the panel. Opaque by default, which is what it needs on the
+   * about page and on a phone: there is nothing behind it but the canvas.
+   *
+   * The landing page hands it a translucent one, because from `lg` up the band
+   * stands on the hero's published backdrop and the reference draws the room
+   * showing faintly through it. It is a prop rather than a second component so
+   * the two pages keep one band that cannot drift.
+   */
+  panelClassName?: string;
 }) {
   const { ref, inView } = useInView<HTMLDListElement>();
   const stats = rows.filter((stat) => stat.value !== '' && stat.label !== '');
@@ -133,7 +144,7 @@ export function StatsBand({
       <dl
         ref={ref}
         style={panel.style}
-        className={`grid grid-cols-2 overflow-hidden rounded-2xl border border-border bg-surface-deep transition-colors sm:grid-cols-4 ${panel.className}`}
+        className={`grid grid-cols-2 overflow-hidden rounded-2xl border border-border transition-colors sm:grid-cols-4 ${panelClassName} ${panel.className}`}
       >
         {stats.map((stat, index) => (
           <StatCell

@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { Mark, findMark } from "../../components/Mark";
 import { TextReveal } from "../../components/TextReveal";
 import { buttonClasses } from "../../components/Button";
-import { Terminal } from "../../components/Terminal";
 import { entering, useEntered } from "../../lib/entrance";
 import { parallaxStyle, useSectionProgress } from "../../lib/useParallax";
 import { useOnScreen } from "../../lib/useOnScreen";
@@ -13,37 +12,44 @@ import type { LandingData } from "./landingData";
  * The top of the landing page.
  *
  * Every word here is the published `landing` record — the role pill, greeting,
- * name, statement, disciplines, the two button labels, the tech row and the
- * badge (§2 rule 8). A field left empty in the portal is a piece of the hero
- * that does not render, rather than an empty heading or a placeholder (§7.4).
+ * name, statement, disciplines, the two button labels and the tech row (§2 rule
+ * 8). A field left empty in the portal is a piece of the hero that does not
+ * render, rather than an empty heading or a placeholder (§7.4).
  *
  * The second button is the one piece that needs two things rather than one: a
  * label, and a CV that publishing resolved into a public URL. Either missing
  * and there is no button, because a download that downloads nothing is worse
  * than no download.
  *
- * Three columns at `lg`, as the design draws them: the words with the tech row
- * beneath them, the portrait, and the rail with the terminal and the purpose
- * panel on it.
+ * ## The two desktop heroes
  *
- * Below `lg` it is one column and the pieces are re-ordered rather than
- * dropped, which is the 390px hero in §7.7: the words, then the terminal at
- * full width, then the tech row. The portrait comes out of the flow and is
- * pinned to the right of the words, fading into the page on its left and at its
- * foot so the headline stays the thing you read. The purpose panel is the one
- * piece that does go — it is a note pinned to a rail that no longer exists.
+ * With a backdrop published, `HeroBackdrop` puts the scene behind the whole
+ * band — header, hero and the counts under it — and this is one column of words
+ * laid over its left, held to `max-w-xl` so the sentence never runs into the
+ * picture. The portrait is not drawn at that width: the room already has a
+ * person in it.
  *
- * The order is grid placement rather than duplicated markup: there is one
- * terminal and one tech row in the document at every width, and the columns are
- * assigned explicitly so the source can stack the way a phone reads.
+ * With no backdrop it is the hero as it was, minus the terminal: the words with
+ * the tech row beneath them, and the portrait in a column beside them. A record
+ * halfway through being written therefore still has a hero.
+ *
+ * Below `lg` there is exactly one hero and the backdrop does not exist. The
+ * pieces stack the way §7.7 sets them out: the words, then the tech row. The
+ * portrait comes out of the flow and is pinned to the right of the words,
+ * fading into the page on its left and at its foot so the headline stays the
+ * thing you read.
+ *
+ * The order is grid placement rather than duplicated markup: there is one tech
+ * row in the document at every width, and the columns are assigned explicitly
+ * so the source can stack the way a phone reads.
  *
  * ## The entrance
  *
  * One trigger, `ENTER`, and a delay per piece — so this is one piece of
  * choreography rather than nine components each deciding when to appear. The
  * order is the order the page is meant to be read in: the pill, the greeting,
- * the name, the sentence, the disciplines, the buttons, and the ornaments
- * behind them. It is finished inside 1.7 seconds, and every step of it is
+ * the name, the sentence, the disciplines, the buttons, and the tech row behind
+ * them. It is finished inside 1.7 seconds, and every step of it is
  * transform, opacity and blur, so none of it costs layout (§18).
  *
  * `useEntered` is false only for the first frame after this component mounts,
@@ -63,11 +69,10 @@ import type { LandingData } from "./landingData";
  * ## The parallax
  *
  * `useSectionProgress` publishes one number on the section as it leaves, and
- * the four layers inside multiply it by different distances: the words travel
- * furthest and fade slightly, the portrait less, the rail drifts the other way,
- * and the grid behind all of it moves least of all (`useGridDrift`, in
- * `App.tsx`). Nothing leaves the screen — the whole displacement is under
- * seventy pixels. It is there to give the hero a foreground and a background,
+ * the layers inside multiply it by different distances: the words travel
+ * furthest and fade slightly, the tech row less, the portrait less again, and
+ * the grid behind all of it moves least of all (`useGridDrift`, in `App.tsx`).
+ * Nothing leaves the screen — the whole displacement is under seventy pixels. It is there to give the hero a foreground and a background,
  * not to be noticed as an effect.
  *
  * Every layer sits at zero displacement at rest, which is what makes the whole
@@ -85,20 +90,12 @@ const ENTER = {
   disciplines: 530,
   actions: 620,
   portrait: 360,
-  terminal: 500,
-  badge: 660,
   techLabel: 700,
   techFirst: 760,
 } as const;
 
 /** Held between one tech mark and the next. */
 const TECH_STEP_MS = 55;
-
-/**
- * When the terminal starts typing: after it has finished arriving, so the panel
- * is settled before anything inside it moves.
- */
-const TERMINAL_TYPE_DELAY_MS = 1000;
 
 export function Hero({ data }: { data: LandingData }) {
   const {
@@ -109,14 +106,12 @@ export function Hero({ data }: { data: LandingData }) {
     disciplines,
     heroPrimaryLabel,
     heroSecondaryLabel,
-    badge,
-    terminalLines,
-    terminalTitle,
     techLabel,
     techMarks,
   } = data;
   const portrait = data.portrait;
   const cv = data.cv;
+  const backdrop = data.heroBackground;
 
   const entered = useEntered();
   const sectionRef = useSectionProgress<HTMLElement>();
@@ -126,7 +121,6 @@ export function Hero({ data }: { data: LandingData }) {
   const portraitFloat = useOnScreen<HTMLDivElement>();
 
   const hasHeading = greeting !== "" || name !== "";
-  const hasBadge = badge.title !== "" || badge.body !== "";
 
   // A label with nowhere to go is not a button. The first always has somewhere
   // — the work index — so its label is the whole of the test; the second needs
@@ -148,35 +142,28 @@ export function Hero({ data }: { data: LandingData }) {
     disciplines.length > 0 ||
     hasActions ||
     tech.length > 0;
-  const hasTerminal = terminalLines.length > 0;
-  const hasRail = hasTerminal || hasBadge;
 
-  if (!hasCopy && !hasRail && portrait === null) return null;
+  if (!hasCopy && portrait === null) return null;
 
   /*
-   * The columns collapse from the outside in. The portrait is the first to go
-   * because it is the one that says nothing, then the rail, and what is left is
-   * the words — which is the same page with its ornaments removed rather than a
-   * different layout at each width.
-   */
-  const columns = portrait
-    ? hasRail
-      ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)_minmax(0,1fr)]"
-      : "lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]"
-    : hasRail
-      ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]"
-      : "";
-
-  /*
-   * Which column each ornament lands in at `lg`, given which of them exist.
-   * Both span the two rows the words occupy, so the grid's `items-center` lines
-   * them up against the whole of the left column rather than against its first
-   * row.
+   * Whether the portrait takes a column of its own at desktop width.
    *
-   * Stated here rather than left to source order because the source order is
-   * the phone's, and the two disagree: the terminal is written before the tech
-   * row so it stacks above it, but sits to the right of both at desktop width.
+   * It does not when a backdrop is published, because then the picture on that
+   * side of the hero is the room the words are read in — a cut-out figure over
+   * the top of it would be the same person twice. Below `lg` the backdrop does
+   * not exist and the portrait is pinned beside the words exactly as before
+   * (§7.7); this decides the desktop column only.
+   *
+   * With no backdrop published the portrait keeps its column, so a record
+   * halfway through being written is the hero as it was rather than a page with
+   * nothing on its right (§7.4).
    */
+  const portraitColumn = portrait !== null && backdrop === null;
+
+  const columns = portraitColumn
+    ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]"
+    : "";
+
   /*
    * The copy of the portrait a phone fetches.
    *
@@ -194,21 +181,33 @@ export function Hero({ data }: { data: LandingData }) {
    */
   const portraitCard = portrait?.variants?.card ?? null;
 
-  const spanRows = "lg:row-start-1 lg:row-span-2";
-  const portraitPlacement = `lg:col-start-2 ${spanRows}`;
-  const railPlacement = `${portrait ? "lg:col-start-3" : "lg:col-start-2"} ${spanRows}`;
+  /*
+   * Where the portrait lands at `lg` when it has a column. It spans the two
+   * rows the words occupy, so the grid's `items-center` lines it up against the
+   * whole of the left column rather than against its first row.
+   */
+  const portraitPlacement = "lg:col-start-2 lg:row-start-1 lg:row-span-2";
 
   const roleEnter = entering(entered, "up", ENTER.role, 600);
   const statementEnter = entering(entered, "up", ENTER.statement);
   const disciplinesEnter = entering(entered, "up", ENTER.disciplines);
   const actionsEnter = entering(entered, "up", ENTER.actions);
   const portraitEnter = entering(entered, "lift", ENTER.portrait, 1000);
-  const terminalEnter = entering(entered, "right", ENTER.terminal, 900);
-  const badgeEnter = entering(entered, "right", ENTER.badge, 800);
   const techLabelEnter = entering(entered, "up", ENTER.techLabel, 600);
 
   return (
-    <section ref={sectionRef} className="mx-auto max-w-6xl px-5 py-8 sm:py-10 lg:py-12">
+    /*
+     * Taller from `lg` when a backdrop is published, because the section is
+     * then the height of the room behind it rather than the height of the
+     * words: the reference gives the hero most of a screen, and a plate cropped
+     * to the height of five lines of text is a stripe rather than a scene.
+     */
+    <section
+      ref={sectionRef}
+      className={`mx-auto max-w-6xl px-5 py-8 sm:py-10 ${
+        backdrop ? "lg:min-h-[34rem] lg:py-20" : "lg:py-12"
+      }`}
+    >
       {/* `relative`, because below `lg` the portrait is pinned to this box. */}
       <div className={`relative grid items-center gap-10 lg:gap-10 ${columns}`}>
         {/*
@@ -223,7 +222,9 @@ export function Hero({ data }: { data: LandingData }) {
          */}
         <div
           style={parallaxStyle(-64, 0.72)}
-          className="relative z-10 min-w-0 will-change-transform lg:col-start-1 lg:row-start-1"
+          className={`relative z-10 min-w-0 will-change-transform lg:col-start-1 lg:row-start-1 ${
+            backdrop ? "lg:max-w-xl" : ""
+          }`}
         >
           {/*
            * The pill above the headline. A dot and a word — the dot is painted
@@ -369,72 +370,6 @@ export function Hero({ data }: { data: LandingData }) {
         </div>
 
         {/*
-         * The rail: the terminal, and the purpose panel under it.
-         *
-         * The terminal is here at every width — full width under the buttons on
-         * a phone, on the rail beside the words at desktop width (§7.7). The
-         * purpose panel is a note pinned to that rail and goes with it, so it is
-         * `lg` and up only; a record with nothing but a badge in it has no rail
-         * on a phone at all rather than a lone card.
-         *
-         * The rail drifts *down* as the hero leaves while the words go up. That
-         * is the whole of the layering: two things moving apart read as two
-         * distances from the viewer, where two things moving together read as
-         * one sheet of paper.
-         */}
-        {hasRail ? (
-          <div
-            style={parallaxStyle(34)}
-            className={`${hasTerminal ? "flex" : "hidden lg:flex"} relative z-10 min-w-0 flex-col gap-5 will-change-transform ${railPlacement}`}
-          >
-            {hasTerminal ? (
-              // Wrapped rather than given the classes directly: the terminal's
-              // own root carries the pointer parallax, and one element cannot
-              // hold two transforms.
-              <div style={terminalEnter.style} className={terminalEnter.className}>
-                <Terminal
-                  lines={terminalLines}
-                  title={terminalTitle}
-                  startDelayMs={TERMINAL_TYPE_DELAY_MS}
-                />
-              </div>
-            ) : null}
-
-            {/*
-             * The purpose panel: a rule in the accent down its left edge rather
-             * than a full border, so it reads as a note pinned to the terminal
-             * instead of another card. The glyph in its corner is painted
-             * geometry, not a mark — there is nothing behind it to look up.
-             */}
-            {hasBadge ? (
-              <div
-                style={badgeEnter.style}
-                className={`hidden rounded-r-lg border-y border-r border-border border-l-2 border-l-accent bg-surface/70 p-5 lg:block ${badgeEnter.className}`}
-              >
-                <div className="flex items-start justify-between gap-4">
-                  {badge.title ? (
-                    <p className="font-heading text-sm font-bold text-accent">
-                      {badge.title}
-                    </p>
-                  ) : null}
-                  <span
-                    aria-hidden
-                    className="shrink-0 font-mono text-xs text-muted"
-                  >
-                    &lt;/&gt;
-                  </span>
-                </div>
-                {badge.body ? (
-                  <p className="mt-2 text-xs leading-relaxed text-muted">
-                    {badge.body}
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
-        ) : null}
-
-        {/*
          * The tech row. Marks only, each in a tile of its own at the size the
          * design draws them, with the mark's label carried for a screen reader —
          * `Mark` is `aria-hidden`, so without this the row announces as nothing
@@ -463,7 +398,9 @@ export function Hero({ data }: { data: LandingData }) {
         {tech.length > 0 ? (
           <div
             style={parallaxStyle(-40, 0.85)}
-            className="relative z-10 min-w-0 lg:col-start-1 lg:row-start-2"
+            className={`relative z-10 min-w-0 lg:col-start-1 lg:row-start-2 ${
+              backdrop ? "lg:max-w-xl" : ""
+            }`}
           >
             {techLabel ? (
               <p
@@ -530,7 +467,11 @@ export function Hero({ data }: { data: LandingData }) {
         {portrait ? (
           <div
             style={parallaxStyle(-26, 0.85)}
-            className={`pointer-events-none absolute right-0 top-0 w-[58%] max-w-[15rem] will-change-transform lg:pointer-events-auto lg:relative lg:right-auto lg:top-auto lg:w-auto lg:max-w-none ${portraitPlacement}`}
+            className={`pointer-events-none absolute right-0 top-0 w-[58%] max-w-[15rem] will-change-transform ${
+              portraitColumn
+                ? `lg:pointer-events-auto lg:relative lg:right-auto lg:top-auto lg:w-auto lg:max-w-none ${portraitPlacement}`
+                : "lg:hidden"
+            }`}
           >
             {/*
              * The light behind the figure, so it stands in the room rather than
