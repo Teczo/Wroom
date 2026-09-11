@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026-09-11
+
+- The contact page now asks one question at a time. It opens on "What do you
+  want to build?" with a box and a row of suggested starting points, then asks
+  about budget with a slider from zero to a million Australian dollars, then
+  about timing with a row of choices, then for a name and an email, then for a
+  phone number and a company. Each question fades in as it arrives and a bar
+  along the top shows how far through it is.
+
+- Every question that is not needed has a "Skip this" button, and a "Back"
+  button goes to the one before. The last step lists every answer so it can be
+  read over and corrected before it is sent. Sending shows an animated thank
+  you.
+
+- The old contact form is still there. A button at the foot of the page swaps
+  between the two, and nothing typed is lost when it does.
+
+- A visitor who has asked their device for less motion gets the same flow with
+  nothing moving at all.
+
 ## 2026-09-09
 
 - The landing page has a new front door on a desktop. There is a picture behind

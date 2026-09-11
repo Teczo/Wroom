@@ -1,12 +1,14 @@
-import { ENQUIRY_HONEYPOT_FIELD, ENQUIRY_LIMITS, type SiteContentBody } from '@wroom/shared';
-import { useRef, useState } from 'react';
+import type { SiteContentBody } from '@wroom/shared';
+import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import { Mark, findMark } from '../components/Mark';
+import { ClassicForm } from '../features/contact/ClassicForm';
+import { ConversationForm } from '../features/contact/ConversationForm';
+import { useEnquiryDraft } from '../features/contact/enquiryDraft';
+import { FormSwitch } from '../features/contact/formParts';
 import { ContentPage } from '../features/content/ContentPage';
 import { readContactData, type ContactData } from '../features/content/pageData';
-import { useSubmitEnquiry } from '../features/content/enquiryApi';
-import { ApiRequestError } from '../lib/api';
 import { useDocumentMeta } from '../lib/useDocumentMeta';
 
 /**
@@ -16,301 +18,13 @@ import { useDocumentMeta } from '../lib/useDocumentMeta';
  * `contact` record. The form below it is not content: it posts to
  * `/public/enquiries`, which is a different path with its own middleware chain
  * (§8), and it does not read `data.email` to do it.
+ *
+ * There are two forms and one enquiry. The guided flow asks a question at a
+ * time; the plain form is the same questions in a column. They share a single
+ * draft, so a visitor who swaps halfway keeps everything they have typed, and
+ * the switch at the foot of each goes both ways — a one-way door here would
+ * strand somebody who opened the wrong one.
  */
-
-const inputClasses =
-  'block w-full min-h-11 rounded-lg border border-border bg-surface px-3 py-2 text-base text-fg placeholder:text-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent';
-
-type Errors = Partial<Record<string, string>>;
-
-/** Mirrors the shared schema, so the server rarely has to be the one to say no. */
-function validate(values: { name: string; email: string; message: string }): Errors {
-  const errors: Errors = {};
-
-  if (values.name.trim() === '') errors.name = 'Please tell me your name.';
-  else if (values.name.length > ENQUIRY_LIMITS.name) errors.name = 'That is too long.';
-
-  if (values.email.trim() === '') errors.email = 'I need an address to reply to.';
-  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim())) {
-    errors.email = 'That does not look like an email address.';
-  }
-
-  if (values.message.trim() === '') errors.message = 'Say a little about what you need.';
-  else if (values.message.length > ENQUIRY_LIMITS.message) errors.message = 'That is too long.';
-
-  return errors;
-}
-
-function Field({
-  label,
-  htmlFor,
-  hint,
-  error,
-  required,
-  children,
-}: {
-  label: string;
-  htmlFor: string;
-  hint?: string;
-  error?: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label htmlFor={htmlFor} className="block text-sm font-medium text-fg">
-        {label}
-        {required ? <span className="ml-1 text-danger">*</span> : null}
-      </label>
-      {hint ? <p className="mt-0.5 text-xs text-muted">{hint}</p> : null}
-      <div className="mt-1.5">{children}</div>
-      {error ? (
-        <p className="mt-1 text-xs text-danger" role="alert">
-          {error}
-        </p>
-      ) : null}
-    </div>
-  );
-}
-
-function ContactForm({ relatedProjectId }: { relatedProjectId: string }) {
-  const submit = useSubmitEnquiry();
-
-  // When the form was first shown. A submission far too soon after this was
-  // not typed by a person, and the server refuses it.
-  const openedAt = useRef(Date.now());
-
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [company, setCompany] = useState('');
-  const [message, setMessage] = useState('');
-  const [budgetRange, setBudgetRange] = useState('');
-  const [timeline, setTimeline] = useState('');
-  const [interest, setInterest] = useState('');
-  const [honeypot, setHoneypot] = useState('');
-  const [errors, setErrors] = useState<Errors>({});
-
-  const isRateLimited = submit.error instanceof ApiRequestError && submit.error.status === 429;
-
-  /*
-   * Field messages the server sent back, shown against the fields they name.
-   * The client check above catches almost everything, so this is for the cases
-   * where the two disagree — without it a 422 naming a field would surface only
-   * as a general "that did not send" and the visitor would have no idea which
-   * box to fix. The bot refusals carry no details and fall through to the
-   * panel, which is the point of them saying nothing specific.
-   */
-  const serverErrors =
-    submit.error instanceof ApiRequestError ? submit.error.fieldErrors : ({} as Errors);
-
-  const errorFor = (field: string): string | undefined => errors[field] ?? serverErrors[field];
-
-  if (submit.isSuccess) {
-    return (
-      <div className="mt-10 rounded-2xl border border-border bg-surface p-6" role="status">
-        <p className="text-base font-medium text-fg">Thank you — that has reached me.</p>
-        <p className="mt-2 text-sm text-muted">
-          I read everything that comes through here and will reply to {email || 'your address'} as
-          soon as I can. There is nothing else you need to do.
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <form
-      className="mt-10 space-y-5"
-      noValidate
-      onSubmit={(event) => {
-        event.preventDefault();
-
-        const found = validate({ name, email, message });
-        setErrors(found);
-        if (Object.keys(found).length > 0) return;
-
-        submit.mutate({
-          name: name.trim(),
-          email: email.trim(),
-          phone: phone.trim(),
-          company: company.trim(),
-          message: message.trim(),
-          requirement: {
-            budgetRange: budgetRange.trim(),
-            timeline: timeline.trim(),
-            interest: interest.trim(),
-          },
-          ...(relatedProjectId ? { relatedProjectId } : {}),
-          website: honeypot,
-          submittedInMs: Date.now() - openedAt.current,
-        });
-      }}
-    >
-      <Field label="Your name" htmlFor="contact-name" required error={errorFor('name')}>
-        <input
-          id="contact-name"
-          className={inputClasses}
-          value={name}
-          maxLength={ENQUIRY_LIMITS.name}
-          autoComplete="name"
-          onChange={(event) => setName(event.target.value)}
-        />
-      </Field>
-
-      <Field label="Email" htmlFor="contact-email" required error={errorFor('email')}>
-        <input
-          id="contact-email"
-          type="email"
-          className={inputClasses}
-          value={email}
-          maxLength={ENQUIRY_LIMITS.email}
-          autoComplete="email"
-          onChange={(event) => setEmail(event.target.value)}
-        />
-      </Field>
-
-      <div className="grid gap-5 sm:grid-cols-2">
-        <Field label="Phone" htmlFor="contact-phone" hint="Optional." error={errorFor('phone')}>
-          <input
-            id="contact-phone"
-            type="tel"
-            className={inputClasses}
-            value={phone}
-            maxLength={ENQUIRY_LIMITS.phone}
-            autoComplete="tel"
-            onChange={(event) => setPhone(event.target.value)}
-          />
-        </Field>
-
-        <Field
-          label="Company"
-          htmlFor="contact-company"
-          hint="Optional."
-          error={errorFor('company')}
-        >
-          <input
-            id="contact-company"
-            className={inputClasses}
-            value={company}
-            maxLength={ENQUIRY_LIMITS.company}
-            autoComplete="organization"
-            onChange={(event) => setCompany(event.target.value)}
-          />
-        </Field>
-      </div>
-
-      <Field
-        label="What do you need?"
-        htmlFor="contact-message"
-        required
-        error={errorFor('message')}
-      >
-        <textarea
-          id="contact-message"
-          rows={6}
-          className={inputClasses}
-          value={message}
-          maxLength={ENQUIRY_LIMITS.message}
-          onChange={(event) => setMessage(event.target.value)}
-        />
-      </Field>
-
-      <fieldset className="border-t border-border pt-5">
-        <legend className="text-xs font-medium uppercase tracking-wide text-muted">
-          Helpful, not required
-        </legend>
-
-        <div className="mt-4 space-y-5">
-          <Field label="Budget" htmlFor="contact-budget" hint="A range is fine.">
-            <input
-              id="contact-budget"
-              className={inputClasses}
-              value={budgetRange}
-              maxLength={ENQUIRY_LIMITS.requirement}
-              onChange={(event) => setBudgetRange(event.target.value)}
-            />
-          </Field>
-
-          <Field label="Timeline" htmlFor="contact-timeline" hint="When you would want it done.">
-            <input
-              id="contact-timeline"
-              className={inputClasses}
-              value={timeline}
-              maxLength={ENQUIRY_LIMITS.requirement}
-              onChange={(event) => setTimeline(event.target.value)}
-            />
-          </Field>
-
-          <Field label="What kind of work" htmlFor="contact-interest" hint="Web, mobile, XR…">
-            <input
-              id="contact-interest"
-              className={inputClasses}
-              value={interest}
-              maxLength={ENQUIRY_LIMITS.requirement}
-              onChange={(event) => setInterest(event.target.value)}
-            />
-          </Field>
-        </div>
-      </fieldset>
-
-      {/*
-       * The honeypot. Hidden from sight and from a screen reader, skipped by
-       * tabbing, and never autofilled — so a person cannot fill it by accident,
-       * and a script that fills every input will.
-       */}
-      <div aria-hidden className="hidden">
-        <label htmlFor="contact-website">Website</label>
-        <input
-          id="contact-website"
-          name={ENQUIRY_HONEYPOT_FIELD}
-          type="text"
-          tabIndex={-1}
-          autoComplete="off"
-          value={honeypot}
-          onChange={(event) => setHoneypot(event.target.value)}
-        />
-      </div>
-
-      {/*
-       * Every refusal says something. The rate limit in particular gets its own
-       * colour and its own words: being told "that did not send" for what is
-       * actually "you have sent five already" reads as a broken form, and the
-       * one thing a visitor must know is that nothing they typed was lost.
-       */}
-      {submit.isError ? (
-        <div
-          className={`rounded-lg border p-4 ${
-            isRateLimited ? 'border-notice bg-notice-soft' : 'border-danger bg-danger-soft'
-          }`}
-          role="alert"
-        >
-          <p className={`text-sm font-medium ${isRateLimited ? 'text-notice' : 'text-danger'}`}>
-            {isRateLimited ? 'Not you — the form is taking a breather' : 'That did not send'}
-          </p>
-          <p className={`mt-1 text-sm ${isRateLimited ? 'text-notice' : 'text-danger'}`}>
-            {submit.error instanceof ApiRequestError
-              ? submit.error.message
-              : 'The message could not be sent. Check your connection and try again.'}
-          </p>
-          {isRateLimited ? (
-            <p className="mt-2 text-sm text-notice">
-              Nothing you did is wrong and nothing was lost — your message is still in the boxes
-              above.
-            </p>
-          ) : null}
-        </div>
-      ) : null}
-
-      <button
-        type="submit"
-        disabled={submit.isPending}
-        className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-accent px-6 font-heading text-sm font-medium text-on-accent transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-surface-hover disabled:text-muted sm:w-auto"
-      >
-        {submit.isPending ? 'Sending…' : 'Send message'}
-      </button>
-    </form>
-  );
-}
 
 /**
  * The address and the social row.
@@ -362,6 +76,28 @@ function ContactChannels({ data }: { data: ContactData }) {
   );
 }
 
+function ContactForms({ relatedProjectId }: { relatedProjectId: string }) {
+  const draft = useEnquiryDraft(relatedProjectId);
+  const [guided, setGuided] = useState(true);
+
+  return (
+    <>
+      {guided ? <ConversationForm draft={draft} /> : <ClassicForm draft={draft} />}
+
+      {/*
+        * Hidden once the enquiry has landed. Offering to change form after the
+        * thank-you would suggest there is something left to do, and there is not.
+        */}
+      {draft.submit.isSuccess ? null : (
+        <FormSwitch
+          label={guided ? 'Prefer the classic form?' : 'Switch back to the guided form'}
+          onClick={() => setGuided((current) => !current)}
+        />
+      )}
+    </>
+  );
+}
+
 function Contact({ content }: { content: SiteContentBody }) {
   const [params] = useSearchParams();
   const data = readContactData(content.data);
@@ -393,7 +129,7 @@ function Contact({ content }: { content: SiteContentBody }) {
         {data ? <ContactChannels data={data} /> : null}
       </header>
 
-      <ContactForm relatedProjectId={relatedProjectId} />
+      <ContactForms relatedProjectId={relatedProjectId} />
     </div>
   );
 }
