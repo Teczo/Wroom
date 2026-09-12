@@ -126,7 +126,7 @@ export function Hero({ data }: { data: LandingData }) {
   // — the work index — so its label is the whole of the test; the second needs
   // the file as well.
   const showPrimary = heroPrimaryLabel !== "";
-  const showSecondary = heroSecondaryLabel !== "" && cv !== null;
+  const showSecondary = heroSecondaryLabel !== "" && Boolean(cv);
   const hasActions = showPrimary || showSecondary;
 
   // Keys that resolved to nothing are dropped rather than drawn as gaps: a
@@ -143,7 +143,7 @@ export function Hero({ data }: { data: LandingData }) {
     hasActions ||
     tech.length > 0;
 
-  if (!hasCopy && portrait === null) return null;
+  if (!hasCopy && !portrait) return null;
 
   /*
    * Whether the portrait takes a column of its own at desktop width.
@@ -158,7 +158,7 @@ export function Hero({ data }: { data: LandingData }) {
    * halfway through being written is the hero as it was rather than a page with
    * nothing on its right (§7.4).
    */
-  const portraitColumn = portrait !== null && backdrop === null;
+  const portraitColumn = Boolean(portrait) && !backdrop;
 
   const columns = portraitColumn
     ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]"
