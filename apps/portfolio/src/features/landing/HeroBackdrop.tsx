@@ -93,7 +93,18 @@ export function HeroBackdrop({ background }: { background: LandingData['heroBack
 
   return (
     <div
-      className="pointer-events-none absolute inset-x-0 bottom-0 z-0 hidden overflow-hidden lg:block"
+      /*
+       * The plate dissolves into the page over its last `--hero-backdrop-fade`,
+       * and it is a mask rather than a gradient laid on top — see the note on
+       * the scrims below for why that distinction is the whole fix.
+       *
+       * The length is the bottom padding the page gives this box below the band
+       * of counts, named once in `index.css` so the two cannot drift apart. It
+       * is exactly the room below the band, so the band still stands on the
+       * picture as the reference draws it and the picture only starts going
+       * once the band is past.
+       */
+      className="pointer-events-none absolute inset-x-0 bottom-0 z-0 hidden overflow-hidden [-webkit-mask-image:linear-gradient(to_bottom,black_calc(100%-var(--hero-backdrop-fade)),transparent)] [mask-image:linear-gradient(to_bottom,black_calc(100%-var(--hero-backdrop-fade)),transparent)] lg:block"
       style={{ top: 'calc(var(--hero-backdrop-rise) * -1)' }}
     >
       {isVideo && !reduced ? (
@@ -142,26 +153,30 @@ export function HeroBackdrop({ background }: { background: LandingData['heroBack
       ) : null}
 
       {/*
-       * Three scrims, and each is doing one job.
+       * Two scrims, and each is doing one job.
        *
        * The first darkens the whole plate a little, so the accent on the page
        * still reads as the brightest thing in the room. The second pulls the
        * canvas across the left, which is the half the words are set over — the
        * hero has to stay legible whatever picture is published behind it, and
-       * that cannot depend on the picture happening to be dark there. The third
-       * takes the foot of the image down into the page, so the plate ends in a
-       * fade rather than in a straight line across the screen. It is kept short
-       * — the band of counts stands on the picture in the reference, and a
-       * deeper fade puts that band on bare canvas instead.
+       * that cannot depend on the picture happening to be dark there.
+       *
+       * There is no third. The foot of the plate used to be a panel of canvas
+       * laid over the picture, and that is the one thing it could not be — the
+       * same mistake the portrait in `Hero.tsx` has a paragraph about. The page
+       * under this is not canvas: it is canvas plus the two fixed glows and the
+       * grid from `index.css`. An opaque canvas panel matches none of that, so
+       * it ended in a hard line across the screen with the lit page below it,
+       * and because the glows are fixed the line moved as the page scrolled.
+       *
+       * The fade is the mask on the box instead (see above). Taking the picture
+       * away rather than painting over it lets the real page through, which is
+       * the only thing that leaves no edge.
        */}
       <div aria-hidden className="absolute inset-0 bg-canvas/20" />
       <div
         aria-hidden
         className="absolute inset-0 bg-gradient-to-r from-canvas/80 via-canvas/30 to-transparent"
-      />
-      <div
-        aria-hidden
-        className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-transparent to-canvas"
       />
     </div>
   );

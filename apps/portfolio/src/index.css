@@ -149,6 +149,21 @@
    */
   --hero-backdrop-rise: 5.25rem;
 
+  /*
+   * How far below the band of counts the landing backdrop keeps going, and so
+   * how long it has to dissolve into the page.
+   *
+   * Two things read this and they have to agree: the page gives the hero box
+   * this much bottom padding, and the backdrop masks away exactly that much of
+   * its own foot. Under the band the picture is still at full strength, which
+   * is where the reference stands it; below the band it goes, and what comes
+   * through is the real page rather than a panel pretending to be it.
+   *
+   * It is also the gap the front page needed anyway. The band of counts used to
+   * end on the same pixel the work below it began.
+   */
+  --hero-backdrop-fade: 7rem;
+
   /* --- type ---
    * Space Grotesk for headings, hero titles, project and product names,
    * navigation, eyebrow labels, and numerals in metric callouts. Inter for
