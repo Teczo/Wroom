@@ -1,5 +1,7 @@
 import { arrayOf, nullable, number, objectId, slug, strictObject, string, withDefault } from '../../validate.js';
 import {
+  achievementItemsField,
+  achievementsField,
   cvField,
   heroBackgroundField,
   marksField,
@@ -165,9 +167,26 @@ export const landingDataSchema = strictObject({
    * and ignored in that case rather than refused.
    */
   heroBackgroundPosterAssetId: withDefault(nullable(objectId()), null),
-  /** All four written by the publish action, never by an editor. */
+  /**
+   * The heading over the achievements section. Empty and the section does not
+   * render at all, heading included, however many rows are under it (§7.4) —
+   * the words above a section are as much content as the rows are, and there is
+   * no copy written into the component to fall back on (§2 rule 8).
+   */
+  achievementsTitle: withDefault(string({ max: 80, allowEmpty: true }), ''),
+  /**
+   * The rows themselves: a picture, a name and a paragraph each.
+   *
+   * The first field on this record to carry `assets` ids in an array rather
+   * than one at a time, which is a fact the publish action and the asset
+   * in-use check both have to know about — a picture referenced by row four is
+   * as much in use as a portrait is.
+   */
+  achievements: achievementsField(),
+  /** All five written by the publish action, never by an editor. */
   marks: marksField(),
   portrait: portraitField(),
   cv: cvField(),
   heroBackground: heroBackgroundField(),
+  achievementItems: achievementItemsField(),
 });

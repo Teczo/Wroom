@@ -91,7 +91,8 @@ function collectMediaKeys(data: Record<string, unknown>): string[] {
 /**
  * A stored blob without the fields the publish action owns.
  *
- * `marks`, `portrait` and `cv` are written by publishing and by nothing else.
+ * `marks`, `portrait`, `cv`, `heroBackground` and `achievementItems` are
+ * written by publishing and by nothing else.
  * Stripping them on the way in is what makes that true: without this, a request
  * body could put arbitrary markup in a draft, or point a public page at a blob
  * no gate ever saw. The one thing standing between the library and a page that
@@ -104,6 +105,7 @@ function withoutResolvedFields(data: Record<string, unknown>): Record<string, un
     portrait: _portrait,
     cv: _cv,
     heroBackground: _heroBackground,
+    achievementItems: _achievementItems,
     ...rest
   } = data;
   return rest;
@@ -126,6 +128,31 @@ function posterUrlAt(data: unknown): string | null {
   const held = (data as Record<string, { poster?: { url?: unknown } | null } | undefined> | undefined)
     ?.heroBackground?.poster;
   return typeof held?.url === 'string' && held.url !== '' ? held.url : null;
+}
+
+/**
+ * Every public URL a stored `data.achievementItems` holds, in no order.
+ *
+ * A set rather than a single value, because this is the one media field on the
+ * record that is a list. Everything the revoke path does for the portrait —
+ * "was this URL published before, and is it published now?" — becomes a set
+ * difference here, and a set is what makes that cheap to ask.
+ *
+ * Rows with no picture contribute nothing, which is the whole reason they are
+ * skipped rather than counted as an empty URL.
+ */
+function achievementUrlsAt(data: unknown): Set<string> {
+  const rows = (data as { achievementItems?: unknown } | undefined)?.achievementItems;
+  const urls = new Set<string>();
+
+  if (!Array.isArray(rows)) return urls;
+
+  for (const row of rows) {
+    const url = (row as { image?: { url?: unknown } | null } | undefined)?.image?.url;
+    if (typeof url === 'string' && url !== '') urls.add(url);
+  }
+
+  return urls;
 }
 
 /**
@@ -334,6 +361,76 @@ async function resolveHeroBackgroundPoster(
 }
 
 /**
+ * Copies every achievement's picture into the public container, in order.
+ *
+ * The same gate and the same copy as the portrait, once per row. Sequential
+ * rather than `Promise.all`, deliberately: `copyToPublic` writes to blob
+ * storage, twelve of those at once is twelve connections opened to save a few
+ * hundred milliseconds on an action a person takes by hand, and a failure
+ * halfway through a parallel batch leaves a set of copies nobody is tracking.
+ *
+ * A row with no `assetId` is not an error. It publishes as words with no
+ * picture, and the section drops the frame for that row — a page half written
+ * is the normal state of a page being written.
+ *
+ * A row whose asset is missing or still private *is* an error, and it stops the
+ * whole publish rather than quietly shipping a row with a hole in it. The
+ * message names the row by its position and its title, because "an achievement
+ * cannot be published" is unactionable when there are twelve of them.
+ *
+ * This is deliberately unlike `resolveMarks`, which drops what it cannot use.
+ * A mark is an icon and its absence costs a logo; this is half of a row.
+ */
+async function resolveAchievements(rows: unknown): Promise<Record<string, unknown>[]> {
+  if (!Array.isArray(rows)) return [];
+
+  const resolved: Record<string, unknown>[] = [];
+
+  for (const [index, row] of rows.entries()) {
+    const entry = (row ?? {}) as { assetId?: unknown; title?: unknown; body?: unknown };
+    const title = typeof entry.title === 'string' ? entry.title : '';
+    const body = typeof entry.body === 'string' ? entry.body : '';
+    const assetId = entry.assetId;
+
+    // Named the way the editor sees it: rows are counted from one on screen.
+    const names = title !== '' ? `"${title}"` : `number ${index + 1}`;
+
+    if (typeof assetId !== 'string' || assetId === '') {
+      resolved.push({ title, body, image: null });
+      continue;
+    }
+
+    // Site assets only, exactly as the portrait is. A project's asset answers
+    // to three gates and belongs to that project's page, so naming one here
+    // would be a way around them.
+    const asset = await AssetModel.findOne({ _id: assetId, projectId: null });
+
+    if (!asset) {
+      throw new UnprocessableError(
+        `The picture on achievement ${names} is no longer in the library. Clear it on the page, or upload it again.`,
+        { achievements: `Row ${index + 1} names a site asset that does not exist.` },
+      );
+    }
+
+    const gate = checkSiteAssetGates({ assetVisibility: asset.visibility as Visibility });
+
+    if (!gate.publishable) {
+      throw new UnprocessableError(
+        `The picture on achievement ${names} cannot be published yet.`,
+        { reasons: gate.blockedBy.map((reason) => PUBLISH_GATE_MESSAGES[reason]) },
+      );
+    }
+
+    const copied = await copyToPublic(String(asset._id));
+    const image = publicImageOf(copied);
+
+    resolved.push({ title, body, image: image ? { ...image } : null });
+  }
+
+  return resolved;
+}
+
+/**
  * Takes a portrait's or a CV's public copies away, unless another live page
  * still shows the same one.
  *
@@ -370,6 +467,7 @@ async function revokeSiteFile(url: string | null, exceptKey: string): Promise<vo
       { 'published.data.cv.url': url },
       { 'published.data.heroBackground.url': url },
       { 'published.data.heroBackground.poster.url': url },
+      { 'published.data.achievementItems.image.url': url },
     ],
   });
 
@@ -486,6 +584,8 @@ export async function publishSiteContent(
   const previousCv = publicUrlAt(record.published?.data, 'cv');
   const previousBackground = publicUrlAt(record.published?.data, 'heroBackground');
   const previousPoster = posterUrlAt(record.published?.data);
+  const achievementItems = await resolveAchievements(draftData.achievements);
+  const previousAchievements = achievementUrlsAt(record.published?.data);
 
   /*
    * Deep-copied so the two halves stay independent documents. A shared
@@ -504,6 +604,7 @@ export async function publishSiteContent(
   if ('portraitAssetId' in draftData) publishedData.portrait = portrait;
   if ('cvAssetId' in draftData) publishedData.cv = cv;
   if ('heroBackgroundAssetId' in draftData) publishedData.heroBackground = heroBackground;
+  if ('achievements' in draftData) publishedData.achievementItems = achievementItems;
 
   record.set({
     published: {
@@ -543,6 +644,26 @@ export async function publishSiteContent(
     await revokeSiteFile(previousPoster, record.key);
   }
 
+  /*
+   * The same rule as the four above, asked of a list: a picture that was
+   * published and is not any more has to lose its public copies (§8).
+   *
+   * A set difference rather than a comparison, because there is no "the"
+   * achievement image to compare. Removing the third of five rows, reordering
+   * them, or swapping one row's picture all leave the other URLs exactly where
+   * they were — and each of those is a case a pairwise check gets wrong, in the
+   * direction that leaves a public blob behind for content nobody publishes.
+   *
+   * Kept in this order — save first, revoke second — for the reason the four
+   * above are: `revokeSiteFile` asks what is still published, and it has to be
+   * asking about the record as it now is.
+   */
+  const currentAchievements = achievementUrlsAt(record.published?.data);
+
+  for (const url of previousAchievements) {
+    if (!currentAchievements.has(url)) await revokeSiteFile(url, record.key);
+  }
+
   return record;
 }
 
@@ -565,6 +686,10 @@ export async function unpublishSiteContent(key: string): Promise<SiteContentDocu
   await revokeSiteFile(publicUrlAt(record.published?.data, 'cv'), record.key);
   await revokeSiteFile(publicUrlAt(record.published?.data, 'heroBackground'), record.key);
   await revokeSiteFile(posterUrlAt(record.published?.data), record.key);
+
+  for (const url of achievementUrlsAt(record.published?.data)) {
+    await revokeSiteFile(url, record.key);
+  }
 
   record.set({ published: null, publishedAt: null, publishedByUserId: null });
 

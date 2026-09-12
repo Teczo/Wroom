@@ -1,3 +1,4 @@
+import { Achievements } from '../features/landing/Achievements';
 import { FeaturedProjects } from '../features/landing/FeaturedProjects';
 import { Hero } from '../features/landing/Hero';
 import { HeroBackdrop } from '../features/landing/HeroBackdrop';
@@ -116,6 +117,13 @@ export function LandingPage() {
           </div>
         </div>
       ) : null}
+
+      {/*
+       * Between the hero and the work, which is where the page argues for
+       * itself before it starts showing evidence. It decides for itself whether
+       * it has anything to say (§7.4), so there is no condition here.
+       */}
+      {data ? <Achievements title={data.achievementsTitle} items={data.achievementItems} /> : null}
 
       <FeaturedProjects
         limit={featuredLimit}

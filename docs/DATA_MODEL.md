@@ -547,7 +547,15 @@ The portfolio's own copy. Draft/published split so changing a sentence never req
   portraitAssetId: null,           // → assets._id, a site asset (projectId: null)
   cvAssetId: null,                 // → assets._id, a site asset; PDF only
   heroBackgroundAssetId: null,     // → assets._id, a site asset; image or video
-  heroBackgroundPosterAssetId: null // → assets._id, a site asset; image, for a video background
+  heroBackgroundPosterAssetId: null,// → assets._id, a site asset; image, for a video background
+  achievementsTitle: "My achievements",
+  achievements: [                   // ordered; max 12
+    {
+      assetId: null,                // → assets._id, a site asset; image
+      title: "Shipped FusionSite360XR",
+      body: "What it was and why it mattered."
+    }
+  ]
 }
 
 // about
@@ -647,7 +655,8 @@ written.
 About's `ctaLabel` is a label only, like the landing hero's buttons: the button
 goes to `/contact`, fixed in the page.
 
-**`published.data` carries fields the draft does not: `marks`, `portrait`, and `cv`.**
+**`published.data` carries fields the draft does not: `marks`, `portrait`, `cv`,
+`heroBackground` and `achievementItems`.**
 
 ```js
 // siteContent.published.data, on landing / about / contact / skills
@@ -665,6 +674,9 @@ heroBackground: {
   variants: { thumb, card, hero } | null,   // null for a video
   poster: { url, alt, variants } | null     // only for a video
 } | null
+achievementItems: [                          // ordered, mirrors achievements
+  { title, body, image: { url, alt, variants } | null }
+]
 ```
 
 The portfolio may not read `mediaLibrary`, so a `mediaKey` has to arrive already
@@ -700,20 +712,43 @@ loads, and the whole of what a visitor who asked for no motion sees (CLAUDE.md
 §7.5). A background that is neither an image nor a video stops the publish; a
 clip with no poster does not.
 
+`achievementItems` is the achievements list with its pictures resolved, and it
+is the first media field on this record that is a list rather than a single
+value. Each row is gated and copied on its own account, in order. A row whose
+`assetId` is null publishes as words with no picture — a row typed before its
+picture is uploaded is the normal state of a page being written, and the section
+drops the frame for that row rather than dropping the row. A row whose asset is
+missing or still private stops the publish and names the row, the same way a
+private portrait stops it; this is deliberately unlike `marks`, which drops what
+it cannot use, because a mark is an icon and this is half of a row.
+
+The words are copied onto `achievementItems` rather than left behind in
+`achievements`, so the public page reads one array instead of walking two in
+step — and so `achievements`, which carries asset ids, can be stripped whole.
+
 Unpublishing deletes those copies before clearing the record, unless another
 published page still shows the same file. So does swapping one for another: the
 blob delete is what revokes access, and a snapshot removed while its blobs
 remain leaves a permanently cacheable public URL. The "still shown" check looks
 at every published page's `portrait`, `cv`, `heroBackground` and that
-background's `poster` together, not just the field being revoked — a URL pointed at from anywhere live is a URL whose bytes have to stay.
+background's `poster` together — and every row of every `achievementItems` —
+not just the field being revoked: a URL pointed at from anywhere live is a URL
+whose bytes have to stay.
+
+For the list this is a set difference rather than a before-and-after comparison.
+Removing one row, reordering the rows, or swapping a single row's picture each
+leave every other URL exactly where it was, and a pairwise check gets all three
+wrong in the direction that leaves a public blob behind for content nobody
+publishes any more.
 
 `GET /public/content/:key` strips `portraitAssetId`, `cvAssetId`,
-`heroBackgroundAssetId` and `heroBackgroundPosterAssetId` on the way out: the
-resolved `portrait`, `cv` and `heroBackground` are what a page renders, and a
-public payload has no business naming a record in an operational collection.
+`heroBackgroundAssetId`, `heroBackgroundPosterAssetId` and the whole of
+`achievements` on the way out: the resolved `portrait`, `cv`, `heroBackground`
+and `achievementItems` are what a page renders, and a public payload has no
+business naming a record in an operational collection.
 
-All four are server-owned: `PATCH /api/content/:key` strips `marks`, `portrait`,
-`cv` and `heroBackground` from the body, so the only markup that reaches a published page comes from a
+All five are server-owned: `PATCH /api/content/:key` strips `marks`, `portrait`,
+`cv`, `heroBackground` and `achievementItems` from the body, so the only markup that reaches a published page comes from a
 `mediaLibrary` record the API sanitised on write, and the only image URLs come
 from blobs the gate let through. Resolution is frozen at publish — editing a
 mark or replacing an image changes the live page only when the page is published

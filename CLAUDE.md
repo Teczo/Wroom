@@ -357,6 +357,7 @@ Design references are desktop. These are the confirmed 390px behaviours — impl
 | Landing hero buttons | Stacked, each full width of the copy column — which is now the left of the hero, the portrait having the right. |
 | Landing tech row | Each mark in a tile of its own, in one scroll-snap line that runs off the right edge and is swiped. The marks keep their size. It wraps instead from `lg`, where the column is narrower than a phone. |
 | Landing stats | Two per row, not four. |
+| Landing achievements | Picture above, words below. One picture per viewport in a scroll-snap track, swiped, dot indicators, arrows hidden. Swiping changes the words under it, same as an arrow does at desktop width. |
 | Header CTA | Out of the bar and into the foot of the nav overlay, full width. |
 | Featured projects | Carousel, one card per viewport, swipe, dot indicators, arrows hidden. `View all` stays beside the heading at its own width rather than dropping under it full width. |
 | Product header | Chip, title, tagline, paragraph and buttons stack. Buttons full width. |

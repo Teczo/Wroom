@@ -485,8 +485,8 @@ export async function deleteAsset(projectId: string | null, id: string): Promise
  *
  * A page can name one in two ways and they are not the same lookup. A draft
  * holds the asset's id — `portraitAssetId`, `cvAssetId`,
- * `heroBackgroundAssetId`, `heroBackgroundPosterAssetId` — because that is what
- * an editor picked. A published page holds the public URL its blob was copied
+ * `heroBackgroundAssetId`, `heroBackgroundPosterAssetId`, and any of the ids in
+ * `achievements` — because that is what an editor picked. A published page holds the public URL its blob was copied
  * to, because the portfolio may never read `assets` at all (§6, §8). Asking
  * only one of those questions misses half the references.
  *
@@ -508,6 +508,9 @@ async function siteContentReferences(
     { 'draft.data.cvAssetId': id },
     { 'draft.data.heroBackgroundAssetId': id },
     { 'draft.data.heroBackgroundPosterAssetId': id },
+    // Matches through the array: Mongo applies a dotted path to every element,
+    // so this finds the asset wherever in the list it was used.
+    { 'draft.data.achievements.assetId': id },
   ];
 
   if (url) {
@@ -516,6 +519,7 @@ async function siteContentReferences(
       { 'published.data.cv.url': url },
       { 'published.data.heroBackground.url': url },
       { 'published.data.heroBackground.poster.url': url },
+      { 'published.data.achievementItems.image.url': url },
     );
   }
 
@@ -535,7 +539,14 @@ async function siteContentReferences(
       draft.portraitAssetId === id ||
       draft.cvAssetId === id ||
       draft.heroBackgroundAssetId === id ||
-      draft.heroBackgroundPosterAssetId === id
+      draft.heroBackgroundPosterAssetId === id ||
+      // The list has to be walked rather than compared. A picture used by the
+      // fourth achievement is as much in use as a portrait is, and a check that
+      // only looked at the scalar fields would report it unused and delete it.
+      (Array.isArray(draft.achievements) &&
+        draft.achievements.some(
+          (row) => (row as { assetId?: unknown } | undefined)?.assetId === id,
+        ))
     ) {
       found.push({ key: String(row.key), where: 'draft' });
     }
@@ -550,12 +561,19 @@ async function siteContentReferences(
       published.heroBackground as { poster?: { url?: unknown } | null } | undefined
     )?.poster?.url;
 
+    const inAchievements =
+      Array.isArray(published.achievementItems) &&
+      published.achievementItems.some(
+        (row) => (row as { image?: { url?: unknown } | null } | undefined)?.image?.url === url,
+      );
+
     if (
       url &&
       (urlAt('portrait') === url ||
         urlAt('cv') === url ||
         urlAt('heroBackground') === url ||
-        posterUrl === url)
+        posterUrl === url ||
+        inAchievements)
     ) {
       found.push({ key: String(row.key), where: 'published' });
     }
