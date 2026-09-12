@@ -86,7 +86,18 @@ export function LandingPage() {
            * hero in it still renders nothing at all, rather than reserving a
            * screen of emptiness for content that is never coming.
            */
-          className={`relative ${content.isPending ? 'min-h-[34rem]' : ''}`}
+          /*
+           * The padding at the foot is the backdrop's room to end in. The plate
+           * is `bottom-0` against this box, so this is what carries it on past
+           * the band of counts and gives the mask something to fade over —
+           * `--hero-backdrop-fade` is the same value the mask uses, named once
+           * in `index.css`.
+           *
+           * `lg` only, because the backdrop is `lg` only. Below that there is
+           * no plate, nothing to seam, and §7.7 has already said what the foot
+           * of the hero does on a phone.
+           */
+          className={`relative ${content.isPending ? 'min-h-[34rem]' : ''} lg:pb-[var(--hero-backdrop-fade)]`}
         >
           <HeroBackdrop background={data.heroBackground} />
           <Hero data={data} />

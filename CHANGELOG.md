@@ -11,6 +11,11 @@
 - The same fix is applied to the portrait, the CV download and the about page's
   portrait, so none of them can take a page down either.
 
+- The landing page's background picture no longer ends in a hard line across
+  the screen. It now carries on past the band of counts and dissolves into the
+  page, and there is a proper gap before the work below it rather than the two
+  meeting on the same pixel. Desktop only — a phone never had the picture.
+
 - The front page no longer jumps as it loads. The footer used to be laid out
   against the bottom of the screen for a fraction of a second and then thrown
   off it the moment the hero arrived, which read as a flinch. The hero's space
