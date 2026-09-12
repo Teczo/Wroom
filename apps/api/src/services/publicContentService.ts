@@ -36,6 +36,11 @@ export async function getPublishedContent(key: string): Promise<Record<string, u
  * record is exactly what `publishedProjects` is careful not to do
  * (docs/DATA_MODEL.md).
  *
+ * `achievements` goes for the same reason, and it is the one that is a whole
+ * array rather than a lone id: every row in it carries an `assetId`. Its
+ * resolved twin `achievementItems` already carries the words as well as the
+ * picture, so nothing the section renders is lost by dropping it.
+ *
  * It is stripped here rather than at publish so the portal can still tell that
  * the draft names a different image from the one that is live.
  */
@@ -47,6 +52,7 @@ function withoutOperationalRefs(data: unknown): Record<string, unknown> {
     cvAssetId: _cvId,
     heroBackgroundAssetId: _backgroundId,
     heroBackgroundPosterAssetId: _posterId,
+    achievements: _achievements,
     ...rest
   } = data as Record<string, unknown>;
   return rest;

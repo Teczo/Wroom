@@ -813,6 +813,131 @@ function RowsEditor<T extends Record<string, string>>({
   );
 }
 
+type Achievement = { assetId: string | null; title: string; body: string };
+
+/**
+ * The achievements list on the landing page: a picture, a name and a paragraph.
+ *
+ * Its own editor rather than a fifth caller of `RowsEditor`, because the two are
+ * not the same errand. `RowsEditor` is rows of text optionally led by a glyph
+ * from the library, and it is typed `Record<string, string>` on purpose; an
+ * achievement is led by an uploaded picture, which is a nullable asset id and a
+ * whole `SiteAssetField` rather than a select. Bending the shared editor around
+ * one caller would make it worse for the four it already serves.
+ *
+ * The move buttons matter here for the same reason they matter on the timeline:
+ * the section renders in the order it is written, so slotting a new achievement
+ * into the middle has to be a move rather than a retype.
+ *
+ * The picture is optional and stays optional. A row is very often typed before
+ * its picture is found, and publishing a row with words and no frame is a page
+ * part-written rather than a page broken (CLAUDE.md §7.4). A picture that *is*
+ * chosen but still private is the other case: `SiteAssetField` says so and
+ * offers to fix it, and publishing refuses until it is.
+ */
+function AchievementsEditor({
+  rows,
+  onChange,
+  idPrefix,
+}: {
+  rows: Achievement[];
+  onChange: (next: Achievement[]) => void;
+  idPrefix: string;
+}) {
+  const update = (index: number, patch: Partial<Achievement>) =>
+    onChange(rows.map((row, at) => (at === index ? { ...row, ...patch } : row)));
+
+  function move(from: number, to: number): void {
+    if (to < 0 || to >= rows.length) return;
+    const next = [...rows];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved as Achievement);
+    onChange(next);
+  }
+
+  return (
+    <fieldset className="space-y-2">
+      <legend className="text-sm font-medium text-slate-800">Achievements</legend>
+      <p className="text-xs text-slate-500">
+        Shown between the hero and the work, a picture at a time. The heading above them is
+        the field below — leave it empty and the whole section stays off the site.
+      </p>
+
+      {rows.map((row, index) => (
+        <div key={index} className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-2">
+          <input
+            aria-label={`Achievement ${index + 1} title`}
+            className={inputClasses}
+            value={row.title}
+            placeholder="What you did"
+            onChange={(event) => update(index, { title: event.target.value })}
+          />
+
+          <textarea
+            aria-label={`Achievement ${index + 1} description`}
+            className={`${inputClasses} min-h-20`}
+            value={row.body}
+            placeholder="What it was, and why it mattered."
+            onChange={(event) => update(index, { body: event.target.value })}
+          />
+
+          <SiteAssetField
+            idPrefix={`${idPrefix}-${index}`}
+            value={row.assetId}
+            onChange={(assetId) => update(index, { assetId })}
+            slot={`achievement ${index + 1} picture`}
+            legend="Picture"
+            hint="Optional. Marked public before the page can publish it."
+            accept={IMAGE_MIME_TYPES}
+            accepts={(mimeType) => mimeType.startsWith('image/')}
+          />
+
+          <div className="flex justify-end gap-1">
+            <Button
+              type="button"
+              variant="ghost"
+              className="min-h-9 px-2 text-xs"
+              disabled={index === 0}
+              aria-label={`Move achievement ${index + 1} up`}
+              onClick={() => move(index, index - 1)}
+            >
+              ↑
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              className="min-h-9 px-2 text-xs"
+              disabled={index === rows.length - 1}
+              aria-label={`Move achievement ${index + 1} down`}
+              onClick={() => move(index, index + 1)}
+            >
+              ↓
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              className="min-h-9 px-2 text-xs text-red-600 hover:bg-red-50"
+              aria-label={`Remove achievement ${index + 1}`}
+              onClick={() => onChange(rows.filter((_, at) => at !== index))}
+            >
+              ✕
+            </Button>
+          </div>
+        </div>
+      ))}
+
+      <Button
+        type="button"
+        variant="secondary"
+        className="min-h-9 text-xs"
+        onClick={() => onChange([...rows, { assetId: null, title: '', body: '' }])}
+      >
+        Add an achievement
+      </Button>
+    </fieldset>
+  );
+}
+
 type Stat = { mediaKey: string; value: string; label: string };
 
 /**
@@ -1050,6 +1175,26 @@ export function LandingDataForm({
         onChange={(heroBackgroundPosterAssetId) =>
           onChange({ ...data, heroBackgroundPosterAssetId })
         }
+      />
+
+      <Field
+        label="Achievements heading"
+        htmlFor="ld-achievements-title"
+        error={errors['data.achievementsTitle']}
+      >
+        <input
+          id="ld-achievements-title"
+          className={inputClasses}
+          value={data.achievementsTitle}
+          onChange={(event) => onChange({ ...data, achievementsTitle: event.target.value })}
+          placeholder="My achievements"
+        />
+      </Field>
+
+      <AchievementsEditor
+        idPrefix="ld-achievement"
+        rows={data.achievements}
+        onChange={(achievements) => onChange({ ...data, achievements })}
       />
 
       <StringListEditor

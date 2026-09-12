@@ -2,6 +2,7 @@ import { MEDIA_SVG_MAX_LENGTH } from '../../constants.js';
 import {
   arrayOf,
   nullable,
+  objectId,
   slug,
   strictObject,
   string,
@@ -207,4 +208,61 @@ export type SiteContentBackground = Infer<typeof publishedBackgroundShape>;
 
 export function heroBackgroundField(): Validator<SiteContentBackground | null> {
   return withDefault(nullable(strictObject(publishedBackgroundShape)), null);
+}
+
+/**
+ * `data.achievements` — what an achievement is written as, before publishing.
+ *
+ * The authored half, and the only half an editor touches: a picture chosen from
+ * `assets`, a name for it, and a paragraph. `assetId` is nullable because a row
+ * is typed before its picture is uploaded as often as the other way round, and
+ * refusing to save the page in between would make the editor unusable.
+ *
+ * `title` is the one thing a row cannot be without. A row with a picture and no
+ * name is not an achievement, it is a photograph — and because a row with
+ * nothing in it is what a mis-click produces, `min: 1` is what stops the list
+ * filling with blanks that the public page would then have to decide about.
+ */
+export const achievementDraftShape = {
+  assetId: withDefault(nullable(objectId()), null),
+  title: string({ min: 1, max: 120 }),
+  body: withDefault(string({ max: 600, allowEmpty: true }), ''),
+};
+
+export type SiteContentAchievementDraft = Infer<typeof achievementDraftShape>;
+
+export function achievementsField(): Validator<SiteContentAchievementDraft[]> {
+  return withDefault(arrayOf(strictObject(achievementDraftShape), { max: 12 }), []);
+}
+
+/**
+ * `data.achievementItems` — the same rows with their pictures resolved.
+ *
+ * Server-owned, exactly as `portrait`, `cv` and `heroBackground` are, and for
+ * the identical reason: the draft names an id into `assets`, a collection the
+ * portfolio may never read, and only the publish action is allowed to turn one
+ * into a public URL. An `achievementItems` sent to `PATCH /api/content/:key` is
+ * dropped rather than stored (§6, §8).
+ *
+ * The text is copied across rather than left behind in `achievements`, so the
+ * public page reads one array instead of walking two in step. `achievements`
+ * itself is stripped from every `/public` response, because it carries asset
+ * ids and those belong to the operational side of the house.
+ *
+ * `image` is nullable because `assetId` is: a row typed before its picture is
+ * uploaded publishes as words alone, and the section drops the frame for that
+ * one row rather than dropping the row. A picture that exists but is still
+ * private is the other case entirely and stops the publish, the same way a
+ * private portrait does — see `resolveAchievements`.
+ */
+export const publishedAchievementShape = {
+  title: withDefault(string({ max: 120, allowEmpty: true }), ''),
+  body: withDefault(string({ max: 600, allowEmpty: true }), ''),
+  image: withDefault(nullable(strictObject(publishedImageShape)), null),
+};
+
+export type SiteContentAchievement = Infer<typeof publishedAchievementShape>;
+
+export function achievementItemsField(): Validator<SiteContentAchievement[]> {
+  return withDefault(arrayOf(strictObject(publishedAchievementShape), { max: 12 }), []);
 }

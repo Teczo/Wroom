@@ -1,6 +1,7 @@
 import {
   Children,
   useCallback,
+  useEffect,
   useLayoutEffect,
   useRef,
   useState,
@@ -54,6 +55,18 @@ export interface CarouselProps {
    * dots do the telling (§7.7).
    */
   controls?: 'below' | 'side';
+  /**
+   * Told which slide is now the one you are on, whenever that changes.
+   *
+   * The track already works this out for its own dots; this only hands the
+   * answer out. It exists for a caller whose slides are not the whole of the
+   * section — the achievements row pairs each picture with its own paragraph
+   * beside it, and that paragraph has to change when a finger swipes the
+   * pictures, not only when an arrow is pressed.
+   *
+   * Optional, and the row is unchanged without it.
+   */
+  onActiveChange?: (index: number) => void;
   className?: string;
 }
 
@@ -91,6 +104,7 @@ export function Carousel({
   children,
   slideClassName = 'w-full md:w-96',
   controls = 'below',
+  onActiveChange,
   className = '',
 }: CarouselProps) {
   const trackRef = useRef<HTMLUListElement | null>(null);
@@ -108,6 +122,17 @@ export function Carousel({
   const count = slides.length;
 
   const [active, setActive] = useState(0);
+
+  /*
+   * Reported from an effect rather than from `readPosition`, which runs on
+   * every scroll frame: the state setter already collapses a scroll into one
+   * change of `active`, so this fires once per slide rather than once per
+   * frame. Setting state in a parent from inside a scroll handler is also the
+   * short road to a render loop, and an effect keyed on the value cannot.
+   */
+  useEffect(() => {
+    onActiveChange?.(active);
+  }, [active, onActiveChange]);
   const [atStart, setAtStart] = useState(true);
   const [atEnd, setAtEnd] = useState(count <= 1);
   const [scrollable, setScrollable] = useState(false);

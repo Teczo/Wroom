@@ -2,6 +2,23 @@
 
 ## 2026-09-12
 
+- The landing page can now carry a list of achievements, between the hero and
+  the work. Each one is a picture, a name and a paragraph. The pictures sit in
+  a row you can step through with the arrows, the dots or a finger, and the
+  words beside them fade and change to match whichever picture you are on. On
+  a phone the picture sits above the words instead of beside them.
+
+- They are written on the landing content page in the portal: add a row, type
+  the name and the description, upload or choose the picture, and drag rows up
+  and down into the order you want. The heading above the whole section is a
+  field of its own — leave it empty and the section stays off the site, however
+  many rows are under it. A row can be written before its picture is found, and
+  publishes as words alone until one is.
+
+- Removing an achievement, reordering them, or swapping one picture for another
+  takes the old picture off the public site properly, rather than leaving it
+  reachable at its old address.
+
 - The landing page no longer goes blank when the hero background is missing
   from the published record. It used to take the whole front page down with it
   — hero, counts, everything — leaving a visitor looking at the work row with
