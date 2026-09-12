@@ -41,7 +41,7 @@ export function AboutIntro({
   const portrait = data.portrait;
 
   const hasTerminal = terminalLines.length > 0;
-  const hasCentre = hasTerminal || portrait !== null;
+  const hasCentre = hasTerminal || Boolean(portrait);
   const hasWords = headline !== '' || subtitle !== '' || body !== '' || infoCards.length > 0;
 
   if (!hasWords && !hasCentre) return null;

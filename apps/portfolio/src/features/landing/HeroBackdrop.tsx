@@ -66,7 +66,26 @@ export function HeroBackdrop({ background }: { background: LandingData['heroBack
   const desktop = useDesktop();
   const reduced = usePrefersReducedMotion();
 
-  if (background === null || !desktop) return null;
+  /*
+   * Truthiness rather than `=== null`, and the difference is a blank page.
+   *
+   * The record reaching here has been through `landingDataSchema`, which
+   * defaults this field to `null` — so `null` is the only empty value the
+   * schema can produce, and `=== null` looks exact. It is exact against the
+   * schema the *running bundle* was built with, which is not always the schema
+   * the published record was written against: `packages/shared` compiles to
+   * `dist`, and a frontend running a lagging build parses today's record with
+   * last fortnight's fields. A field that build has never heard of arrives
+   * `undefined`, slips past a `null` check, and the next line reads `poster`
+   * off nothing.
+   *
+   * That is not hypothetical — it is exactly how this component took the whole
+   * landing page down with it, hero and all, rather than quietly dropping a
+   * backdrop nobody would have missed. A guard on optional published media has
+   * to fail closed on anything empty, because the failure mode of a decoration
+   * must never be worse than the failure mode of the page it decorates.
+   */
+  if (!background || !desktop) return null;
 
   const poster = background.poster;
   const isVideo = background.kind === 'video';

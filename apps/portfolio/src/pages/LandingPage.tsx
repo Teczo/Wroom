@@ -58,7 +58,36 @@ export function LandingPage() {
        * no plate and this box is two sections in a row, exactly as before.
        */
       data ? (
-        <div className="relative">
+        <div
+          /*
+           * The floor under the hero while the record is still in flight.
+           *
+           * `readLandingData` parses `undefined` into a fully defaulted record
+           * rather than a failure, so `data` is truthy from the very first
+           * render and this box is always mounted — it is simply empty until
+           * the request lands, because every section inside it decides it has
+           * nothing to show (§7.4). Empty means zero height.
+           *
+           * The shell is `min-h-dvh` with `main` taking up the slack, so a page
+           * whose middle is zero high lays the footer neatly against the bottom
+           * of the viewport. Two hundred milliseconds later the record arrives,
+           * this box goes from nothing to the better part of a thousand pixels,
+           * and the footer is yanked off the bottom of the screen. It measures
+           * as a 0.31 layout shift and it reads as the page flinching.
+           *
+           * Holding the hero's own floor while the query is pending is enough
+           * to stop it: the footer starts below the fold, which is where it
+           * ends up, so it never travels anywhere a visitor can see. The height
+           * does not have to be exact — only tall enough to put the footer off
+           * screen — so it is the `lg:min-h-[34rem]` the hero gives itself when
+           * it has a backdrop, applied at every width and only while waiting.
+           *
+           * It is released the moment the request settles. A record with no
+           * hero in it still renders nothing at all, rather than reserving a
+           * screen of emptiness for content that is never coming.
+           */
+          className={`relative ${content.isPending ? 'min-h-[34rem]' : ''}`}
+        >
           <HeroBackdrop background={data.heroBackground} />
           <Hero data={data} />
           {/* Over the plate, not under it. */}

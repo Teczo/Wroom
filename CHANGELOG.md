@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-09-12
+
+- The landing page no longer goes blank when the hero background is missing
+  from the published record. It used to take the whole front page down with it
+  — hero, counts, everything — leaving a visitor looking at the work row with
+  nothing above it. Now a backdrop that cannot be read is simply not drawn, and
+  the rest of the page is unaffected.
+
+- The same fix is applied to the portrait, the CV download and the about page's
+  portrait, so none of them can take a page down either.
+
+- The front page no longer jumps as it loads. The footer used to be laid out
+  against the bottom of the screen for a fraction of a second and then thrown
+  off it the moment the hero arrived, which read as a flinch. The hero's space
+  is now held while it loads, so nothing visible moves.
+
 ## 2026-09-11
 
 - The contact page now asks one question at a time. It opens on "What do you
