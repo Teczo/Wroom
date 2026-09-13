@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09-13
+
+- The browser tab on the public site now reads "Jayagaren — Work" instead of
+  "Teczo — Work".
+
 ## 2026-09-12
 
 - The landing page can now carry a list of achievements, between the hero and
