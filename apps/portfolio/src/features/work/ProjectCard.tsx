@@ -14,14 +14,17 @@ import { usePointerTilt } from '../../lib/usePointerTilt';
  *
  * - `featured` is the landing row. Name, blurb, and the category as a chip at
  *   the foot. Nothing else — the row is a taste of the work, not an index.
- * - `index` is the work page. The product the project belongs to sits above the
- *   name, the category rides on the picture, and the foot carries the link
+ * - `index` is the work page. The category sits above the name as a label, the
+ *   technologies ride at the foot as a row of words, and under them the link
  *   affordance, because a card in a list of many has to say where it goes.
  *
  * Every string here is snapshot data. Nothing about a project is written into
  * this file (§2 rule 8).
  */
 export type ProjectCardVariant = 'featured' | 'index';
+
+/** How many technologies a card names before it starts counting them. */
+const TECH_PILLS = 4;
 
 export function ProjectCard({
   project,
@@ -53,8 +56,16 @@ export function ProjectCard({
   const enter = entering(inView, 'rise', delayMs, 750);
 
   const category = project.category.trim();
-  const productName = project.productName.trim();
   const isIndex = variant === 'index';
+
+  /*
+   * The first few technologies, by their label. `techStack` is a list of marks
+   * resolved into the snapshot at publish, and a card shows the words rather
+   * than the logos — four of them, so a project with a long stack does not make
+   * a card twice the height of the one beside it in the grid.
+   */
+  const tech = isIndex ? project.techStack.slice(0, TECH_PILLS) : [];
+  const overflow = isIndex ? project.techStack.length - tech.length : 0;
 
   return (
     // Wrapped rather than given the entrance classes directly: the card itself
@@ -80,7 +91,7 @@ export function ProjectCard({
          * and a screen reader reading a screenshot's alt text here would announce
          * the project twice.
          */}
-        <div className="relative h-40 w-full shrink-0 overflow-hidden border-b border-border bg-surface-deep">
+        <div className="h-40 w-full shrink-0 overflow-hidden border-b border-border bg-surface-deep">
           {image ? (
             <img
               src={image}
@@ -90,33 +101,21 @@ export function ProjectCard({
               className="size-full object-cover transition-transform duration-700 ease-out-expo group-hover:scale-[1.03]"
             />
           ) : null}
-
-          {/*
-           * On the index the chip sits on the picture, where the design puts
-           * it. It is the same `category` the landing card shows at its foot,
-           * said once per card either way.
-           */}
-          {isIndex && category ? (
-            <span className="absolute left-3 top-3 rounded-md border border-border-strong bg-canvas/75 px-2 py-1 font-heading text-[0.625rem] font-medium uppercase tracking-[0.14em] text-fg backdrop-blur-sm">
-              {category}
-            </span>
-          ) : null}
         </div>
 
         <div className="flex flex-1 flex-col p-4">
           {/*
-           * The product the project belongs to. A product groups several
-           * projects internally, so naming it above the title is what tells a
-           * visitor that the web build and the headset build are one thing
-           * (decision 9).
+           * The category, as a label over the name. It is the same `category`
+           * the landing card shows as a chip at its foot — said once per card
+           * either way, in the place each layout puts it.
            */}
-          {isIndex && productName ? (
+          {isIndex && category ? (
             <p className="font-heading text-[0.625rem] font-medium uppercase tracking-[0.16em] text-muted">
-              {productName}
+              {category}
             </p>
           ) : null}
 
-          <div className={`flex items-center gap-2.5 ${isIndex && productName ? 'mt-1.5' : ''}`}>
+          <div className={`flex items-center gap-2.5 ${isIndex && category ? 'mt-1.5' : ''}`}>
             {/*
              * The project's own icon, resolved into the snapshot at publish. A
              * project without one is not drawn as a blank square — the name
@@ -139,6 +138,32 @@ export function ProjectCard({
             <span className="mt-4 inline-flex w-fit rounded border border-border px-2 py-1 font-heading text-[0.625rem] font-medium uppercase tracking-[0.14em] text-accent [transition-property:color,border-color] duration-500 ease-out-expo group-hover:border-border-strong group-hover:text-accent-hover">
               {category}
             </span>
+          ) : null}
+
+          {/* The words, not the logos — `techStack` is a list of marks and a card
+              names them. The row wraps rather than scrolling: a card is a fixed
+              width in the grid and a second line of words is fine. */}
+          {isIndex && tech.length > 0 ? (
+            <ul className="mt-4 flex flex-wrap gap-1.5">
+              {tech.map((mark) => (
+                <li
+                  key={mark.key}
+                  className="rounded-full border border-border bg-surface-deep px-2.5 py-1 text-[0.6875rem] text-muted"
+                >
+                  {mark.label}
+                </li>
+              ))}
+              {/*
+               * A numeral, not a phrase. A card is a taste of the stack and the
+               * project page carries all of it, so the rest is counted rather
+               * than listed — and counted rather than dropped silently.
+               */}
+              {overflow > 0 ? (
+                <li className="rounded-full border border-border bg-surface-deep px-2.5 py-1 text-[0.6875rem] text-muted">
+                  +{overflow}
+                </li>
+              ) : null}
+            </ul>
           ) : null}
 
           {/*
