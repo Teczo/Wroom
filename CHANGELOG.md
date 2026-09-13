@@ -2,6 +2,25 @@
 
 ## 2026-09-13
 
+- The work page is now one grid of every published project, with a row of
+  category chips, a search box and an order control above it. Pressing a chip
+  narrows the grid to that category; typing in the box finds a project by its
+  name, its product, its category, its description or any technology on it; the
+  order control offers most recent, oldest, name, or the order set in the
+  portal. The count under the controls says how many are showing, and a search
+  that finds nothing says so and offers a way back to all of them. The
+  categories a visitor sees come from the published projects themselves, so
+  publishing a project under new words adds its chip.
+
+- Each card on the work page now names the technologies behind the project,
+  and shows the category as a label above the project's name rather than as a
+  tag over the picture. A project with a long stack names the first four and
+  counts the rest.
+
+- The work page used to be a stack of category sections, each opening to a row
+  you swiped through. That is gone — everything is on the page at once now,
+  and the chips do what the sections used to.
+
 - The browser tab on the public site now reads "Jayagaren — Work" instead of
   "Teczo — Work".
 
