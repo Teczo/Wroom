@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09-15
+
+- A project's repo is now a link at the top of its page in the portal, beside
+  the project name. It stays there on every tab, and opens the repo in a new
+  tab. A project with no repo recorded shows nothing there.
+
 ## 2026-09-13
 
 - The work page is now one grid of every published project, with a row of

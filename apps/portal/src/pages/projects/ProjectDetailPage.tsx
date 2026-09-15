@@ -29,6 +29,38 @@ import { hours, money, relativeDate, shortDate } from '../../lib/format';
 const tabs = ['Overview', 'Features', 'Costs', 'Time', 'Edit'] as const;
 type Tab = (typeof tabs)[number];
 
+/**
+ * The repo, reachable from every tab. `fullName` is free text, so a pasted URL
+ * is used as it stands and a bare `owner/name` is resolved against GitHub —
+ * the only provider the schema allows.
+ */
+function repoUrl(repo: Project['repo']): string | null {
+  const value = repo.fullName.trim();
+  if (!value) return null;
+  if (/^https?:\/\//i.test(value)) return value;
+  return `https://github.com/${value.replace(/^\/+|\/+$/g, '')}`;
+}
+
+function RepoLink({ repo }: { repo: Project['repo'] }) {
+  const href = repoUrl(repo);
+  if (!href) return null;
+
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer noopener"
+      title={`Open ${repo.fullName} in a new tab`}
+      className="inline-flex min-h-9 max-w-full items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-sm text-blue-700 underline underline-offset-2 hover:border-slate-300 hover:text-blue-900 sm:max-w-64"
+    >
+      <span className="shrink-0 text-xs font-medium uppercase tracking-wide text-slate-500">
+        Repo
+      </span>
+      <span className="min-w-0 truncate">{repo.fullName.trim()}</span>
+    </a>
+  );
+}
+
 function Overview({ project }: { project: Project }) {
   const stack = [
     ...project.techStack.frontend,
@@ -169,7 +201,12 @@ export function ProjectDetailPage() {
       <PageHeader
         title={project.data.name}
         subtitle={project.data.shortDescription || undefined}
-        actions={<ProjectStatusPill status={project.data.status} />}
+        actions={
+          <>
+            <RepoLink repo={project.data.repo} />
+            <ProjectStatusPill status={project.data.status} />
+          </>
+        }
       />
 
       <div className="-mx-4 mb-6 overflow-x-auto border-b border-slate-200 px-4">
