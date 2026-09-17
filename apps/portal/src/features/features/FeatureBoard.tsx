@@ -16,6 +16,7 @@ import { ApiRequestError } from '../../lib/api';
 import { humanise } from '../../lib/format';
 import { useProject } from '../projects/api';
 import { useCreateFeature, useFeatures, useMoveFeature } from './api';
+import { readLastCopied, sinceCopied, writeLastCopied, type LastCopied } from './lastCopied';
 
 /**
  * The Kanban board.
@@ -24,8 +25,13 @@ import { useCreateFeature, useFeatures, useMoveFeature } from './api';
  * at 390px, and a drag target that small is a worse control than a menu.
  */
 
-/** Long enough to read, short enough that the button is ready for the next card. */
-const COPIED_FOR_MS = 2000;
+/**
+ * Long enough to answer the prompt without hurrying, short enough that the card
+ * is back to its normal self before you look away.
+ */
+const PROMPT_FOR_MS = 6000;
+
+type CopyState = 'idle' | 'copied' | 'failed';
 
 /**
  * Puts the card's ticket on the clipboard.
@@ -33,26 +39,26 @@ const COPIED_FOR_MS = 2000;
  * Dependencies and siblings come from the board's own list — the ticket is
  * assembled from what is already on screen, so pressing this costs no request.
  */
-function CopyTicketButton({
+function useCopyTicket({
   feature,
-  project,
   featuresById,
+  onCopied,
 }: {
   feature: Feature;
-  project: Project | undefined;
   featuresById: Map<string, Feature>;
+  onCopied: () => void;
 }) {
-  const [state, setState] = useState<'idle' | 'copied' | 'failed'>('idle');
+  const [state, setState] = useState<CopyState>('idle');
 
   // Only the success state expires. A failure stays until the next attempt —
   // it is the one message worth reading twice.
   useEffect(() => {
     if (state !== 'copied') return;
-    const timer = window.setTimeout(() => setState('idle'), COPIED_FOR_MS);
+    const timer = window.setTimeout(() => setState('idle'), PROMPT_FOR_MS);
     return () => window.clearTimeout(timer);
   }, [state]);
 
-  async function copy(target: Project): Promise<void> {
+  async function copy(project: Project): Promise<void> {
     const deps = feature.dependsOnFeatureIds
       .map((id) => featuresById.get(id))
       .filter((dependency): dependency is Feature => dependency !== undefined);
@@ -63,38 +69,23 @@ function CopyTicketButton({
       // Throws rather than resolving when the page is not on a secure origin,
       // so the whole call sits inside the try.
       await navigator.clipboard.writeText(
-        renderFeatureTicket({ feature, project: target, siblings, deps }),
+        renderFeatureTicket({ feature, project, siblings, deps }),
       );
       setState('copied');
+      onCopied();
     } catch {
       setState('failed');
     }
   }
 
-  return (
-    <>
-      <Button
-        variant="secondary"
-        className="min-h-9 shrink-0 text-xs"
-        disabled={project === undefined}
-        title={project === undefined ? 'Waiting for the project details' : undefined}
-        onClick={() => {
-          if (project === undefined) return;
-          setState('idle');
-          void copy(project);
-        }}
-      >
-        {state === 'copied' ? 'Copied' : 'Copy ticket'}
-      </Button>
-
-      {state === 'failed' ? (
-        <p className="basis-full text-xs text-red-600">
-          The browser would not let the page copy. Select the ticket by hand, or open the portal
-          over https.
-        </p>
-      ) : null}
-    </>
-  );
+  return {
+    state,
+    dismiss: () => setState('idle'),
+    start: (project: Project) => {
+      setState('idle');
+      void copy(project);
+    },
+  };
 }
 
 function FeatureCard({
@@ -102,22 +93,45 @@ function FeatureCard({
   project,
   featuresById,
   onMove,
+  onCopied,
+  lastCopiedAt,
   isMoving,
 }: {
   feature: Feature;
   project: Project | undefined;
   featuresById: Map<string, Feature>;
   onMove: (status: FeatureStatus) => void;
+  onCopied: () => void;
+  /** Set only on the one card copied most recently; null on every other. */
+  lastCopiedAt: string | null;
   isMoving: boolean;
 }) {
+  const ticket = useCopyTicket({ feature, featuresById, onCopied });
+
+  // Copying a ticket is how work starts, so the card that was copied last is
+  // almost always the card that should be in progress. Both the mark and the
+  // prompt exist to make forgetting that visible.
+  const isMarked = lastCopiedAt !== null;
+  const askToMove = ticket.state === 'copied' && feature.status !== 'in-progress';
+
   return (
-    <article className="rounded-lg border border-slate-200 bg-white p-3">
+    <article
+      className={`rounded-lg border p-3 ${
+        isMarked ? 'border-amber-300 bg-amber-50 ring-2 ring-amber-200' : 'border-slate-200 bg-white'
+      }`}
+    >
       <div className="flex items-start justify-between gap-2">
         <p className="text-xs font-mono text-slate-500">{feature.ref}</p>
         <PriorityPill priority={feature.priority} />
       </div>
 
       <p className="mt-1 text-sm font-medium text-slate-900">{feature.title}</p>
+
+      {lastCopiedAt !== null ? (
+        <p className="mt-1 text-xs font-medium text-amber-700">
+          Last copied · {sinceCopied(lastCopiedAt)}
+        </p>
+      ) : null}
 
       {feature.blockedReason ? (
         <p className="mt-1 text-xs text-red-600">Blocked: {feature.blockedReason}</p>
@@ -143,8 +157,50 @@ function FeatureCard({
           ))}
         </select>
 
-        <CopyTicketButton feature={feature} project={project} featuresById={featuresById} />
+        <Button
+          variant="secondary"
+          className="min-h-9 shrink-0 text-xs"
+          disabled={project === undefined}
+          title={project === undefined ? 'Waiting for the project details' : undefined}
+          onClick={() => {
+            if (project === undefined) return;
+            ticket.start(project);
+          }}
+        >
+          {ticket.state === 'copied' ? 'Copied' : 'Copy ticket'}
+        </Button>
+
+        {ticket.state === 'failed' ? (
+          <p className="basis-full text-xs text-red-600">
+            The browser would not let the page copy. Select the ticket by hand, or open the portal
+            over https.
+          </p>
+        ) : null}
       </div>
+
+      {/* Asked here, a breath after the copy, because that is the moment the
+          move gets forgotten — not later, looking at a board that lies. */}
+      {askToMove ? (
+        <div className="mt-2 rounded-md bg-amber-100 p-2" role="status">
+          <p className="text-xs text-amber-900">Copied. Move it to In progress?</p>
+
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Button
+              className="min-h-9 flex-1 text-xs"
+              disabled={isMoving}
+              onClick={() => {
+                onMove('in-progress');
+                ticket.dismiss();
+              }}
+            >
+              Move to In progress
+            </Button>
+            <Button variant="ghost" className="min-h-9 text-xs" onClick={ticket.dismiss}>
+              Not now
+            </Button>
+          </div>
+        </div>
+      ) : null}
     </article>
   );
 }
@@ -232,6 +288,20 @@ export function FeatureBoard({ projectId }: { projectId: string }) {
   // cache rather than making a second request for it.
   const project = useProject(projectId);
   const [isAdding, setIsAdding] = useState(false);
+  const [lastCopied, setLastCopied] = useState<LastCopied | null>(null);
+
+  // Read per project, and re-read when the board is pointed at another one, so
+  // the mark never carries across from the project you were just looking at.
+  useEffect(() => setLastCopied(readLastCopied(projectId)), [projectId]);
+
+  // "just now" has to stop being true on its own. Nothing else on the board
+  // ages while you watch it, so this ticks only while a card is marked.
+  const [, setElapsed] = useState(0);
+  useEffect(() => {
+    if (lastCopied === null) return;
+    const timer = window.setInterval(() => setElapsed((count) => count + 1), 60_000);
+    return () => window.clearInterval(timer);
+  }, [lastCopied]);
 
   if (features.isPending) return <LoadingState label="Loading the board…" />;
   if (features.isError) {
@@ -305,6 +375,10 @@ export function FeatureBoard({ projectId }: { projectId: string }) {
                         project={project.data}
                         featuresById={featuresById}
                         isMoving={move.isPending}
+                        lastCopiedAt={
+                          lastCopied?.featureId === feature._id ? lastCopied.copiedAt : null
+                        }
+                        onCopied={() => setLastCopied(writeLastCopied(projectId, feature._id))}
                         onMove={(status) => {
                           if (status === feature.status) return;
                           move.mutate({
