@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-09-17
+
+- Copying a ticket on a project board now asks, right there on the card,
+  whether to move it to In progress. One tap moves it, one tap dismisses the
+  question, and it goes away on its own after a few seconds. The question is
+  not asked for a card already in progress. The card copied most recently also
+  stays marked in amber, with a line saying how long ago it was copied, until
+  another card is copied. The mark is remembered in the browser, so it survives
+  a refresh but does not follow you to another device.
+
 ## 2026-09-15
 
 - A project's repo is now a link at the top of its page in the portal, beside
