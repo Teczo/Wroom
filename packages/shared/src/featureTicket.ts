@@ -7,6 +7,16 @@
  * otherwise be typed out by hand every time. It is string templating and
  * nothing else: no request, no model, nothing stored.
  *
+ * There are two shapes. A card labelled `asset` is a generation prompt — an
+ * image, a model, a voice line, a piece of music — and what reads it is a
+ * generator, not a coding session. It gets the prompt itself and the few facts
+ * around it, and none of the branch, repo, stack or working rules, which would
+ * be noise at best and instructions at worst. Every other card renders exactly
+ * as it always has.
+ *
+ * Note that `asset` here has nothing to do with the `assets` collection and its
+ * publish gates. This one is a label somebody types on a feature card.
+ *
  * The input types are declared here and name only the fields actually read, so
  * this module does not churn every time `Feature` or `Project` grows a field.
  */
@@ -50,6 +60,30 @@ export type FeatureTicketInput = {
   /** What this feature waits on, already resolved from `dependsOnFeatureIds`. */
   deps: readonly FeatureTicketRelated[];
 };
+
+/** The label that makes a card a generation prompt rather than a piece of work. */
+const ASSET_LABEL = 'asset';
+
+/**
+ * What to generate, and what to call it on the ticket.
+ *
+ * Read in this order, not in the order the labels happen to sit on the card: a
+ * card tagged both `voice` and `image` is an image with a voice line somewhere
+ * downstream, and the first entry here wins.
+ */
+const TOOL_LABELS: readonly (readonly [label: string, name: string])[] = [
+  ['image', 'Image'],
+  ['3d', '3D model'],
+  ['voice', 'Voice'],
+  ['music', 'Music'],
+  ['sfx', 'Sound effect'],
+];
+
+/** Shown when no label above is on the card. The gap is the point — see below. */
+const TOOL_UNSPECIFIED = 'Unspecified';
+
+/** An asset card with nothing in its description has no prompt, and must say so. */
+const NO_PROMPT_WRITTEN = '(no prompt written)';
 
 /**
  * A gap is more useful than a guess. An empty description means nobody has
@@ -158,6 +192,69 @@ const HOW_TO_WORK = [
   '  NOTICED   — worth doing later; do not do it now',
 ].join('\n');
 
+/** Labels are typed by hand, so they are matched trimmed and case-blind. */
+function normalisedLabels(feature: FeatureTicketFeature): string[] {
+  return (feature.labels ?? []).map((label) => label.trim().toLowerCase());
+}
+
+/** Whether this card is a generation prompt rather than a piece of work. */
+function isAssetFeature(feature: FeatureTicketFeature): boolean {
+  return normalisedLabels(feature).includes(ASSET_LABEL);
+}
+
+function assetToolName(feature: FeatureTicketFeature): string {
+  const labels = normalisedLabels(feature);
+  const match = TOOL_LABELS.find(([label]) => labels.includes(label));
+
+  return match === undefined ? TOOL_UNSPECIFIED : match[1];
+}
+
+/** `WRM-201 — Gear icon`, and just the ref when nothing was titled. */
+function refAndTitle(item: { ref: string; title: string }): string {
+  const title = item.title.trim();
+  return title === '' ? item.ref : `${item.ref} — ${title}`;
+}
+
+/** `TOOL     Image` — one label column, one space past the longest label. */
+function assetLines(rows: readonly { label: string; value: string }[]): string[] {
+  const width = Math.max(...rows.map((row) => row.label.length)) + 1;
+  return rows.map((row) => `${row.label.padEnd(width)}${row.value}`);
+}
+
+/**
+ * The asset ticket.
+ *
+ * The prompt comes first and comes raw, because it is pasted straight into a
+ * generator and anything above it would be pasted with it. Everything else is
+ * below the rule, for the person reading rather than the machine.
+ */
+function renderAssetTicket(input: FeatureTicketInput): string {
+  const { feature, project, deps } = input;
+
+  const prompt = (feature.description ?? '').replace(/\r\n/g, '\n').trim();
+
+  const reference = assetLines([
+    { label: 'ASSET', value: refAndTitle(feature) },
+    { label: 'PROJECT', value: project.name },
+    { label: 'TOOL', value: assetToolName(feature) },
+    { label: 'PRIORITY', value: block(feature.priority) },
+    { label: 'SIZE', value: block(feature.size) },
+  ]);
+
+  const lines = [prompt === '' ? NO_PROMPT_WRITTEN : prompt, '---', ...reference];
+
+  lines.push('', 'EXIT CRITERIA', block(feature.acceptanceCriteria));
+
+  // No dependencies means no heading. A generator does not need to be told that
+  // nothing is in its way, and the code ticket's warning about unmet work has
+  // nobody to warn here.
+  if (deps.length > 0) {
+    lines.push('', 'DEPENDS ON', ...deps.map(refAndTitle));
+  }
+
+  return `${lines.join('\n')}\n`;
+}
+
 /**
  * The whole ticket, as one string.
  *
@@ -166,6 +263,8 @@ const HOW_TO_WORK = [
  */
 export function renderFeatureTicket(input: FeatureTicketInput): string {
   const { feature, project, siblings, deps } = input;
+
+  if (isAssetFeature(feature)) return renderAssetTicket(input);
 
   // A title is required on the card, but a ref with a dangling dash after it
   // would be the one thing here that reads as broken rather than as a gap.

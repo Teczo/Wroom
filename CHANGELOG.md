@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-09-19
+
+- A feature card labelled `asset` now copies as a generation prompt instead of
+  a coding ticket. The prompt written in the card's description comes first,
+  raw, ready to paste into an image, 3D, voice or music generator. Under it sit
+  the ref and title, the project, which kind of generator it is for, the
+  priority and the size, then the exit criteria, then anything it waits on. The
+  branch name, the repo, the stack, the working rules and the list of every
+  other card on the project are all gone from it — none of that means anything
+  to a generator. Which generator it is comes from a second label: image, 3d,
+  voice, music or sfx. Without one it says Unspecified. Cards without the
+  `asset` label copy exactly as they did before.
+
 ## 2026-09-17
 
 - Copying a ticket on a project board now asks, right there on the card,
