@@ -11,6 +11,7 @@ import { CostsPanel } from '../../features/costs/CostsPanel';
 import { ProjectCredentials } from '../../features/credentials/ProjectCredentials';
 import { DecisionsPanel } from '../../features/decisions/DecisionsPanel';
 import { EnvironmentsPanel } from '../../features/environments/EnvironmentsPanel';
+import { GitHubProgressPanel } from '../../features/github/GitHubProgressPanel';
 import { ProjectLinksPanel } from '../../features/links/ProjectLinksPanel';
 import { NotesPanel } from '../../features/notes/NotesPanel';
 import { FeatureBoard } from '../../features/features/FeatureBoard';
@@ -84,6 +85,11 @@ function Overview({ project }: { project: Project }) {
 
   return (
     <div className="space-y-6">
+      {/* Hands-off progress lives in the repo, so it is only asked for once there is one. */}
+      {project.workMode === 'hands-off' && project.repo.fullName.trim() !== '' ? (
+        <GitHubProgressPanel project={project} />
+      ) : null}
+
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
           { label: 'Complete', value: `${project.rollup.percentComplete}%` },

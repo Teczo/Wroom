@@ -7,6 +7,7 @@ import {
 import { Router } from 'express';
 
 import * as controller from '../controllers/projectController.js';
+import * as githubStatus from '../controllers/githubStatusController.js';
 import { validateBody, validateQuery } from '../middleware/validate.js';
 import { assetsRouter } from './assets.js';
 import { costsRouter } from './costs.js';
@@ -52,6 +53,9 @@ projectsRouter.post(
   validateBody(projectPortfolioUpdateSchema),
   controller.previewPortfolio,
 );
+
+/** Read only, live from the repo, cached for five minutes (WRM-106). */
+projectsRouter.get('/:id/github-status', githubStatus.get);
 
 projectsRouter.post('/:id/publish', controller.publish);
 projectsRouter.delete('/:id/publish', controller.unpublish);

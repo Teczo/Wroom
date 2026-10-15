@@ -653,6 +653,23 @@ export type ProjectDocSummary = {
 /** One version, opened — the summary plus its markdown. */
 export type ProjectDoc = ProjectDocSummary & { body: string };
 
+/**
+ * A hands-off project's progress, read live from its repo. Nothing here is
+ * stored; the API keeps it in memory for a few minutes.
+ */
+export type GitHubStatus = {
+  repo: { fullName: string; defaultBranch: string; url: string };
+  /** Null when the default branch has no commits yet. */
+  lastCommit: { sha: string; message: string; date: IsoDate | null; url: string | null } | null;
+  /** Every branch except the default one. */
+  branches: string[];
+  pullRequests: { number: number; title: string; url: string | null }[];
+  /** The newest `## Phase <n> — done — <date>` heading in CHANGELOG.md on the default branch. */
+  latestPhase: { phase: number; date: string; heading: string } | null;
+  /** When GitHub was actually asked — older than now when served from the cache. */
+  fetchedAt: IsoDate;
+};
+
 export type TimeEntry = Timestamps & {
   _id: Id;
   projectId: Id;

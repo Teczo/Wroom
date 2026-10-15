@@ -2,11 +2,12 @@ import { env } from '../config/env.js';
 import { AppError, ConflictError, UnprocessableError } from '../utils/errors.js';
 
 /**
- * The only code in Wroom that writes to GitHub (CLAUDE.md §8, "GitHub writes").
+ * The only code in Wroom that talks to GitHub (CLAUDE.md §8, "GitHub writes").
  *
- * It can do three things, and they are the whole of it: find out whose token
+ * It writes three things, and they are the whole of it: find out whose token
  * this is, create a new private repo in that personal account, and put the
- * first file into a repo it has just created. There is deliberately no
+ * first file into a repo it has just created. Everything else here only reads
+ * — a hands-off project's progress (WRM-106). There is deliberately no
  * function here that writes into a repo by name alone — the push service only
  * ever hands `putFile` a repo `createPrivateRepo` returned a moment earlier.
  *
@@ -31,12 +32,22 @@ export function assertGitHubConfigured(): void {
   }
 }
 
-async function call(method: string, path: string, body?: unknown): Promise<GitHubResponse> {
+/**
+ * `timeoutMs` is for reads only. A write is left to finish: abandoning a repo
+ * creation halfway would leave nobody knowing whether it happened.
+ */
+async function call(
+  method: string,
+  path: string,
+  body?: unknown,
+  timeoutMs?: number,
+): Promise<GitHubResponse> {
   let response: Response;
 
   try {
     response = await fetch(`${API}${path}`, {
       method,
+      signal: timeoutMs === undefined ? null : AbortSignal.timeout(timeoutMs),
       headers: {
         Accept: 'application/vnd.github+json',
         Authorization: `Bearer ${env.github.token}`,
@@ -176,4 +187,96 @@ export async function setDefaultBranch(repo: CreatedRepo, branch: string): Promi
   if (response.status !== 200 || response.body?.default_branch !== branch) {
     throw unexpected(`make ${branch} the default branch of ${repo.fullName}`, response);
   }
+}
+
+// --- Reads -----------------------------------------------------------------
+
+/** A page that has not answered in this long is treated as unreachable. */
+const READ_TIMEOUT_MS = 8_000;
+
+/** GitHub's own ceiling for one page of a list. */
+const PER_PAGE = 100;
+
+function repoPath(fullName: string): string {
+  const [owner = '', name = ''] = fullName.split('/');
+  return `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}`;
+}
+
+async function read(path: string): Promise<GitHubResponse> {
+  return call('GET', path, undefined, READ_TIMEOUT_MS);
+}
+
+export type LastCommit = { sha: string; message: string; date: string | null; url: string | null };
+
+/** The newest commit on `branch`, or null when the branch has none yet. */
+export async function lastCommit(fullName: string, branch: string): Promise<LastCommit | null> {
+  const response = await read(`${repoPath(fullName)}/commits/${encodeURIComponent(branch)}`);
+
+  // 409 is an empty repo; 422 and 404 are a branch that does not exist.
+  if ([404, 409, 422].includes(response.status)) return null;
+
+  const body = response.body as {
+    sha?: unknown;
+    html_url?: unknown;
+    commit?: { message?: unknown; committer?: { date?: unknown }; author?: { date?: unknown } };
+  } | null;
+
+  if (response.status !== 200 || typeof body?.sha !== 'string') {
+    throw unexpected(`read the last commit on ${branch}`, response);
+  }
+
+  const date = body.commit?.committer?.date ?? body.commit?.author?.date;
+  return {
+    sha: body.sha,
+    message: typeof body.commit?.message === 'string' ? body.commit.message : '',
+    date: typeof date === 'string' ? date : null,
+    url: typeof body.html_url === 'string' ? body.html_url : null,
+  };
+}
+
+/** Every branch name, first page only — a hands-off repo has a handful. */
+export async function branchNames(fullName: string): Promise<string[]> {
+  const response = await read(`${repoPath(fullName)}/branches?per_page=${PER_PAGE}`);
+  if (response.status === 409) return []; // empty repo
+  if (response.status !== 200 || !Array.isArray(response.body)) {
+    throw unexpected('list the branches', response);
+  }
+  return (response.body as Array<{ name?: unknown }>)
+    .map((branch) => branch.name)
+    .filter((name): name is string => typeof name === 'string');
+}
+
+export type OpenPullRequest = { number: number; title: string; url: string | null };
+
+export async function openPullRequests(fullName: string): Promise<OpenPullRequest[]> {
+  const response = await read(`${repoPath(fullName)}/pulls?state=open&per_page=${PER_PAGE}`);
+  if (response.status === 409) return []; // empty repo
+  if (response.status !== 200 || !Array.isArray(response.body)) {
+    throw unexpected('list the open pull requests', response);
+  }
+  return (response.body as Array<{ number?: unknown; title?: unknown; html_url?: unknown }>)
+    .filter((pull) => typeof pull.number === 'number')
+    .map((pull) => ({
+      number: pull.number as number,
+      title: typeof pull.title === 'string' ? pull.title : '',
+      url: typeof pull.html_url === 'string' ? pull.html_url : null,
+    }));
+}
+
+/** A text file's contents on `branch`, or null when it is not there. */
+export async function fileText(
+  fullName: string,
+  path: string,
+  branch: string,
+): Promise<string | null> {
+  const response = await read(
+    `${repoPath(fullName)}/contents/${path}?ref=${encodeURIComponent(branch)}`,
+  );
+  if (response.status === 404 || response.status === 409) return null;
+
+  const content = response.body?.content;
+  if (response.status !== 200 || typeof content !== 'string') {
+    throw unexpected(`read ${path}`, response);
+  }
+  return Buffer.from(content, 'base64').toString('utf8');
 }
