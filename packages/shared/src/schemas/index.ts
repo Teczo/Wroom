@@ -10,6 +10,7 @@ export * from './credential.js';
 export * from './projectLink.js';
 export * from './note.js';
 export * from './decision.js';
+export * from './projectDoc.js';
 export * from './featureImport.js';
 export * from './bootstrapImport.js';
 export * from './projectType.js';
