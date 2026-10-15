@@ -12,6 +12,8 @@ import {
 import {
   BOOTSTRAP_COMMIT,
   BOOTSTRAP_PREVIEW,
+  DOC_COMMIT,
+  DOC_PREVIEW,
   LIST_CONTEXT,
   PORTFOLIO_COMMIT,
   PORTFOLIO_PREVIEW,
@@ -19,6 +21,14 @@ import {
 } from './tools/definitions.js';
 import { listContext, renderContext } from './tools/listContext.js';
 import { commitDraft, findProject, previewDraft, splitDraft } from './tools/portfolio.js';
+import {
+  commitDoc,
+  previewDoc,
+  renderDocNotFound,
+  renderDocPlan,
+  renderDocResult,
+  splitDocDraft,
+} from './tools/projectDoc.js';
 import {
   renderPlan,
   renderPortfolioPlan,
@@ -30,13 +40,15 @@ import { WroomApiError, post } from './wroom/client.js';
 /**
  * The MCP server, and the Express app that fronts it.
  *
- * Five tools and no more. There is no authorization layer inside the Wroom
+ * Seven tools and no more. There is no authorization layer inside the Wroom
  * API — a valid token there reads and writes every collection — so this list is
  * the boundary that decides what the connector can reach at all. Adding to it
  * is a ticket, not a convenience.
  *
- * Two of them create records, two draft a project's public page, and one reads
- * what already exists. **None of them publishes.** Nothing here can set a
+ * Two of them create records, two draft a project's public page, two save a
+ * hands-off project's CLAUDE.md, and one reads what already exists. **None of
+ * them publishes**, and none of them writes to GitHub — pushing a CLAUDE.md to
+ * a repo is a portal button (CLAUDE.md §8, "GitHub writes"). Nothing here can set a
  * project's visibility, copy a blob into the public container or write
  * `publishedProjects` — that stays an explicit action taken in the portal
  * (CLAUDE.md §8).
@@ -127,6 +139,35 @@ function createMcpServer(): Server {
             meta?.blockingProductName ?? null,
           ),
         );
+      }
+
+      // Addressed by slug like the portfolio pair. A missing project is part of
+      // the preview's plan, and a refusal from the commit.
+      if (name === DOC_PREVIEW || name === DOC_COMMIT) {
+        const draft = splitDocDraft(args ?? {});
+
+        if (draft.slug === '') {
+          return text(
+            'Name the project with `projectSlug`. `wroom_list_context` lists the slugs.',
+            true,
+          );
+        }
+
+        const target = await findProject(draft.slug);
+
+        if (name === DOC_PREVIEW) {
+          if (!target) return text(renderDocNotFound(draft.slug));
+          return text(renderDocPlan(await previewDoc(target, draft)));
+        }
+
+        if (!target) {
+          return text(
+            `There is no project with the slug "${draft.slug}". \`wroom_list_context\` lists the slugs that exist.`,
+            true,
+          );
+        }
+
+        return text(renderDocResult(target, await commitDoc(target, draft)));
       }
 
       return text(`There is no tool called ${name}.`, true);

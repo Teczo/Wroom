@@ -1,4 +1,4 @@
-import type { PortfolioUpdateDiff, PublishGateResult } from '@wroom/shared';
+import type { PortfolioUpdateDiff, PublishGateResult, WorkMode } from '@wroom/shared';
 
 import { getAll, patch, post } from '../wroom/client.js';
 
@@ -19,7 +19,7 @@ import { getAll, patch, post } from '../wroom/client.js';
 /** Enough of a project to address it and to name it in a plan. */
 export type PortfolioTarget = { id: string; slug: string; name: string };
 
-type ApiProjectRef = { _id: string; slug: string; name: string };
+type ApiProjectRef = { _id: string; slug: string; name: string; workMode: WorkMode };
 
 /** The `meta` the portfolio save answers with. */
 type SaveMeta = { publishState: PublishGateResult; blockingProductName: string | null };
@@ -51,11 +51,16 @@ export function splitDraft(args: Record<string, unknown>): {
  * project" for one that plainly exists would be the more confusing failure.
  * Returns null rather than throwing, so the caller can say which slugs exist.
  */
-export async function findProject(slug: string): Promise<PortfolioTarget | null> {
+export async function findProject(
+  slug: string,
+): Promise<(PortfolioTarget & { workMode: WorkMode }) | null> {
   const projects = await getAll<ApiProjectRef>('/api/projects?includeArchived=true');
   const match = projects.find((project) => project.slug === slug);
 
-  return match ? { id: String(match._id), slug: match.slug, name: match.name } : null;
+  // The CLAUDE.md tools report the mode; the portfolio pair ignores it.
+  return match
+    ? { id: String(match._id), slug: match.slug, name: match.name, workMode: match.workMode }
+    : null;
 }
 
 /** What the draft would change. Writes nothing. */

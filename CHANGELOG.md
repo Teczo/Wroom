@@ -2,6 +2,16 @@
 
 ## 2026-10-15
 
+- WRM-103: a hands-off project's CLAUDE.md can now be saved from a Claude chat.
+  `wroom_doc_preview` reads back a plan and writes nothing. The plan says
+  whether the project was found, what mode it is in, which version would be
+  created, and how many lines the newest version has against the new one. If a
+  version has already been pushed to the repo, it says the save would be
+  refused. `wroom_doc_commit` then saves it as the next version. The bootstrap
+  import also takes an optional work mode for the project. Leaving it out keeps
+  an existing project's mode, so re-running an old import never turns a
+  hands-off project back into a managed one.
+
 - WRM-102: the API now keeps a hands-off project's CLAUDE.md. Each save
   becomes the next numbered version, and the list of versions comes back
   newest first without the text; one version can be opened with its text.

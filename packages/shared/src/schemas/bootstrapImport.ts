@@ -4,12 +4,14 @@ import {
   FEATURE_STATUSES,
   PRODUCT_STATUSES,
   PROJECT_STATUSES,
+  WORK_MODES,
 } from '../constants.js';
 import {
   arrayOf,
   boolean,
   enumOf,
   nullable,
+  optional,
   slug,
   string,
   strictObject,
@@ -83,6 +85,13 @@ export const bootstrapProjectSchema = strictObject({
   shortDescription: withDefault(string({ max: 400, allowEmpty: true }), ''),
   status: withDefault(enumOf(PROJECT_STATUSES), 'idea' as const),
   phase: withDefault(string({ max: 80, allowEmpty: true }), ''),
+  /**
+   * Optional with no default, unlike its neighbours: a payload that does not
+   * mention it leaves an existing project's mode alone, so re-running an old
+   * brainstorm never turns a hands-off project back into a managed one. A new
+   * project without it takes the model's default, "managed".
+   */
+  workMode: optional(enumOf(WORK_MODES)),
   tags: withDefault(arrayOf(string({ min: 1, max: 40 }), { max: 30 }), []),
   techStack: withDefault(
     strictObject({
