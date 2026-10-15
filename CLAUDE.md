@@ -209,10 +209,13 @@ AZURE_STORAGE_CONNECTION_STRING
 AZURE_STORAGE_CONTAINER            private — all uploads
 AZURE_STORAGE_PUBLIC_CONTAINER     public read — published copies only
 STRIPE_SECRET_KEY
+GITHUB_TOKEN                       fine-grained PAT — creates hands-off repos only (§8)
 CORS_ORIGINS
 ```
 
-`GITHUB_APP_TOKEN` and `ANTHROPIC_API_KEY` are in `.env.example` and read nowhere. They are reserved for features not built. Leave them.
+`ANTHROPIC_API_KEY` is in `.env.example` and read nowhere. It is reserved for a feature not built. Leave it.
+
+`GITHUB_TOKEN` is a fine-grained personal access token on Jaya's personal account: Administration write and Contents write, all repositories. `docs/GITHUB_TOKEN.md` is the setup.
 
 The portfolio's edge function reads `PUBLIC_API_URL` from Vercel's environment. It is the only environment value the portfolio needs at runtime.
 

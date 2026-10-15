@@ -1,11 +1,12 @@
 import type { ProjectDoc, ProjectDocSummary } from '@wroom/shared';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { apiGet, apiList } from '../../lib/api';
+import { apiGet, apiList, apiPost } from '../../lib/api';
+import { projectKeys } from '../projects/api';
 
 /**
- * A hands-off project's CLAUDE.md versions. Read-only here: versions are saved
- * from a chat through the MCP, and never edited.
+ * A hands-off project's CLAUDE.md versions. Versions are saved from a chat
+ * through the MCP and never edited; the one write here is the push.
  */
 
 export const projectDocKeys = {
@@ -30,5 +31,28 @@ export function useProjectDoc(projectId: string, version: number | null) {
     queryFn: () => apiGet<ProjectDoc>(`/api/projects/${projectId}/docs/${version}`),
     enabled: version !== null,
     staleTime: Infinity,
+  });
+}
+
+export type PushResult = {
+  doc: ProjectDocSummary;
+  repo: { fullName: string; defaultBranch: string; url: string };
+};
+
+/**
+ * Creates the project's private repo and pushes the newest version into it.
+ * The project's repo and the version's pushed mark both change, so both are
+ * refetched.
+ */
+export function usePushProjectDoc(projectId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: { name?: string }) =>
+      apiPost<PushResult>(`/api/projects/${projectId}/docs/push`, input),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: projectDocKeys.all });
+      void client.invalidateQueries({ queryKey: projectKeys.all });
+    },
   });
 }

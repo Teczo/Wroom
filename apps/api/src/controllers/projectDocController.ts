@@ -1,9 +1,10 @@
-import type { ProjectDocCreateInput } from '@wroom/shared';
+import type { ProjectDocCreateInput, ProjectDocPushInput } from '@wroom/shared';
 import type { RequestHandler } from 'express';
 import type { Types } from 'mongoose';
 
 import { validated } from '../middleware/validate.js';
 import * as projectDocService from '../services/projectDocService.js';
+import { ForbiddenError } from '../utils/errors.js';
 import { queryString, sendData, sendList } from '../utils/http.js';
 
 export const list: RequestHandler = async (req, res) => {
@@ -42,4 +43,24 @@ export const create: RequestHandler = async (req, res) => {
   );
 
   sendData(res, doc, 201);
+};
+
+/**
+ * Creates the repo and pushes. A person only: GitHub is written to from the
+ * portal button, never from the MCP's machine token (CLAUDE.md §8).
+ */
+export const push: RequestHandler = async (req, res) => {
+  if (!req.currentUser) {
+    throw new ForbiddenError('Creating a repo is done from the portal, not from a connector.');
+  }
+
+  sendData(
+    res,
+    await projectDocService.pushProjectDoc(
+      req.params.projectId as string,
+      projectDocService.parseKind(queryString(req, 'kind')),
+      validated<ProjectDocPushInput>(req),
+    ),
+    201,
+  );
 };

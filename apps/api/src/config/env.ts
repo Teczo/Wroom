@@ -68,6 +68,21 @@ export const env = {
     },
   },
 
+  /**
+   * A fine-grained personal access token on Jaya's own GitHub account, used
+   * only to create a hands-off project's repo and push its first CLAUDE.md
+   * (CLAUDE.md §8, "GitHub writes"). Read here and nowhere else; it never
+   * leaves the server. Optional at boot, like Stripe — the push route reports
+   * it as unconfigured instead of crashing. docs/GITHUB_TOKEN.md says how to
+   * make one.
+   */
+  github: {
+    token: optional('GITHUB_TOKEN'),
+    get configured(): boolean {
+      return Boolean(this.token);
+    },
+  },
+
   corsOrigins: optional('CORS_ORIGINS')
     .split(',')
     .map((origin) => origin.trim())

@@ -1,5 +1,5 @@
 import { PROJECT_DOC_KINDS, PROJECT_DOC_MAX_BODY_BYTES } from '../constants.js';
-import { enumOf, object, string, withRules, type Infer } from '../validate.js';
+import { enumOf, object, optional, string, withRules, type Infer } from '../validate.js';
 
 /**
  * The body of `POST /api/projects/:projectId/docs`.
@@ -27,3 +27,22 @@ export const projectDocCreateShape = {
 
 export const projectDocCreateSchema = object(projectDocCreateShape);
 export type ProjectDocCreateInput = Infer<typeof projectDocCreateShape>;
+
+/**
+ * A GitHub repo name: letters, digits, `.`, `-` and `_`, at most 100, and not
+ * `.` or `..`. GitHub quietly rewrites anything else, so a name it would change
+ * is refused here instead — the repo has to be called what the confirm step
+ * showed.
+ */
+export const GITHUB_REPO_NAME = /^(?!\.{1,2}$)[A-Za-z0-9._-]+$/;
+
+/**
+ * The body of `POST /api/projects/:projectId/docs/push`. Without a name the
+ * repo is named after the project's slug.
+ */
+export const projectDocPushShape = {
+  name: optional(string({ min: 1, max: 100, pattern: GITHUB_REPO_NAME })),
+};
+
+export const projectDocPushSchema = object(projectDocPushShape);
+export type ProjectDocPushInput = Infer<typeof projectDocPushShape>;
