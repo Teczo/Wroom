@@ -6,13 +6,14 @@ import { Pill } from '../../components/Pill';
 import { EmptyState, ErrorState, LoadingState } from '../../components/StateViews';
 import { relativeDate, shortDate } from '../../lib/format';
 import { useProjectDoc, useProjectDocs } from './api';
+import { PushToRepo } from './PushToRepo';
 
 /**
  * A hands-off project's CLAUDE.md: the newest version as plain text, the older
  * ones a tap away, a download, and the prompt that starts a session on it.
  *
- * Nothing here writes. Versions are saved from a chat with `wroom_doc_commit`,
- * and once one is pushed the repo copy is the real one.
+ * Versions are saved from a chat with `wroom_doc_commit`. The one write here is
+ * "Create repo & push"; once a version is pushed the repo copy is the real one.
  */
 
 type CopyState = 'idle' | 'copied' | 'failed';
@@ -107,6 +108,8 @@ export function ClaudeMdPanel({ project }: { project: Project }) {
   const selected = chosen ?? items[0]?.version ?? null;
   const doc = useProjectDoc(project._id, selected);
   const summary = items.find((entry) => entry.version === selected) ?? null;
+  const pushed = items.find((entry) => entry.pushedAt !== null) ?? null;
+  const latest = items[0] ?? null;
 
   const toolbar = (
     <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-end">
@@ -116,6 +119,10 @@ export function ClaudeMdPanel({ project }: { project: Project }) {
         </Button>
       ) : null}
       <KickoffButton project={project} />
+      {/* Hands-off only, and only until one version has gone to a repo. */}
+      {latest && !pushed && project.workMode === 'hands-off' ? (
+        <PushToRepo project={project} version={latest.version} />
+      ) : null}
     </div>
   );
 
@@ -140,6 +147,19 @@ export function ClaudeMdPanel({ project }: { project: Project }) {
   return (
     <div className="space-y-4">
       {toolbar}
+
+      {pushed ? (
+        <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+          Version {pushed.version} was pushed
+          {project.repo.fullName ? (
+            <>
+              {' '}
+              to <span className="font-mono">{project.repo.fullName}</span>
+            </>
+          ) : null}
+          . That copy is now the real one — change it in the repo, not here.
+        </p>
+      ) : null}
 
       <div className="grid gap-4 lg:grid-cols-[16rem_minmax(0,1fr)]">
         <VersionList versions={items} selected={selected} onSelect={setChosen} />

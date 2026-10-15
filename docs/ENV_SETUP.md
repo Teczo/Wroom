@@ -311,12 +311,12 @@ AZURE_STORAGE_CONTAINER=media
 
 CORS_ORIGINS=http://localhost:5173,http://localhost:5174
 
-GITHUB_APP_TOKEN=
+GITHUB_TOKEN=
 STRIPE_SECRET_KEY=
 ANTHROPIC_API_KEY=
 ```
 
-Leave the last three blank — nothing reads them yet.
+Leave the last three blank for now. `GITHUB_TOKEN` is only needed to create a hands-off project's repo — `docs/GITHUB_TOKEN.md` has the steps.
 
 `apps/portal/.env`:
 

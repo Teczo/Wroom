@@ -2,6 +2,22 @@
 
 ## 2026-10-15
 
+- WRM-105: a hands-off project's CLAUDE.md tab has a "Create repo & push"
+  button.
+  - It asks once and shows the repo's name, which starts as the project's slug
+    and can be changed.
+  - It creates a new private repo on the GitHub account the API's token
+    belongs to. The newest version is committed as the only file, CLAUDE.md,
+    on main.
+  - The project's repo then shows the new repo, and the version is marked as
+    pushed. From then on new versions are refused and the button is gone.
+  - A repo name that already exists is refused rather than written into. A
+    second push is refused. The API only accepts the push from a person signed
+    in to the portal, never from the chat connector.
+  - The token is read only by the API and is set in Azure, as
+    `docs/GITHUB_TOKEN.md` describes. The old `GITHUB_APP_TOKEN` name is now
+    `GITHUB_TOKEN`.
+
 - WRM-104: a project page now has a switch between Managed and Hands-off.
   - A hands-off project has no Features tab. Its board link shows a short note
     instead of an empty board. On the dashboard it reads "Hands-off" rather
