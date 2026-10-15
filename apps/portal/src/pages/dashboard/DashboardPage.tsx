@@ -49,7 +49,9 @@ function QuietProjectRow({ project }: { project: DashboardProjectRow }) {
       <div className="min-w-0">
         <p className="truncate text-sm font-medium text-slate-900">{project.name}</p>
         <p className="mt-0.5 text-xs text-slate-500">
-          {relativeDate(project.lastActivityAt)} · {project.percentComplete}% complete
+          {relativeDate(project.lastActivityAt)} ·{' '}
+          {/* No cards to count, so a percentage would always read 0%. */}
+          {project.workMode === 'hands-off' ? 'Hands-off' : `${project.percentComplete}% complete`}
         </p>
       </div>
       <ProjectStatusPill status={project.status} />

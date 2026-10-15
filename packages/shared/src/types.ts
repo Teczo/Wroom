@@ -24,6 +24,8 @@ import type {
   MediaKind,
   NoteKind,
   ProductStatus,
+  ProjectDocKind,
+  ProjectDocSource,
   ProjectLinkType,
   ProjectStatus,
   ServiceRole,
@@ -281,6 +283,8 @@ export type DashboardProjectRow = {
   name: string;
   slug: string;
   status: ProjectStatus;
+  /** A hands-off project has no feature cards, so its percentage means nothing. */
+  workMode: WorkMode;
   percentComplete: number;
   monthlyCostAud: number;
   totalSpendAud: number;
@@ -629,6 +633,25 @@ export type Decision = {
   authorUserId: Id | null;
   createdAt: IsoDate;
 };
+
+/**
+ * One version of a hands-off project's CLAUDE.md, as the version list returns
+ * it — without the body, which can be 200 kB a version.
+ */
+export type ProjectDocSummary = {
+  _id: Id;
+  projectId: Id;
+  kind: ProjectDocKind;
+  version: number;
+  source: ProjectDocSource;
+  createdByUserId: Id | null;
+  pushedAt: IsoDate | null;
+  pushedCommitSha: string | null;
+  createdAt: IsoDate;
+};
+
+/** One version, opened — the summary plus its markdown. */
+export type ProjectDoc = ProjectDocSummary & { body: string };
 
 export type TimeEntry = Timestamps & {
   _id: Id;
