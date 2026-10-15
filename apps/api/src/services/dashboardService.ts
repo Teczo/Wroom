@@ -64,6 +64,8 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
               name: 1,
               slug: 1,
               status: 1,
+              // Projects saved before work modes existed have no field; they are managed.
+              workMode: { $ifNull: ['$workMode', 'managed'] },
               percentComplete: '$rollup.percentComplete',
               monthlyCostAud: '$rollup.monthlyCostAud',
               totalSpendAud: '$rollup.totalSpendAud',

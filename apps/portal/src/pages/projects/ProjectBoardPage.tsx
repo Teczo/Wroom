@@ -220,6 +220,25 @@ export function ProjectBoardPage() {
     );
   }
 
+  // A hands-off project is planned in its CLAUDE.md, not in cards. A bookmarked
+  // board link lands here rather than on an empty board.
+  if (project.data?.workMode === 'hands-off') {
+    return (
+      <>
+        <PageHeader title={`${project.data.name} board`} />
+        <EmptyState
+          title="This project is hands-off"
+          whatToDoNext="It is planned in one CLAUDE.md instead of feature cards, so it has no board. Its plan is on the project's CLAUDE.md tab."
+          action={
+            <Link to={`/projects/${id}`}>
+              <Button>Back to project</Button>
+            </Link>
+          }
+        />
+      </>
+    );
+  }
+
   return (
     <>
       <PageHeader

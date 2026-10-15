@@ -2,6 +2,19 @@
 
 ## 2026-10-15
 
+- WRM-104: a project page now has a switch between Managed and Hands-off.
+  - A hands-off project has no Features tab. Its board link shows a short note
+    instead of an empty board. On the dashboard it reads "Hands-off" rather
+    than a percentage.
+  - A new CLAUDE.md tab shows the newest version as plain text, with a list to
+    open older ones. Versions that have been pushed to the repo are marked.
+  - "Download CLAUDE.md" saves the version on screen as a file called
+    CLAUDE.md.
+  - "Copy kickoff prompt" copies the prompt that starts a session on the
+    project: read CLAUDE.md, build one phase, stop.
+  - Switching back to managed brings the Features tab back with everything on
+    it.
+
 - WRM-103: a hands-off project's CLAUDE.md can now be saved from a Claude chat.
   `wroom_doc_preview` reads back a plan and writes nothing. The plan says
   whether the project was found, what mode it is in, which version would be

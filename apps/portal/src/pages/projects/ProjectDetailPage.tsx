@@ -18,6 +18,8 @@ import { CsvTemplateButton } from '../../features/features/CsvTemplateButton';
 import { FeatureImport } from '../../features/features/FeatureImport';
 import { ProjectEditForm } from '../../features/projects/ProjectEditForm';
 import { ProjectLifecycle } from '../../features/projects/ProjectLifecycle';
+import { WorkModeSwitch } from '../../features/projects/WorkModeSwitch';
+import { ClaudeMdPanel } from '../../features/projectDocs/ClaudeMdPanel';
 import { RevenuePanel } from '../../features/revenue/RevenuePanel';
 import { PublishPanel } from '../../features/projects/PublishPanel';
 import { ServicesPanel } from '../../features/services/ServicesPanel';
@@ -26,8 +28,15 @@ import { EffortPanel } from '../../features/time/EffortPanel';
 import { TimePanel } from '../../features/time/TimePanel';
 import { hours, money, relativeDate, shortDate } from '../../lib/format';
 
-const tabs = ['Overview', 'Features', 'Costs', 'Time', 'Edit'] as const;
-type Tab = (typeof tabs)[number];
+const allTabs = ['Overview', 'Features', 'CLAUDE.md', 'Costs', 'Time', 'Edit'] as const;
+type Tab = (typeof allTabs)[number];
+
+/** A hands-off project is planned in its CLAUDE.md, so it has no Features tab. */
+function tabsFor(project: Project): readonly Tab[] {
+  return project.workMode === 'hands-off'
+    ? allTabs.filter((name) => name !== 'Features')
+    : allTabs;
+}
 
 /**
  * The repo, reachable from every tab. `fullName` is free text, so a pasted URL
@@ -168,7 +177,7 @@ function Overview({ project }: { project: Project }) {
 export function ProjectDetailPage() {
   const { id = '' } = useParams();
   const project = useProject(id);
-  const [tab, setTab] = useState<Tab>('Overview');
+  const [chosenTab, setTab] = useState<Tab>('Overview');
   const [importing, setImporting] = useState(false);
 
   if (project.isPending) {
@@ -196,6 +205,10 @@ export function ProjectDetailPage() {
     );
   }
 
+  // Switching to hands-off while on Features lands on Overview, not on nothing.
+  const tabs = tabsFor(project.data);
+  const tab = tabs.includes(chosenTab) ? chosenTab : 'Overview';
+
   return (
     <>
       <PageHeader
@@ -208,6 +221,8 @@ export function ProjectDetailPage() {
           </>
         }
       />
+
+      <WorkModeSwitch project={project.data} />
 
       <div className="-mx-4 mb-6 overflow-x-auto border-b border-slate-200 px-4">
         <div className="flex min-w-max gap-1" role="tablist">
@@ -262,6 +277,7 @@ export function ProjectDetailPage() {
           <FeatureBoard projectId={id} />
         </div>
       ) : null}
+      {tab === 'CLAUDE.md' ? <ClaudeMdPanel project={project.data} /> : null}
       {tab === 'Costs' ? <CostsPanel projectId={id} /> : null}
       {tab === 'Time' ? <TimePanel projectId={id} /> : null}
       {tab === 'Edit' ? (
