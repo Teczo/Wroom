@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-10-15
+
+- WRM-101: hands-off mode is now written down, ahead of any code for it. The
+  data model gives a project a work mode — managed, the default, or hands-off —
+  and a new place to keep a hands-off project's CLAUDE.md, one numbered version
+  at a time, refusing new versions once one has been pushed to its repo. The
+  repo rules say who may write to GitHub and when: only the API, only from a
+  portal button, only to create a new private repo. Nothing in the portal or
+  API has changed yet.
+
 ## 2026-09-19
 
 - A feature card labelled `asset` now copies as a generation prompt instead of

@@ -22,6 +22,8 @@ The data model is specified in `docs/DATA_MODEL.md`. **That document is authorit
 
 Wroom is built. The work now is changing, fixing and extending a running system, not standing one up.
 
+A project has one of two work modes. A **managed** project — the default — is planned and tracked in feature cards. A **hands-off** project is planned in one CLAUDE.md, with phases, instead: Wroom stores it, creates a private GitHub repo in Jaya's personal account and pushes it as the first commit. After that the repo copy is the real one.
+
 ---
 
 ## 2. Golden rules
@@ -62,7 +64,7 @@ Add the CHANGED line to `CHANGELOG.md` under today's dated heading.
 1. A change to `docs/DATA_MODEL.md` — a new collection, a new field, a changed type, a removed field
 2. A new dependency, or a version bump of an existing one
 3. A new route in `/public`, or any change to the `/public` allowlist in §6
-4. A change to auth, the three publish gates, upload handling, blob container handling, or the enquiry intake chain
+4. A change to auth, the three publish gates, upload handling, blob container handling, the enquiry intake chain, or GitHub repo creation and the GitHub token
 5. A change to any money, FX, run-rate or `projects.rollup` calculation
 6. Deleting or renaming an existing collection, field, or route that has callers
 7. A change to `apps/portfolio/middleware.ts` — the meta-injection edge function (§7.6)
@@ -421,6 +423,8 @@ Changing container handling is a ticket (§2.2, trigger 4).
 
 Any change to this chain is a ticket (§2.2).
 
+**GitHub writes.** Only the API writes to GitHub, and only from a button in the portal — never from the MCP. It only creates new private repos; it never writes into an existing repo. The token is read only in `src/config/env.ts` and never reaches a client.
+
 **Published content only.** `GET /public/content/:key` returns the `published` sub-document of a `siteContent` record, projected so `draft` is never loaded. If `published` is null the route returns 404.
 
 ---
@@ -515,6 +519,8 @@ Do not add anything in this section speculatively.
 12. **Icons are data.** `mediaLibrary` is edited in the portal. No icon library is installed, and no SVG is pasted into a component.
 13. **The portfolio is dark only.** No toggle, no `dark:` variant, no light values in the token set.
 14. **Meta tags are injected at the edge**, because the audience arrives via LinkedIn and email and neither runs JavaScript. This is the only exception to §12.
+15. **Hands-off projects have no feature cards.** They are planned in their CLAUDE.md.
+16. **Wroom writes only the first CLAUDE.md to a repo.** After that push the repo copy is the real one, and Wroom never writes to that repo again.
 
 ---
 

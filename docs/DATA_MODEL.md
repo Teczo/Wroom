@@ -27,6 +27,7 @@
 | `notes` | Free notes per project or enquiry | v1 |
 | `credentials` | Where a key lives + when it expires (never the key) | v1 |
 | `decisions` | ADR-lite | v1 |
+| `projectDocs` | Versioned CLAUDE.md for hands-off projects | v1 |
 | `timeEntries` | Hours logged per project/feature | v1 |
 | `siteContent` | Portfolio's own copy, draft/published | v1 |
 | `enquiries` | Inbound contact from the public form | v1 |
@@ -111,6 +112,7 @@ This is what makes "first question: what type of project is this?" work without 
 
   status,                       // "idea" | "in-development" | "live" | "on-hold" | "archived"
   phase,                        // free text, e.g. "Phase 6"
+  workMode: "managed",          // "managed" | "hands-off" — can be changed at any time
   ownerUserId,
   startedAt, launchedAt,
 
@@ -481,6 +483,31 @@ Registry only. **No secret values ever stored here.**
   decidedAt, authorUserId, createdAt
 }
 ```
+
+---
+
+### `projectDocs`
+The planning document for a hands-off project. A hands-off project is planned in one CLAUDE.md, with phases, instead of feature cards.
+
+```js
+{
+  _id, projectId,
+  kind: "claude-md",            // only value for now
+  version: 1,                   // 1, 2, 3… per projectId + kind
+  body,                         // markdown, max 200 kB
+  source,                       // "mcp" | "portal"
+  createdByUserId,
+  pushedAt: null,
+  pushedCommitSha: null,
+  createdAt
+}
+```
+
+**Versions are never edited.** A change makes a new version.
+
+**Once any version of a project + kind has `pushedAt` set, new versions are refused** — 409, with the message "This CLAUDE.md now lives in the repo." From that point the repo copy is the real one.
+
+Hands-off progress is read live from GitHub. Nothing is stored for it.
 
 ---
 
@@ -940,6 +967,7 @@ mediaLibrary:    { key: 1 } unique, { kind: 1, sortOrder: 1 }
 notes:           { projectId: 1, pinned: -1, createdAt: -1 },
                  { enquiryId: 1, createdAt: -1 }
 credentials:     { expiresAt: 1 }
+projectDocs:     { projectId: 1, kind: 1, version: 1 } unique
 siteContent:     { key: 1 } unique
 enquiries:       { status: 1, createdAt: -1 }, { convertedToProductId: 1 },
                  { "meta.ip": 1, createdAt: -1 }
