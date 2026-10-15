@@ -34,6 +34,7 @@ import type {
   Vendor,
   VendorAuthType,
   Visibility,
+  WorkMode,
 } from './constants.js';
 import type { PublishGateResult } from './publish.js';
 
@@ -236,6 +237,7 @@ export type Project = Timestamps & {
   shortDescription: string;
   status: ProjectStatus;
   phase: string;
+  workMode: WorkMode;
   ownerUserId: Id | null;
   startedAt: IsoDate | null;
   launchedAt: IsoDate | null;

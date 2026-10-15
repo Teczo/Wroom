@@ -4,6 +4,7 @@ import {
   MAX_PAGE_SIZE,
   PROJECT_STATUSES,
   VISIBILITIES,
+  WORK_MODES,
 } from '../constants.js';
 import {
   arrayOf,
@@ -190,6 +191,7 @@ export const projectCreateShape = {
   shortDescription: withDefault(string({ max: 400, allowEmpty: true }), ''),
   status: withDefault(enumOf(PROJECT_STATUSES), 'idea' as const),
   phase: withDefault(string({ max: 80, allowEmpty: true }), ''),
+  workMode: withDefault(enumOf(WORK_MODES), 'managed' as const),
   ownerUserId: withDefault(nullable(objectId()), null),
   startedAt: withDefault(nullable(isoDate()), null),
   launchedAt: withDefault(nullable(isoDate()), null),

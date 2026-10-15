@@ -2,6 +2,14 @@
 
 ## 2026-10-15
 
+- WRM-102: the API now keeps a hands-off project's CLAUDE.md. Each save
+  becomes the next numbered version, and the list of versions comes back
+  newest first without the text; one version can be opened with its text.
+  Versions are never changed. Once any version has been pushed to the repo, a
+  new save is refused with "This CLAUDE.md now lives in the repo." A project
+  can also be switched between managed and hands-off through the usual project
+  save. There is no screen for any of this yet — that is WRM-104.
+
 - WRM-101: hands-off mode is now written down, ahead of any code for it. The
   data model gives a project a work mode — managed, the default, or hands-off —
   and a new place to keep a hands-off project's CLAUDE.md, one numbered version

@@ -38,6 +38,7 @@ import { MediaLibraryModel } from '../models/MediaLibrary.js';
 import { NoteModel } from '../models/Note.js';
 import { ProductModel } from '../models/Product.js';
 import { ProjectModel } from '../models/Project.js';
+import { ProjectDocModel } from '../models/ProjectDoc.js';
 import { ProjectLinkModel } from '../models/ProjectLink.js';
 import { ProjectTypeModel } from '../models/ProjectType.js';
 import { PublishedProjectModel } from '../models/PublishedProject.js';
@@ -75,6 +76,7 @@ const models: IndexableModel[] = [
   NoteModel,
   ProductModel,
   ProjectModel,
+  ProjectDocModel,
   ProjectLinkModel,
   ProjectTypeModel,
   PublishedProjectModel,

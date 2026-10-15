@@ -1,4 +1,4 @@
-import { DEMO_VIDEO_PROVIDERS, PROJECT_STATUSES, VISIBILITIES } from '@wroom/shared';
+import { DEMO_VIDEO_PROVIDERS, PROJECT_STATUSES, VISIBILITIES, WORK_MODES } from '@wroom/shared';
 import { Schema, model, type HydratedDocument, type InferSchemaType } from 'mongoose';
 
 const metricSchema = new Schema(
@@ -185,6 +185,7 @@ const projectSchema = new Schema(
 
     status: { type: String, enum: PROJECT_STATUSES as unknown as string[], default: 'idea' },
     phase: { type: String, default: '' },
+    workMode: { type: String, enum: WORK_MODES as unknown as string[], default: 'managed' },
     ownerUserId: { type: Schema.Types.ObjectId, ref: 'User', default: null },
     startedAt: { type: Date, default: null },
     launchedAt: { type: Date, default: null },

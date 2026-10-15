@@ -235,6 +235,20 @@ export type CredentialKind = (typeof CREDENTIAL_KINDS)[number];
 export const DECISION_STATUSES = ['proposed', 'accepted', 'superseded'] as const;
 export type DecisionStatus = (typeof DECISION_STATUSES)[number];
 
+/** How a project is planned: feature cards, or one CLAUDE.md that lives in its repo. */
+export const WORK_MODES = ['managed', 'hands-off'] as const;
+export type WorkMode = (typeof WORK_MODES)[number];
+
+export const PROJECT_DOC_KINDS = ['claude-md'] as const;
+export type ProjectDocKind = (typeof PROJECT_DOC_KINDS)[number];
+
+/** Who wrote a version — decided by the caller's token, never by the body. */
+export const PROJECT_DOC_SOURCES = ['mcp', 'portal'] as const;
+export type ProjectDocSource = (typeof PROJECT_DOC_SOURCES)[number];
+
+/** 200 kB of UTF-8, measured in bytes rather than characters. */
+export const PROJECT_DOC_MAX_BODY_BYTES = 200_000;
+
 export const ENQUIRY_STATUSES = [
   'new',
   'read',
