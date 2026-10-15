@@ -83,6 +83,8 @@ function projectChanges(
 ): ImportFieldChange[] {
   return changedFields([
     ['projectTypeKey', existing.projectTypeKey, incoming.projectTypeKey],
+    // Absent means "leave it", so an absent mode compares equal to the stored one.
+    ['workMode', existing.workMode, incoming.workMode ?? existing.workMode],
     ['name', existing.name, incoming.name],
     ['shortDescription', existing.shortDescription, incoming.shortDescription],
     ['status', existing.status, incoming.status],

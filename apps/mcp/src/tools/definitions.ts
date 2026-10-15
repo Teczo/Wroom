@@ -4,7 +4,10 @@ import {
   FEATURE_SIZES,
   FEATURE_STATUSES,
   PRODUCT_STATUSES,
+  PROJECT_DOC_KINDS,
+  PROJECT_DOC_MAX_BODY_BYTES,
   PROJECT_STATUSES,
+  WORK_MODES,
 } from '@wroom/shared';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 
@@ -89,6 +92,12 @@ const bootstrapInputSchema = {
         shortDescription: { type: 'string', maxLength: 400 },
         status: { type: 'string', enum: [...PROJECT_STATUSES] },
         phase: { type: 'string', maxLength: 80 },
+        workMode: {
+          type: 'string',
+          enum: [...WORK_MODES],
+          description:
+            'Optional. "hands-off" plans the project in one CLAUDE.md instead of feature cards. Left out, a new project is "managed" and an existing one keeps its mode.',
+        },
         tags: { type: 'array', maxItems: 30, items: { type: 'string', maxLength: 40 } },
         techStack: {
           type: 'object',
@@ -269,11 +278,35 @@ const portfolioInputSchema = {
   },
 };
 
+/**
+ * A hands-off project's CLAUDE.md. Mirrors `projectDocCreateShape` in
+ * `packages/shared`, plus the slug that addresses the project.
+ */
+const docInputSchema = {
+  type: 'object' as const,
+  additionalProperties: false,
+  required: ['projectSlug', 'kind', 'body'],
+  properties: {
+    projectSlug: {
+      type: 'string',
+      description: 'Which project this belongs to. Must be a slug from wroom_list_context.',
+    },
+    kind: { type: 'string', enum: [...PROJECT_DOC_KINDS] },
+    body: {
+      type: 'string',
+      minLength: 1,
+      description: `The whole CLAUDE.md, as markdown, with its phases. At most ${PROJECT_DOC_MAX_BODY_BYTES / 1000}kB. Saved exactly as sent.`,
+    },
+  },
+};
+
 export const LIST_CONTEXT = 'wroom_list_context';
 export const BOOTSTRAP_PREVIEW = 'wroom_bootstrap_preview';
 export const BOOTSTRAP_COMMIT = 'wroom_bootstrap_commit';
 export const PORTFOLIO_PREVIEW = 'wroom_portfolio_preview';
 export const PORTFOLIO_COMMIT = 'wroom_portfolio_commit';
+export const DOC_PREVIEW = 'wroom_doc_preview';
+export const DOC_COMMIT = 'wroom_doc_commit';
 
 export const tools: Tool[] = [
   {
@@ -315,5 +348,21 @@ export const tools: Tool[] = [
       "Write this copy onto the project's page. Only call this after the person has read the plan from wroom_portfolio_preview and asked for it. It does not publish anything: the project stays private until somebody publishes it in the portal. Running the same payload twice changes nothing the second time.",
     inputSchema: portfolioInputSchema,
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+  },
+  {
+    name: DOC_PREVIEW,
+    title: "Preview a hands-off project's CLAUDE.md",
+    description:
+      "Work out what saving this CLAUDE.md would do: whether the project exists, its work mode, the version that would be created, and the line count against the latest version. Writes nothing. Always call this first and let the person read the plan before committing.",
+    inputSchema: docInputSchema,
+    annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+  },
+  {
+    name: DOC_COMMIT,
+    title: "Save a hands-off project's CLAUDE.md",
+    description:
+      "Save this CLAUDE.md as the project's next version. Always call wroom_doc_preview first, and only call this after the person has read that plan and asked for it. Every call makes a new version. It pushes nothing to a repo, and once a version has been pushed, Wroom refuses new ones.",
+    inputSchema: docInputSchema,
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
   },
 ];
