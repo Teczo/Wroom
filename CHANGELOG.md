@@ -2,6 +2,16 @@
 
 ## 2026-10-15
 
+- WRM-106: a hands-off project with a repo now shows its progress on GitHub at
+  the top of its Overview.
+  - It shows the newest "Phase n — done" heading in the repo's CHANGELOG.md.
+  - It shows the last commit on main, with its message and date.
+  - It shows the open pull requests and other branches, counted and named.
+  - It is read live from GitHub and kept for five minutes. A phase merged to
+    main shows within five minutes of being merged.
+  - If GitHub cannot be reached, the panel says "Could not reach GitHub" with
+    a button to try again, and the rest of the page works as normal.
+
 - WRM-105: a hands-off project's CLAUDE.md tab has a "Create repo & push"
   button.
   - It asks once and shows the repo's name, which starts as the project's slug
