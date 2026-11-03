@@ -52,10 +52,9 @@ import type { LandingData } from "./landingData";
  * them. It is finished inside 1.7 seconds, and every step of it is
  * transform, opacity and blur, so none of it costs layout (§18).
  *
- * `useEntered` is false only for the first frame after this component mounts,
- * and it mounts when the published record exists — the page renders nothing
- * here until then. So the choreography cannot play to an empty column, and it
- * cannot play twice.
+ * The component mounts with an empty default record while published content
+ * loads. Hold `useEntered` until there is copy or a portrait to render, so the
+ * choreography starts with the content rather than finishing before it arrives.
  *
  * This is a departure from the rule this file used to state, that nothing above
  * the fold animates on first paint. That rule is about Largest Contentful
@@ -113,7 +112,6 @@ export function Hero({ data }: { data: LandingData }) {
   const cv = data.cv;
   const backdrop = data.heroBackground;
 
-  const entered = useEntered();
   const sectionRef = useSectionProgress<HTMLElement>();
   // The ambient float is stopped once the portrait is off screen: a compositor
   // animating a layer nobody can see is the cheapest waste on the page to
@@ -143,7 +141,10 @@ export function Hero({ data }: { data: LandingData }) {
     hasActions ||
     tech.length > 0;
 
-  if (!hasCopy && !portrait) return null;
+  const hasContent = hasCopy || Boolean(portrait);
+  const entered = useEntered(hasContent);
+
+  if (!hasContent) return null;
 
   /*
    * Whether the portrait takes a column of its own at desktop width.
