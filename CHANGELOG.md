@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-03
+
+- The portfolio's startup animation waits for the hero content, so it plays
+  on a fresh visit even when the published page takes time to load.
+
 ## 2026-10-15
 
 - WRM-106: a hands-off project with a repo now shows its progress on GitHub at
